@@ -4,3 +4,4 @@ CMakeFiles/
 *.old
 Makefile
 cmake_install.cmake
+*~

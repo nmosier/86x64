@@ -4,6 +4,8 @@
 
 #include <LIEF/LIEF.hpp>
 
+#include "instrs.hpp"
+
 void usage(FILE *f, int argc, char *argv[]) {
    fprintf(f,
            "usage: %1$s <macho>\n"              \
@@ -33,9 +35,11 @@ int main(int argc, char *argv[]) {
 
    const char *in_path = argv[optind++];
    
-   std::unique_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse(in_path);
-   std::cout << *macho << std::endl;
-   
+   std::shared_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse(in_path);
+   // std::cout << *macho << std::endl;
+
+   transform_instructions(macho);
+
    return 0;
 }
 
