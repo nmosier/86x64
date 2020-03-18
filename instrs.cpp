@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <LIEF/LIEF.hpp>
+
 #include "instrs.hpp"
 
 void transform_instructions(std::shared_ptr<LIEF::MachO::FatBinary> macho) {

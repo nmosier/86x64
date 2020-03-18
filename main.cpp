@@ -3,6 +3,9 @@
 #include <iostream>
 
 #include <LIEF/LIEF.hpp>
+extern "C" {
+#include <xed/xed-interface.h>
+}
 
 #include "instrs.hpp"
 
@@ -34,10 +37,15 @@ int main(int argc, char *argv[]) {
    }
 
    const char *in_path = argv[optind++];
+
+   // XED initialization
+   xed_tables_init();
    
    std::shared_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse(in_path);
    // std::cout << *macho << std::endl;
 
+   
+   
    transform_instructions(macho);
 
    return 0;
