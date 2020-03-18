@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include "instrs.hpp"
+#include "function.hpp"
 
 void usage(FILE *f, int argc, char *argv[]) {
    fprintf(f,
@@ -40,14 +41,15 @@ int main(int argc, char *argv[]) {
 
    // XED initialization
    xed_tables_init();
-   
-   std::shared_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse(in_path);
-   // std::cout << *macho << std::endl;
+ 
+   std::unique_ptr<LIEF::MachO::FatBinary> macho = LIEF::MachO::Parser::parse(in_path);
 
+   for (auto&& binary : *macho) {
+      for (auto& func : binary.functions()) {
+         std::cout << func.name() << func << std::endl;
+      }
+   }
    
-   
-   transform_instructions(macho);
-
    return 0;
 }
 
