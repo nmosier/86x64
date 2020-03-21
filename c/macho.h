@@ -24,24 +24,24 @@ struct archive_32 {
 
 struct segment_32 {
    struct segment_command command;
-   void *data; // TODO
+   struct section *sections;
 };
 
 struct segment_64 {
    struct segment_command_64 command;
-   void *data; // TODO
+   struct section_64 *sections;
 };
 
 struct symtab_64 {
    struct symtab_command command;
    struct nlist_64 *entries;
-   void *strtab;
+   char *strtab;
 };
 
 struct symtab_32 {
    struct symtab_command command;
    struct nlist *entries;
-   void *strtab;
+   char *strtab;
 };
 
 struct dysymtab_64 {

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
+#include <mach-o/nlist.h>
 
 #include "macho.h"
 #include "util.h"
@@ -50,7 +51,6 @@ int macho_parse_fat(FILE *f, const uint32_t *magic, struct fat *fat) {
    size_t hdr_len;
    if (magic) {
       fat->header.magic = *magic;
-      // hdr_start = &fat->header.magic + sizeof(fat->header.magic);
       hdr_start = AFTER(fat->header.magic);
       hdr_len = STRUCT_REM(fat->header, magic);
    } else {
@@ -230,24 +230,23 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
       return -1;
    }
 
-   /* check if no data */
-   if (segment->command.filesize == 0) {
-      segment->data = NULL;
-      return 0;
-   }
+   /* parse sections */
+   if (segment->command.nsects == 0) {
+      segment->sections = NULL;
+   } else {
+      if ((segment->sections = fmread(sizeof(segment->sections[0]), segment->command.nsects, f))
+          == NULL) {
+         return -1;
+      }
 
-   /* seek to data */
-   if (fseek(f, segment->command.fileoff, SEEK_SET) < 0) {
-      fprintf(stderr, "fseek: %u: %s\n", segment->command.fileoff, strerror(errno));
-      return -1;
+      for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+         if (segment->sections[i].nreloc != 0) {
+            fprintf(stderr, "macho_parse_segment_32: relocation entries not supported\n");
+            return -1;
+         }
+      }
    }
-
-   /* parse data */
-   // TODO
-   if ((segment->data = fmread(segment->command.filesize, 1, f)) == NULL) {
-      return -1;
-   }
-
+   
    return 0;
 }
 
@@ -259,11 +258,31 @@ static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab) {
    }
 
    /* parse symtab entries */
-   // TODO
+   if (symtab->command.nsyms == 0) {
+      symtab->entries = NULL;
+   } else {
+      /* NOTE: Doesn't parse struct nlist entries intelligently; just loads blindly.
+       * However, this shouldn't be a problem unless the string table is modified. 
+       */
+      if ((symtab->entries = fmread(sizeof(symtab->entries[0]), symtab->command.nsyms, f))
+          == NULL) {
+         return -1;
+      }
+   }
 
    /* parse string table */
-   // TODO
-
+   if (symtab->command.strsize == 0) {
+      symtab->strtab = NULL;
+   } else {
+      if (fseek(f, symtab->command.stroff, SEEK_SET) < 0) {
+         perror("fseek");
+         return -1;
+      }
+      if ((symtab->strtab = fmread(1, symtab->command.strsize, f)) == NULL) {
+         return -1;
+      }
+   }
+   
    return 0;
 }
 
@@ -275,7 +294,36 @@ static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
    }
 
    /* parse data */
-   // TODO
+   if (dysymtab->command.ntoc) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing table of contents not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nmodtab) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing module table not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nextrefsyms) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nindirectsyms) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing indirect symbol table not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nextrel) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nlocrel) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing local relocation entries not supported\n");
+      return -1;
+   }
 
    return 0;
 }
