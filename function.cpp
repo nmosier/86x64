@@ -5,7 +5,7 @@ extern "C" {
 #include "function.hpp"
 
 DecodedFunction::content_t DecodedFunction::content_from_itext(const xed_uint8_t *itext,
-                                                               unsigned int bytes)
+                                                               uint64_t bytes)
 {
    content_t insts;
    while (bytes > 0) {
@@ -22,21 +22,42 @@ DecodedFunction::content_t DecodedFunction::content_from_itext(const xed_uint8_t
    return insts;
 }
 
-DecodedFunction::content_t DecodedFunction::content_from_binary(const Symbol& symbol,
-                                                                const LIEF::MachO::Binary& binary)
+DecodedFunction::content_t DecodedFunction::content_from_addr(uint64_t addr, uint64_t bytes,
+                                                              const Binary& binary)
 {
-   // get containing section
-   uint64_t sym_off = symbol.value();
-   uint64_t sym_size = symbol.size();
-   const LIEF::MachO::Section *sym_section = binary.section_from_offset(sym_off);
-   assert(sym_section);
+   // find text section
+   const Section& text_section = binary.get_section("__text");
 
-   // find offset of symbol content within section
-   assert(sym_off >= sym_section->offset());
-   assert(sym_size <= sym_section->size());
-   assert(sym_off + sym_size <= sym_section->offset() + sym_section->size());
-   uint64_t sym_sect_off = sym_off - sym_section->offset();
-   xed_uint8_t *sym_content = &*sym_section->content().begin() + sym_sect_off;
+   const std::vector<uint8_t> content =
+      binary.get_content_from_virtual_address(addr + text_section.address(),
+                                              bytes);
+   const xed_uint8_t *itext = &*content.begin();
+   return content_from_itext(itext, bytes);
+}
 
-   return content_from_itext(sym_content, sym_size);
+DecodedFunctions::DecodedFunctions(const Binary& binary) {
+   // sort all functions based on start address
+   auto starts = binary.function_starts().functions();
+   std::set<uint64_t> sorted_addrs(starts.begin(), starts.end());
+
+   // construct map from symbol start address to name
+   std::map<uint64_t, DecodedFunction::Symbol *> func_map;
+   for (auto& sym : binary.symbols()) {
+      if (!sym.is_external()) {
+         func_map[sym.value()] = &sym;
+      }
+   }
+   
+   auto it = sorted_addrs.rbegin();
+   auto text = binary.get_section("__text");
+   // assert(text.has_segment());
+   const LIEF::MachO::SegmentCommand& TEXT = text.segment();
+   uint64_t end_addr = text.virtual_address() + text.size();
+   while (it != sorted_addrs.rend()) {
+      assert(end_addr >= *it + TEXT.virtual_address());
+      auto sym_it = func_map.find(*it);
+      functions_.emplace_back(sym_it == func_map.end() ? std::nullopt : std::make_optional(sym_it->second),
+                              TEXT.virtual_address() + *it, end_addr - (TEXT.virtual_address() + *it), binary);
+      end_addr = *it++;
+   }
 }
