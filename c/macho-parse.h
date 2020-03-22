@@ -72,6 +72,19 @@ struct linkedit_data {
    void *data;
 };
 
+/** Machine-specific data structure following a thread_command. */
+struct thread_entry {
+   uint32_t flavor;
+   uint32_t count;
+   uint32_t *state;
+};
+
+struct thread {
+   struct thread_command command;
+   uint32_t nentries;
+   struct thread_entry *entries;
+};
+
 union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
@@ -79,7 +92,7 @@ union load_command_32 {
    struct dysymtab_32 dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
-   struct thread_command thread;
+   struct thread thread;
    struct linkedit_data linkedit;
 };
 
@@ -90,7 +103,7 @@ union load_command_64 {
    struct dysymtab_64 dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
-   struct thread_command thread;
+   struct thread thread;
    struct linkedit_data linkedit;
 };
 

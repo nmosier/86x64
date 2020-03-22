@@ -8,9 +8,8 @@
 
 #include <mach-o/loader.h>
 
-#include "util.h"
 #include "macho-parse.h"
-#include "offsets.h"
+#include "macho-emit.h"
 
 int main(int argc, char *argv[]) {
    int retv = 0;
@@ -36,7 +35,6 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-#if 1
    /* parse 32-bit Mach-O */
    union macho macho;
    if (macho_parse(f32, &macho) < 0) {
@@ -44,33 +42,11 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-   ssize_t noffs;
-   uint32_t **offsets;
-   if ((noffs = macho_offsets(&macho, &offsets)) < 0) {
+   /* write 32-bit Mach-O */
+   if (macho_emit(f64, &macho) < 0) {
       retv = 6;
       goto cleanup;
    }
-   printf("noffs=%zd\n", noffs);
-   
-#else
-   /* turn into 64-bit? */
-   union {
-      struct mach_header hdr32;
-      struct mach_header_64 hdr64;
-   } un;
-   if (fread_exact(&un.hdr32, sizeof(un.hdr32), 1, f32) < 0) {
-      retv = 5;
-      goto cleanup;
-   }
-   un.hdr64.reserved = 0;
-   un.hdr64.magic = MH_MAGIC_64;
-   fwrite(&un.hdr64, sizeof(un.hdr64), 1, f64);
-   int c;
-   while ((c = fgetc(f32)) != EOF) {
-      fputc(c, f64);
-   }
-   
-#endif
 
    /* success */
 

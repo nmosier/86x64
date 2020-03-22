@@ -15,7 +15,7 @@ static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab);
 static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab);
 static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker);
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid);
-static int macho_parse_thread(FILE *f, struct thread_command *thread);
+static int macho_parse_thread(FILE *f, struct thread *thread);
 static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
 
 int macho_parse(FILE *f, union macho *macho) {
@@ -234,37 +234,43 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
    if (segment->command.nsects == 0) {
       segment->sections = NULL;
    } else {
-      if ((segment->sections = fmread(sizeof(segment->sections[0]), segment->command.nsects, f))
-          == NULL) {
+      uint32_t nsects = segment->command.nsects;
+
+      /* allocate sections array */
+      if ((segment->sections = calloc(nsects, sizeof(segment->sections[0]))) == NULL) {
+         perror("calloc");
          return -1;
       }
 
-      /* save position */
-      off_t resume_pos;
-      if ((resume_pos = ftell(f)) < 0) {
-         perror("ftell");
-         return -1;
-      }
-
-      /* do section-specific preparation */
-      for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+      /* parse sections array */
+      for (uint32_t i = 0; i < nsects; ++i) {
          struct section_wrapper_32 *sectwr = &segment->sections[i];
+
+         /* read section struct */
+         if (fread_exact(&sectwr->section, sizeof(sectwr->section), 1, f) < 0) { return -1; }
 
          /* guard against unsupported features */
          if (sectwr->section.nreloc != 0) {
             fprintf(stderr, "macho_parse_segment_32: relocation entries not supported\n");
             return -1;
          }
+      }
 
-         /* parse data */
-         if (sectwr->section.size != 0) {
+      /* do section_wrapper initialization work */
+      for (uint32_t i = 0; i < nsects; ++i) {
+         struct section_wrapper_32 *sectwr = &segment->sections[i];
+         uint32_t data_size = sectwr->section.size;
+         if (data_size == 0) {
+            sectwr->data = NULL;
+         } else {
+            /* seek to data */
             if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
                perror("fseek");
                return -1;
             }
-            if ((sectwr->data = fmread(1, sectwr->section.size, f)) == NULL) {
-               return -1;
-            }
+            
+            /* parse data */
+            if ((sectwr->data = fmread(1, sectwr->section.size, f)) == NULL) { return -1; }
          }
       }
    }
@@ -393,7 +399,55 @@ static int macho_parse_uuid(FILE *f, struct uuid_command *uuid) {
    return fread_exact(AFTER(uuid->cmdsize), STRUCT_REM(*uuid, cmdsize), 1, f);
 }
 
-static int macho_parse_thread(FILE *f, struct thread_command *thread) {
+static int macho_parse_thread(FILE *f, struct thread *thread) {
+   size_t count = 0;
+
+   /* get thread structure data */
+   uint32_t *data;
+   size_t nitems = (thread->command.cmdsize - sizeof(struct load_command)) / sizeof(uint32_t);
+   if ((data = fmread(sizeof(uint32_t), nitems, f)) == NULL) { return -1; }
+   
+   /* count the number of data structures */
+   for (size_t i = 0; i < nitems; ) {
+      ++count;
+
+      /* skip flavor */
+      ++i;
+
+      /* skip state */
+      i += data[i] + 1;
+   }
+
+   /* allocate array */
+   if ((thread->entries = calloc(count, sizeof(thread->entries[0]))) == NULL) {
+      perror("calloc");
+      return -1;
+   }
+
+   thread->nentries = count;
+
+   /* parse entries */
+   uint32_t *data_it = data;
+   for (size_t i = 0; i < count; ++i) {
+      struct thread_entry *entry = &thread->entries[i];
+      
+      entry->flavor = *data_it++;
+      entry->count = *data_it++;
+
+      if ((entry->state = calloc(entry->count, sizeof(uint32_t))) == NULL) {
+         perror("calloc");
+         return -1;
+      }
+      memcpy(entry->state, data_it, sizeof(uint32_t) * entry->count);
+      data_it += entry->count;
+   }
+
+   // DEBUG
+   printf("thread entries = %d\n", thread->nentries);
+   for (uint32_t i = 0; i < thread->nentries; ++i) {
+      printf(".flavor=%d, .count=%d\n", thread->entries[i].flavor, thread->entries[i].count);
+   }
+   
    return 0;
 }
 

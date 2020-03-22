@@ -19,6 +19,16 @@ int fwrite_exact(const void *ptr, size_t size, size_t nitems, FILE *stream);
 void *fmread(size_t size, size_t nitems, FILE *stream);
 
 /**
+ * Write bytes at given offset.
+ * @param ptr buffer to write
+ * @param size size of each item
+ * @param nitems number of items
+ * @param stream output file
+ * @param offset offset to write at, relative to beginning of file (SEEK_SET)
+ */
+size_t fwrite_at(const void *ptr, size_t size, size_t nitems, FILE *stream, off_t offset);
+
+/**
  * Merge a collection of arrays of items into one array.
  * @param collection collection of arrays
  * @param counts counts of elements in each array
