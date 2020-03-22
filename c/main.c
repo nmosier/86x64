@@ -9,7 +9,8 @@
 #include <mach-o/loader.h>
 
 #include "util.h"
-#include "macho.h"
+#include "macho-parse.h"
+#include "offsets.h"
 
 int main(int argc, char *argv[]) {
    int retv = 0;
@@ -42,6 +43,15 @@ int main(int argc, char *argv[]) {
       retv = 5;
       goto cleanup;
    }
+
+   ssize_t noffs;
+   uint32_t **offsets;
+   if ((noffs = macho_offsets(&macho, &offsets)) < 0) {
+      retv = 6;
+      goto cleanup;
+   }
+   printf("noffs=%zd\n", noffs);
+   
 #else
    /* turn into 64-bit? */
    union {

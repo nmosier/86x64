@@ -1,6 +1,7 @@
 #ifndef MACHO_H
 #define MACHO_H
 
+#include <stdio.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 
@@ -19,17 +20,26 @@ struct fat {
 struct archive_32 {
    struct mach_header header;
    union load_command_32 *commands;
+};
+
+struct section_wrapper_32 {
+   struct section section;
+   void *data;
+};
+
+struct section_wrapper_64 {
+   struct section_64 section;
    void *data;
 };
 
 struct segment_32 {
    struct segment_command command;
-   struct section *sections;
+   struct section_wrapper_32 *sections;
 };
 
 struct segment_64 {
    struct segment_command_64 command;
-   struct section_64 *sections;
+   struct section_wrapper_64 *sections;
 };
 
 struct symtab_64 {
@@ -87,7 +97,6 @@ union load_command_64 {
 struct archive_64 {
    struct mach_header_64 header;
    union load_command_64 *commands;
-   void *data;
 };
 
 union archive {

@@ -7,7 +7,7 @@
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
 
-#include "macho.h"
+#include "macho-parse.h"
 #include "util.h"
 
 static int macho_parse_segment_32(FILE *f, struct segment_32 *segment);
@@ -239,13 +239,51 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
          return -1;
       }
 
+      /* save position */
+      off_t resume_pos;
+      if ((resume_pos = ftell(f)) < 0) {
+         perror("ftell");
+         return -1;
+      }
+
+      /* do section-specific preparation */
       for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-         if (segment->sections[i].nreloc != 0) {
+         struct section_wrapper_32 *sectwr = &segment->sections[i];
+
+         /* guard against unsupported features */
+         if (sectwr->section.nreloc != 0) {
             fprintf(stderr, "macho_parse_segment_32: relocation entries not supported\n");
             return -1;
          }
+
+         /* parse data */
+         if (sectwr->section.size != 0) {
+            if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
+               perror("fseek");
+               return -1;
+            }
+            if ((sectwr->data = fmread(1, sectwr->section.size, f)) == NULL) {
+               return -1;
+            }
+         }
       }
    }
+
+   // DEBUG
+#if 1
+   printf("LC_SEGMENT={\n\t.segname='%s',\n\t.fileoff=0x%x,\n\t.filesize=0x%x\n\n",
+          segment->command.segname, segment->command.fileoff, segment->command.filesize);
+   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+      printf("\tstruct section={.sectname='%s',.offset=0x%x,.size=0x%x}\n",
+             segment->sections[i].section.sectname, segment->sections[i].section.offset,
+             segment->sections[i].section.size);
+      for (size_t j = 0; j < segment->sections[i].section.size; ++j) {
+         printf(" %02x", ((uint8_t *)segment->sections[i].data)[j]);
+      }
+      printf("\n");
+   }
+#endif
+   
    
    return 0;
 }
