@@ -77,3 +77,11 @@ size_t fwrite_at(const void *ptr, size_t size, size_t nitems, FILE *stream, off_
    }
    return fwrite_exact(ptr, size, nitems, stream);
 }
+
+size_t fread_at(void *ptr, size_t size, size_t nitems, FILE *stream, off_t offset) {
+   if (fseek(stream, offset, SEEK_SET) < 0) {
+      perror("fseek");
+      return -1;
+   }
+   return fread_exact(ptr, size, nitems, stream);
+}

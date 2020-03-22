@@ -152,8 +152,12 @@ static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker) {
       perror("ftell");
       return -1;
    }
+#if 0
    if (fwrite_at(dylinker->name, sizeof(char), strlen(dylinker->name), f,
                  dylinker->command.name.offset + name_pos) < 0) { return -1; }
+#else
+   if (fwrite_exact(dylinker->name, sizeof(char), strlen(dylinker->name), f) < 0) { return -1; }
+#endif
 
    return 0;
 }

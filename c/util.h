@@ -28,6 +28,8 @@ void *fmread(size_t size, size_t nitems, FILE *stream);
  */
 size_t fwrite_at(const void *ptr, size_t size, size_t nitems, FILE *stream, off_t offset);
 
+size_t fread_at(void *ptr, size_t size, size_t nitems, FILE *stream, off_t offset);
+
 /**
  * Merge a collection of arrays of items into one array.
  * @param collection collection of arrays

@@ -308,10 +308,12 @@ static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab) {
       /* NOTE: Doesn't parse struct nlist entries intelligently; just loads blindly.
        * However, this shouldn't be a problem unless the string table is modified. 
        */
-      if ((symtab->entries = fmread(sizeof(symtab->entries[0]), symtab->command.nsyms, f))
-          == NULL) {
+      if ((symtab->entries = calloc(symtab->command.nsyms, sizeof(symtab->entries[0]))) == NULL) {
+         perror("calloc");
          return -1;
       }
+      if (fread_at(symtab->entries, sizeof(symtab->entries[0]), symtab->command.nsyms, f,
+                   symtab->command.symoff) < 0) { return -1; }
    }
 
    /* parse string table */
