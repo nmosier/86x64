@@ -46,10 +46,12 @@ int main(int argc, char *argv[]) {
    printf("[before] macho.sizeofcmds=0x%x\n", macho.archive.archive_32.header.sizeofcmds);
    
    /* build 32-bit Mach-O */
+#if 0
    if (macho_build(&macho) < 0) {
       retv = 7;
       goto cleanup;
    }
+#endif
 
    printf("[after] macho.sizeofcmds=0x%x\n", macho.archive.archive_32.header.sizeofcmds);   
 

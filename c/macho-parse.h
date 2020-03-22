@@ -35,11 +35,13 @@ struct section_wrapper_64 {
 struct segment_32 {
    struct segment_command command;
    struct section_wrapper_32 *sections;
+   void **refs; /*!< generic array of referenced items */
 };
 
 struct segment_64 {
    struct segment_command_64 command;
    struct section_wrapper_64 *sections;
+   void **refs; /*!< generic array of referenced items */
 };
 
 struct symtab_64 {

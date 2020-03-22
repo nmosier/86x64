@@ -8,6 +8,7 @@
 #include <mach-o/nlist.h>
 
 #include "macho-parse.h"
+#include "macho-util.h"
 #include "util.h"
 
 static int macho_parse_segment_32(FILE *f, struct segment_32 *segment);
@@ -17,6 +18,7 @@ static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker);
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid);
 static int macho_parse_thread(FILE *f, struct thread *thread);
 static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
+
 
 int macho_parse(FILE *f, union macho *macho) {
    /* read magic bytes */
@@ -146,7 +148,7 @@ int macho_parse_archive_32(FILE *f, const uint32_t *magic, struct archive_32 *ar
          return -1;
       }
    }
-   
+
    return 0;
 }
 
@@ -289,8 +291,7 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
       printf("\n");
    }
 #endif
-   
-   
+
    return 0;
 }
 
@@ -474,3 +475,5 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit) {
    
    return 0; 
 }
+
+

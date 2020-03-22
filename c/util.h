@@ -7,7 +7,12 @@
 #define AFTER(lval) ((void *) ((char *) &(lval) + sizeof(lval)))
 #define STRUCT_REM(s, memb) (((char *) (&(s) + 1)) - ((char *) (&(s).memb + 1)))
 
-#define ALIGN(n, align) ((((n) + (align) - 1) / (align)) * (align))
+#define ALIGN_UP(n, align) ((((n) + (align) - 1) / (align)) * (align))
+#define ALIGN_DOWN(n, align) (((n) / (align)) * (align))
+
+#define MAX(a, b) (((a) < (b)) ? (b) : (a))
+
+#define PAGESIZE 0x1000
 
 int fread_exact(void *ptr, size_t size, size_t nitems, FILE *stream);
 int fwrite_exact(const void *ptr, size_t size, size_t nitems, FILE *stream);
