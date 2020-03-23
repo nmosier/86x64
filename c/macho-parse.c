@@ -6,6 +6,7 @@
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+#include <mach/thread_status.h>
 
 #include "macho-parse.h"
 #include "macho-util.h"
@@ -18,7 +19,6 @@ static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker);
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid);
 static int macho_parse_thread(FILE *f, struct thread *thread);
 static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
-
 
 int macho_parse(FILE *f, union macho *macho) {
    /* read magic bytes */
@@ -417,52 +417,44 @@ static int macho_parse_uuid(FILE *f, struct uuid_command *uuid) {
 }
 
 static int macho_parse_thread(FILE *f, struct thread *thread) {
-   size_t count = 0;
+   /* parse command */
+   /* (already done) */
 
-   /* get thread structure data */
-   uint32_t *data;
-   size_t nitems = (thread->command.cmdsize - sizeof(struct load_command)) / sizeof(uint32_t);
-   if ((data = fmread(sizeof(uint32_t), nitems, f)) == NULL) { return -1; }
-   
-   /* count the number of data structures */
-   for (size_t i = 0; i < nitems; ) {
-      ++count;
-
-      /* skip flavor */
-      ++i;
-
-      /* skip state */
-      i += data[i] + 1;
-   }
-
-   /* allocate array */
-   if ((thread->entries = calloc(count, sizeof(thread->entries[0]))) == NULL) {
-      perror("calloc");
-      return -1;
-   }
-
-   thread->nentries = count;
-
-   /* parse entries */
-   uint32_t *data_it = data;
-   for (size_t i = 0; i < count; ++i) {
-      struct thread_entry *entry = &thread->entries[i];
-      
-      entry->flavor = *data_it++;
-      entry->count = *data_it++;
-
-      if ((entry->state = calloc(entry->count, sizeof(uint32_t))) == NULL) {
-         perror("calloc");
+   /* parse thread list */
+   struct thread_list **thread_it = &thread->entries;
+   *thread_it = NULL;
+   size_t rem = (thread->command.cmdsize - sizeof(struct thread)) / sizeof(uint32_t);
+   while (rem > 0) {
+      /* allocate new node */
+      if ((*thread_it = malloc(sizeof(struct thread_list))) == NULL) {
+         perror("malloc");
          return -1;
       }
-      memcpy(entry->state, data_it, sizeof(uint32_t) * entry->count);
-      data_it += entry->count;
-   }
 
-   // DEBUG
-   printf("thread entries = %d\n", thread->nentries);
-   for (uint32_t i = 0; i < thread->nentries; ++i) {
-      printf(".flavor=%d, .count=%d\n", thread->entries[i].flavor, thread->entries[i].count);
+      union thread_entry *entry = &(*thread_it)->entry;
+
+      /* read header */
+      if (fread_exact(&entry->header, sizeof(entry->header), 1, f) < 0) { return -1; }
+
+      switch (entry->header.flavor) {
+      case x86_THREAD_STATE32:
+         if (fread_exact(&entry->x86_thread.uts.ts32, sizeof(entry->x86_thread.uts.ts32), 1, f) < 0)
+            { return -1; }
+         break;
+         
+      default:
+         fprintf(stderr, "macho_parse_thread: thread flavor 0x%x not supported\n",
+                 entry->header.flavor);
+         return -1;
+      }
+      
+
+      /* increment iterator */
+      thread_it = &(*thread_it)->next;
+      *thread_it = NULL;
+
+      /* decrement remaining uint32_t's */
+      rem -= entry->header.count;
    }
    
    return 0;

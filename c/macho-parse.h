@@ -5,6 +5,7 @@
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+#include <mach/thread_status.h>
 
 enum endian {ENDIAN_LITTLE, ENDIAN_BIG};
 
@@ -76,16 +77,24 @@ struct linkedit_data {
 };
 
 /** Machine-specific data structure following a thread_command. */
-struct thread_entry {
+struct thread_header {
    uint32_t flavor;
    uint32_t count;
-   uint32_t *state;
+};
+
+union thread_entry {
+   struct thread_header header;
+   struct x86_thread_state x86_thread;
+};
+
+struct thread_list {
+   union thread_entry entry;
+   struct thread_list *next;
 };
 
 struct thread {
    struct thread_command command;
-   uint32_t nentries;
-   struct thread_entry *entries;
+   struct thread_list *entries;
 };
 
 union load_command_32 {

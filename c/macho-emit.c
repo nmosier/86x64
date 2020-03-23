@@ -178,11 +178,28 @@ static int macho_emit_thread(FILE *f, const struct thread *thread) {
    if (fwrite_exact(&thread->command, sizeof(thread->command), 1, f) < 0) { return -1; }
 
    /* emit state structures */
-   for (uint32_t i = 0; i < thread->nentries; ++i) {
-      const struct thread_entry *entry = &thread->entries[i];
-      if (fwrite_exact(&entry->flavor, sizeof(entry->flavor), 1, f) < 0) { return -1; }
-      if (fwrite_exact(&entry->count, sizeof(entry->count), 1, f) < 0) { return -1; }
-      if (fwrite_exact(entry->state, sizeof(entry->state[0]), entry->count, f) < 0) { return -1; }
+   struct thread_list *thread_it = thread->entries;
+   while (thread_it) {
+      /* write thread state header */
+      if (fwrite_exact(&thread_it->entry.header, sizeof(thread_it->entry.header), 1, f) < 0) {
+         return -1;
+      }
+
+      /* write thread state body */
+      switch (thread_it->entry.header.flavor) {
+      case x86_THREAD_STATE32:
+         if (fwrite_exact(&thread_it->entry.x86_thread.uts.ts32,
+                          sizeof(thread_it->entry.x86_thread.uts.ts32), 1, f) < 0) { return -1; }
+         break;
+         
+      default:
+         fprintf(stderr, "macho_emit_thread: unsupported thread state flavor 0x%x\n",
+                 thread_it->entry.header.flavor);
+         return -1;
+      }
+      
+      /* increment iterator */
+      thread_it = thread_it->next;
    }
 
    return 0;

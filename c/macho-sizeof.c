@@ -44,11 +44,11 @@ uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
 uint32_t macho_sizeof_thread(struct thread *thread) {
    uint32_t size = sizeof(thread->command);
 
-   for (uint32_t i = 0; i < thread->nentries; ++i) {
-      struct thread_entry *entry = &thread->entries[i];
-      size += sizeof(entry->flavor) + sizeof(entry->count);
-      size += sizeof(entry->state[0]) * entry->count;
+   struct thread_list *it = thread->entries;
+   while (it) {
+      size += it->entry.header.count * sizeof(uint32_t) + sizeof(it->entry.header);
+      it = it->next;
    }
-
+   
    return thread->command.cmdsize = size;
 }
