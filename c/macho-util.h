@@ -20,4 +20,9 @@ bool macho_is_linkedit(const union load_command_32 *command);
  */
 struct linkedit_data *macho_linkedit(union load_command_32 *command);
 
+struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 *archive);
+struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment);
+
+union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive);
+
 #endif

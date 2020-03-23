@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <mach-o/loader.h>
 #include <mach-o/fat.h>
 
@@ -57,4 +58,41 @@ bool macho_is_linkedit(const union load_command_32 *command) {
 
 struct linkedit_data *macho_linkedit(union load_command_32 *command) {
    return macho_is_linkedit(command) ? &command->linkedit : NULL;
+}
+
+struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 *archive) {
+   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
+      union load_command_32 *command = &archive->commands[i];
+      if (command->load.cmd == LC_SEGMENT) {
+         struct segment_32 *segment = &command->segment;
+         if (strncmp(segment->command.segname, segname, sizeof(segment->command.segname)) == 0) {
+            return segment;
+         }
+      }
+   }
+
+   return NULL;
+}
+
+struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment)
+{
+   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+      struct section_wrapper_32 *sectwr = &segment->sections[i];
+      if (strncmp(sectwr->section.sectname, sectname, sizeof(sectwr->section.sectname)) == 0) {
+         return sectwr;
+      }
+   }
+
+   return NULL;
+}
+
+union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive) {
+   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
+      union load_command_32 *command = &archive->commands[i];
+      if (command->load.cmd == cmd) {
+         return command;
+      } 
+   }
+
+   return NULL;
 }

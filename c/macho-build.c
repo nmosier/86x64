@@ -96,7 +96,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    if (strncmp(segment->command.segname, SEG_LINKEDIT, sizeof(segment->command.segname)) == 0) {
       return macho_build_segment_32_LINKEDIT(segment, info);
    }
-   
+
    /* get max alignment */
    uint32_t section_maxalign = 0;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
@@ -126,6 +126,26 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    macho_addr_t vmaddr = info->vmaddr + dataoff % PAGESIZE;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
       struct section *section = &segment->sections[i].section;
+      macho_addr_t vmaddr_diff = -section->addr;
+
+      /* function starts data */
+      struct linkedit_data *fnstarts = NULL;
+      uint32_t *fnstarts_addrs;
+      uint32_t fnstarts_naddrs;
+
+      /* check if __text -- if so, then update function starts */
+      if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
+         /* find function starts command */
+         union load_command_32 *command;
+         if ((command = macho_find_load_command_32(LC_FUNCTION_STARTS, &info->archive->archive_32))) {
+            fnstarts = &command->linkedit;
+            fnstarts_addrs = fnstarts->data;
+            fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
+            for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
+               fnstarts_addrs[i] -= section->addr;
+            }
+         }
+      }
 
       /* update offsets */
       dataoff = ALIGN_UP(dataoff, 1 << section->align);
@@ -137,14 +157,27 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       section->addr = vmaddr;
       vmaddr += section->size;
 
-#if 0
-      // DEBUG
-      if (strncmp(section->segname, SEG_TEXT, sizeof(section->segname)) == 0) {
-         /* override */
-         section->addr = 0x1fff;
-         section->offset = 0xfff;
+      if (fnstarts) {
+         for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
+            fnstarts_addrs[i] += section->addr;
+         }
       }
-#endif
+
+      vmaddr_diff += section->addr;
+
+      /* patch symbols */
+      union load_command_32 *symtab_tmp;
+      if ((symtab_tmp = macho_find_load_command_32(LC_SYMTAB, &info->archive->archive_32))) {
+         struct symtab_32 *symtab = &symtab_tmp->symtab;
+         for (uint32_t j = 0; j < symtab->command.nsyms; ++j) {
+            struct nlist *entry = &symtab->entries[j];
+            if (entry->n_sect == i + 1) {
+               /* patch symbol address */
+               entry->n_value += vmaddr_diff;
+            }
+         }
+      }
+
    }
    
    /* update build info */

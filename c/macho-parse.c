@@ -329,6 +329,20 @@ static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab) {
          return -1;
       }
    }
+
+   // DEBUG
+   printf("SYMTAB{");
+   for (uint32_t i = 0; i < symtab->command.nsyms; ++i) {
+      struct nlist *entry = &symtab->entries[i];
+      printf("\t{name='%s',value=0x%x,desc=0x%x,type=0x%x,sect=0x%x}\n",
+             &symtab->strtab[entry->n_un.n_strx],
+             entry->n_value,
+             entry->n_desc,
+             entry->n_type,
+             entry->n_sect
+             );
+   }
+   printf("}\n");
    
    return 0;
 }
@@ -460,9 +474,6 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit) {
       return -1;
    }
 
-   // DEBUG
-   printf("parsed linkedit blob with size 0x%x\n", linkedit->command.datasize);
-
    /* parse data */
    if ((linkedit->data = malloc(linkedit->command.datasize)) == NULL) {
       perror("malloc");
@@ -476,6 +487,13 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit) {
       return -1;
    }
    
+   // DEBUG
+   printf("parsed linkedit blob with size 0x%x: ", linkedit->command.datasize);
+   for (uint32_t i = 0; i < linkedit->command.datasize / 4; ++i) {
+      printf(" %x", ((uint32_t *) linkedit->data)[i]);
+   }
+   printf("\n");
+
    return 0; 
 }
 
