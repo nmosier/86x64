@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
+#include <mach-o/nlist.h>
 
 enum endian {ENDIAN_LITTLE, ENDIAN_BIG};
 

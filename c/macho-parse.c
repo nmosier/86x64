@@ -460,6 +460,9 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit) {
       return -1;
    }
 
+   // DEBUG
+   printf("parsed linkedit blob with size 0x%x\n", linkedit->command.datasize);
+
    /* parse data */
    if ((linkedit->data = malloc(linkedit->command.datasize)) == NULL) {
       perror("malloc");

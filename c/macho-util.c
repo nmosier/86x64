@@ -54,3 +54,7 @@ bool macho_is_linkedit(const union load_command_32 *command) {
    }
 
 }
+
+struct linkedit_data *macho_linkedit(union load_command_32 *command) {
+   return macho_is_linkedit(command) ? &command->linkedit : NULL;
+}
