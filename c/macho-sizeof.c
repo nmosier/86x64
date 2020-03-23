@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "util.h"
-#include "macho-parse.h"
+#include "macho.h"
 #include "macho-sizeof.h"
 
 uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {

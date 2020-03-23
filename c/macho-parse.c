@@ -8,6 +8,7 @@
 #include <mach-o/nlist.h>
 #include <mach/thread_status.h>
 
+#include "macho.h"
 #include "macho-parse.h"
 #include "macho-util.h"
 #include "util.h"

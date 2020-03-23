@@ -8,6 +8,7 @@
 
 #include <mach-o/loader.h>
 
+#include "macho.h"
 #include "macho-parse.h"
 #include "macho-emit.h"
 #include "macho-build.h"

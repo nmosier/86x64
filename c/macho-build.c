@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "macho-parse.h"
+#include "macho.h"
 #include "macho-util.h"
 #include "macho-build.h"
 #include "macho-sizeof.h"

@@ -3,7 +3,7 @@
 #include <mach-o/loader.h>
 #include <mach-o/fat.h>
 
-#include "macho-parse.h"
+#include "macho.h"
 #include "macho-util.h"
 
 enum macho_kind macho_kind(const union macho *macho) {
