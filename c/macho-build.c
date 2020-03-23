@@ -178,6 +178,26 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
          }
       }
 
+      /* patch thread states */
+      union load_command_32 *thread_tmp;
+      if ((thread_tmp = macho_find_load_command_32(LC_UNIXTHREAD, &info->archive->archive_32))) {
+         struct thread_list *it = thread_tmp->thread.entries;
+         while (it) {
+            switch (it->entry.header.flavor) {
+            case x86_THREAD_STATE32:
+               it->entry.x86_thread.uts.ts32.__eip += vmaddr_diff;
+               break;
+               
+            default:
+               fprintf(stderr, "macho_build_segment_32: thread state flavor 0x%x unsupported\n",
+                       it->entry.header.flavor);
+               return -1;
+            }
+            
+            it = it->next;
+         }
+      }
+
    }
    
    /* update build info */
