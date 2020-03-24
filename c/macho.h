@@ -1,10 +1,15 @@
 #ifndef MACHO_H
 #define MACHO_H
 
+#include <stdio.h>
+
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
 #include <mach/thread_status.h>
+
+typedef off_t macho_off_t;
+typedef uint64_t macho_addr_t;
 
 struct fat_archive {
    struct fat_arch header;
@@ -24,23 +29,25 @@ struct archive_32 {
 struct section_wrapper_32 {
    struct section section;
    void *data;
+   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
+   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
 struct section_wrapper_64 {
    struct section_64 section;
    void *data;
+   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
+   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
 struct segment_32 {
    struct segment_command command;
    struct section_wrapper_32 *sections;
-   void **refs; /*!< generic array of referenced items */
 };
 
 struct segment_64 {
    struct segment_command_64 command;
    struct section_wrapper_64 *sections;
-   void **refs; /*!< generic array of referenced items */
 };
 
 struct symtab_64 {

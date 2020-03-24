@@ -136,8 +136,12 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    macho_off_t dataoff = info->dataoff;
    macho_addr_t vmaddr = info->vmaddr + dataoff % PAGESIZE;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      struct section *section = &segment->sections[i].section;
-      macho_addr_t vmaddr_diff = -section->addr;
+      struct section_wrapper_32 *sectwr = &segment->sections[i];
+      struct section *section = &sectwr->section;
+
+      // macho_addr_t vmaddr_diff = -section->addr;
+      sectwr->adiff = -section->addr;
+      sectwr->odiff = -section->offset;
 
       /* function starts data */
       struct linkedit_data *fnstarts = NULL;
@@ -196,7 +200,9 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
          printf("new entryoff = 0x%llx\n", entry_point->entryoff);
       }
 
-      vmaddr_diff += section->addr;
+      // vmaddr_diff += section->addr;
+      sectwr->adiff += section->addr;
+      sectwr->odiff += section->offset;
 
       /* patch symbols */
       union load_command_32 *symtab_tmp;
@@ -206,7 +212,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
             struct nlist *entry = &symtab->entries[j];
             if (entry->n_sect == i + 1) {
                /* patch symbol address */
-               entry->n_value += vmaddr_diff;
+               entry->n_value += sectwr->adiff; // vmaddr_diff;
             }
          }
       }
@@ -218,7 +224,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
          while (it) {
             switch (it->entry.header.flavor) {
             case x86_THREAD_STATE32:
-               it->entry.x86_thread.uts.ts32.__eip += vmaddr_diff;
+               it->entry.x86_thread.uts.ts32.__eip += sectwr->adiff;
                break;
                
             default:

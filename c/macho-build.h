@@ -3,10 +3,8 @@
 
 #include <stdio.h>
 
-#include "macho-parse.h"
+#include "macho.h"
 
-typedef off_t macho_off_t;
-typedef uint64_t macho_addr_t;
 
 struct build_info {
    union archive *archive;
