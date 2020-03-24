@@ -11,6 +11,8 @@ static int macho_emit_symtab_32(FILE *f, const struct symtab_32 *symtab);
 static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker);
 static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedit);
 static int macho_emit_thread(FILE *f, const struct thread *thread);
+static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
+static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
 
 int macho_emit(FILE *f, const union macho *macho) {
    switch (macho_kind(macho)) {
@@ -89,6 +91,35 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
    case LC_DATA_IN_CODE:
       if (macho_emit_linkedit_data(f, &command->linkedit) < 0) { return -1; }
       break;
+
+   case LC_DYLD_INFO_ONLY:
+      if (macho_emit_dyld_info(f, &command->dyld_info) < 0) { return -1; }
+      break;
+
+   case LC_VERSION_MIN_MACOSX:
+      if (fwrite_exact(&command->version_min, sizeof(command->version_min), 1, f) < 0)
+         { return -1; }
+      break;
+
+   case LC_SOURCE_VERSION:
+      if (fwrite_exact(&command->source_version, sizeof(command->source_version), 1, f) < 0) {
+         return -1;
+      }
+      break;
+
+   case LC_MAIN:
+      if (fwrite_exact(&command->entry_point, sizeof(command->entry_point), 1, f) < 0) {
+         return -1;
+      }
+      break;
+
+   case LC_LOAD_DYLIB:
+      if (macho_emit_dylib(f, &command->dylib) < 0) { return -1; }
+      break;
+
+   default:
+      fprintf(stderr, "macho_emit_load_command_32: unsupported command 0x%x\n", command->load.cmd);
+      return -1;
    }
 
    /* seek next cmdsize bytes */
@@ -201,6 +232,31 @@ static int macho_emit_thread(FILE *f, const struct thread *thread) {
       /* increment iterator */
       thread_it = thread_it->next;
    }
+
+   return 0;
+}
+
+static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info) {
+   /* emit dyld_info command */
+   if (fwrite_exact(&dyld_info->command, sizeof(dyld_info->command), 1, f) < 0) { return -1; }
+
+   /* emit bind data */
+   if (fwrite_at(dyld_info->bind_data, 1, dyld_info->command.bind_size, f,
+                 dyld_info->command.bind_off) < 0) { return -1; }
+
+   /* emit export data */
+   if (fwrite_at(dyld_info->export_data, 1, dyld_info->command.export_size, f,
+                 dyld_info->command.export_off) < 0) { return -1; }
+
+   return 0;
+}
+
+static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
+   /* emit dylib command */
+   if (fwrite_exact(&dylib->command, sizeof(dylib->command), 1, f) < 0) { return -1; }
+
+   /* emit name */
+   if (fwrite_exact(dylib->name, sizeof(char), strlen(dylib->name), f) < 0) { return -1; }
 
    return 0;
 }

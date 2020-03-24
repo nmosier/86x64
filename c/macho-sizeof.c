@@ -16,6 +16,10 @@ uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {
    case LC_UUID:      
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
+   case LC_DYLD_INFO_ONLY:
+   case LC_VERSION_MIN_MACOSX:
+   case LC_SOURCE_VERSION:
+   case LC_MAIN:
       return command->load.cmdsize;
       
    case LC_LOAD_DYLINKER:
@@ -23,6 +27,9 @@ uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {
       
    case LC_UNIXTHREAD:
       return macho_sizeof_thread(&command->thread);
+
+   case LC_LOAD_DYLIB:
+      return macho_sizeof_dylib(&command->dylib);
 
    default:
       fprintf(stderr, "macho_sizeof_load_command_32: unrecognized load command 0x%x\n",
@@ -38,7 +45,7 @@ uint32_t macho_sizeof_segment_32(struct segment_32 *segment) {
 
 uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
    uint32_t namelen = strlen(dylinker->name);
-   return dylinker->command.cmdsize = sizeof(dylinker->command) + ALIGN_UP(namelen, 4);
+   return dylinker->command.cmdsize = sizeof(dylinker->command) + ALIGN_UP(namelen, sizeof(uint32_t));
 }
 
 uint32_t macho_sizeof_thread(struct thread *thread) {
@@ -51,4 +58,9 @@ uint32_t macho_sizeof_thread(struct thread *thread) {
    }
    
    return thread->command.cmdsize = size;
+}
+
+uint32_t macho_sizeof_dylib(struct dylib_wrapper *dylib) {
+   return dylib->command.cmdsize = sizeof(dylib->command) +
+      ALIGN_UP(strlen(dylib->name), sizeof(uint32_t));
 }

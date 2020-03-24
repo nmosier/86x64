@@ -85,3 +85,11 @@ size_t fread_at(void *ptr, size_t size, size_t nitems, FILE *stream, off_t offse
    }
    return fread_exact(ptr, size, nitems, stream);
 }
+
+void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset) {
+   if (fseek(stream, offset, SEEK_SET) < 0) {
+      perror("fread_at: fseek");
+      return NULL;
+   }
+   return fmread(size, nitems, stream);
+}

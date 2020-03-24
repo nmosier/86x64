@@ -20,6 +20,8 @@ static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker);
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid);
 static int macho_parse_thread(FILE *f, struct thread *thread);
 static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
+static int macho_parse_dyld_info(FILE *f, struct dyld_info *dyld_info);
+static int macho_parse_dylib(FILE *f, struct dylib_wrapper *dylib);
 
 int macho_parse(FILE *f, union macho *macho) {
    /* read magic bytes */
@@ -159,59 +161,73 @@ int macho_parse_load_command_32(FILE *f, union load_command_32 *command) {
    /* save offset */
    if ((offset = ftell(f)) < 0) {
       perror("ftell");
+      return -1;
    }
    
    /* parse shared load command preamble */
-   if (fread_exact(&command->load, sizeof(command->load), 1, f) < 0) {
-      return -1;
-   }
+   if (fread_exact(&command->load, sizeof(command->load), 1, f) < 0) { return -1; }
 
    switch (command->load.cmd) {
    case LC_SEGMENT:
-      if (macho_parse_segment_32(f, &command->segment) < 0) {
-         return -1;
-      }
+      if (macho_parse_segment_32(f, &command->segment) < 0) { return -1; }
       break;
 
    case LC_SYMTAB:
-      if (macho_parse_symtab_32(f, &command->symtab) < 0) {
-         return -1;
-      }
+      if (macho_parse_symtab_32(f, &command->symtab) < 0) { return -1; }
       break;
 
    case LC_DYSYMTAB:
-      if (macho_parse_dysymtab_32(f, &command->dysymtab) < 0) {
-         return -1;
-      }
+      if (macho_parse_dysymtab_32(f, &command->dysymtab) < 0) { return -1; }
       break;
 
    case LC_LOAD_DYLINKER:
-      if (macho_parse_dylinker(f, &command->dylinker) < 0) {
-         return -1;
-      }
+      if (macho_parse_dylinker(f, &command->dylinker) < 0) { return -1; }
       break;
 
    case LC_UUID:
-      if (macho_parse_uuid(f, &command->uuid) < 0) {
-         return -1;
-      }
+      if (macho_parse_uuid(f, &command->uuid) < 0) { return -1; }
       break;
 
    case LC_UNIXTHREAD:
-      if (macho_parse_thread(f, &command->thread) < 0) {
-         return -1;
-      }
+      if (macho_parse_thread(f, &command->thread) < 0) { return -1; }
       break;
 
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
-      if (macho_parse_linkedit(f, &command->linkedit) < 0) {
-         return -1;
-      }
+      if (macho_parse_linkedit(f, &command->linkedit) < 0) { return -1; }
+      break;
+
+   case LC_DYLD_INFO:
+   case LC_DYLD_INFO_ONLY:
+      if (macho_parse_dyld_info(f, &command->dyld_info) < 0) { return -1; }
+      break;
+
+   case LC_VERSION_MIN_MACOSX:
+      if (fread_exact(AFTER(command->version_min.cmdsize), 1,
+                      STRUCT_REM(command->version_min, cmdsize), f) < 0) { return -1; }
+      break;
+
+   case LC_SOURCE_VERSION:
+      if (fread_exact(AFTER(command->source_version.cmdsize), 1,
+                      STRUCT_REM(command->source_version, cmdsize), f) < 0) { return -1; }
+      break;
+
+   case LC_MAIN:
+      if (fread_exact(AFTER(command->entry_point.cmdsize), 1,
+                      STRUCT_REM(command->entry_point, cmdsize), f) < 0) { return -1; }
+
+      // DEBUG
+      printf("LC_MAIN={.entryoff=0x%llx}\n", command->entry_point.entryoff);
+      
+      break;
+
+   case LC_LOAD_DYLIB:
+      if (macho_parse_dylib(f, &command->dylib) < 0) { return -1; }
       break;
       
    default:
-      fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n", command->load.cmd);
+      fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n",
+              command->load.cmd);
       return -1;
    }
 
@@ -490,4 +506,41 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit) {
    return 0; 
 }
 
+static int macho_parse_dyld_info(FILE *f, struct dyld_info *dyld_info) {
+   /* read rest of struct */
+   if (fread_exact(AFTER(dyld_info->command.cmdsize),
+                   STRUCT_REM(dyld_info->command, cmdsize), 1, f) < 0) { return -1; }
 
+   /* feature checks */
+   if (dyld_info->command.rebase_size) {
+      fprintf(stderr, "macho_parse_dyld_info: rebase not supported\n");
+      return -1;
+   }
+   if (dyld_info->command.weak_bind_size) {
+      fprintf(stderr, "macho_parse_dyld_info: weak bindings not supported\n");
+      return -1;
+   }
+   if (dyld_info->command.lazy_bind_size) {
+      fprintf(stderr, "macho_parse_dyld_info: lazy bindings not supported\n");
+      return -1;
+   }
+
+   if ((dyld_info->bind_data = fmread_at(1, dyld_info->command.bind_size, f,
+                                         dyld_info->command.bind_off)) == NULL) { return -1; }
+   if ((dyld_info->export_data = fmread_at(1, dyld_info->command.export_size, f,
+                                           dyld_info->command.export_off)) == NULL) { return -1; }
+
+   return 0;
+}
+
+static int macho_parse_dylib(FILE *f, struct dylib_wrapper *dylib) {
+   if (fread_exact(AFTER(dylib->command.cmdsize), 1,
+                   STRUCT_REM(dylib->command, cmdsize), f) < 0) { return -1; }
+
+   /* read in string */
+   if ((dylib->name = fmread(1, dylib->command.cmdsize - sizeof(dylib->command), f)) == NULL) {
+      return -1;
+   }
+
+   return 0;
+}

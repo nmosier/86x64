@@ -50,4 +50,6 @@ size_t fread_at(void *ptr, size_t size, size_t nitems, FILE *stream, off_t offse
 ssize_t merge(const void *collection[], const size_t counts[], size_t narrs, size_t itemsize,
               void **merged);
 
+void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset);
+
 #endif

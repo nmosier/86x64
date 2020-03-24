@@ -1,5 +1,6 @@
 #include <string.h>
 
+
 #include "macho.h"
 #include "macho-util.h"
 #include "macho-build.h"
@@ -69,6 +70,9 @@ int macho_build_load_command_32(union load_command_32 *command, struct build_inf
    case LC_LOAD_DYLINKER:
    case LC_UUID:
    case LC_UNIXTHREAD:
+   case LC_VERSION_MIN_MACOSX:
+   case LC_SOURCE_VERSION:
+   case LC_LOAD_DYLIB:
       /* nothing to adjust */
       return 0;
 
@@ -76,6 +80,13 @@ int macho_build_load_command_32(union load_command_32 *command, struct build_inf
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
       return 0;
+
+   case LC_MAIN:
+      /* command is adjusted in __TEXT,__text section */
+      return 0;
+
+   case LC_DYLD_INFO_ONLY:
+      return macho_build_dyld_info(&command->dyld_info, info);
 
    default:
       fprintf(stderr, "macho_build_load_command_32: unrecognized load command type 0x%x\n",
@@ -133,17 +144,30 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       uint32_t *fnstarts_addrs;
       uint32_t fnstarts_naddrs;
 
+      /* entry point data */
+      struct entry_point_command *entry_point = NULL;
+
       /* check if __text -- if so, then update function starts */
       if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
          /* find function starts command */
          union load_command_32 *command;
-         if ((command = macho_find_load_command_32(LC_FUNCTION_STARTS, &info->archive->archive_32))) {
+         if ((command = macho_find_load_command_32(LC_FUNCTION_STARTS,
+                                                   &info->archive->archive_32))) {
             fnstarts = &command->linkedit;
             fnstarts_addrs = fnstarts->data;
             fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
             for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
                fnstarts_addrs[i] -= section->addr;
             }
+         }
+
+         /* find entry point command */
+         if ((command = macho_find_load_command_32(LC_MAIN, &info->archive->archive_32))) {
+            // DEBUG
+            printf("old entryoff = 0x%llx\n", command->entry_point.entryoff);
+            
+            entry_point = &command->entry_point;
+            entry_point->entryoff -= section->offset;
          }
       }
 
@@ -157,10 +181,19 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       section->addr = vmaddr;
       vmaddr += section->size;
 
+      /* patch function starts */
       if (fnstarts) {
          for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
             fnstarts_addrs[i] += section->addr;
          }
+      }
+
+      /* patch entry point command */
+      if (entry_point) {
+         entry_point->entryoff += section->offset;
+
+         // DEBUG
+         printf("new entryoff = 0x%llx\n", entry_point->entryoff);
       }
 
       vmaddr_diff += section->addr;
@@ -297,5 +330,17 @@ int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *inf
       return -1;
    }
    
+   return 0;
+}
+
+int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) {
+   /* build bind data */
+   dyld_info->command.bind_off = info->dataoff;
+   info->dataoff += dyld_info->command.bind_size;
+
+   /* build export data */
+   dyld_info->command.export_off = info->dataoff;
+   info->dataoff += dyld_info->command.export_size;
+
    return 0;
 }

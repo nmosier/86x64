@@ -73,6 +73,12 @@ struct linkedit_data {
    void *data;
 };
 
+struct dyld_info {
+   struct dyld_info_command command;
+   void *bind_data;
+   void *export_data;
+};
+
 /** Machine-specific data structure following a thread_command. */
 struct thread_header {
    uint32_t flavor;
@@ -94,6 +100,11 @@ struct thread {
    struct thread_list *entries;
 };
 
+struct dylib_wrapper {
+   struct dylib_command command;
+   char *name;
+};
+
 union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
@@ -103,6 +114,11 @@ union load_command_32 {
    struct uuid_command uuid;
    struct thread thread;
    struct linkedit_data linkedit;
+   struct dyld_info dyld_info;
+   struct version_min_command version_min;
+   struct source_version_command source_version;
+   struct entry_point_command entry_point;
+   struct dylib_wrapper dylib;
 };
 
 union load_command_64 {
@@ -114,6 +130,11 @@ union load_command_64 {
    struct uuid_command uuid;
    struct thread thread;
    struct linkedit_data linkedit;
+   struct dyld_info dyld_info;
+   struct version_min_command version_min;
+   struct source_version_command source_version;
+   struct entry_point_command entry_point;
+   struct dylib_wrapper dylib;
 };
 
 struct archive_64 {
