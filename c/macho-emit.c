@@ -13,6 +13,7 @@ static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedi
 static int macho_emit_thread(FILE *f, const struct thread *thread);
 static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
+static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
 
 int macho_emit(FILE *f, const union macho *macho) {
    switch (macho_kind(macho)) {
@@ -71,8 +72,7 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
       break;
       
    case LC_DYSYMTAB:
-      if (fwrite_exact(&command->dysymtab.command, sizeof(command->dysymtab.command), 1, f) < 0)
-         { return -1; }
+      if (macho_emit_dysymtab_32(f, &command->dysymtab) < 0) { return -1; }
       break;
       
    case LC_LOAD_DYLINKER:
@@ -240,9 +240,17 @@ static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info) {
    /* emit dyld_info command */
    if (fwrite_exact(&dyld_info->command, sizeof(dyld_info->command), 1, f) < 0) { return -1; }
 
+   /* emit rebase data */
+   if (fwrite_at(dyld_info->rebase_data, 1, dyld_info->command.rebase_size, f,
+                 dyld_info->command.rebase_off) < 0) { return -1; }
+
    /* emit bind data */
    if (fwrite_at(dyld_info->bind_data, 1, dyld_info->command.bind_size, f,
                  dyld_info->command.bind_off) < 0) { return -1; }
+
+   /* emit lazy bind data */
+   if (fwrite_at(dyld_info->lazy_bind_data, 1, dyld_info->command.lazy_bind_size, f,
+                 dyld_info->command.lazy_bind_off) < 0) { return -1; }
 
    /* emit export data */
    if (fwrite_at(dyld_info->export_data, 1, dyld_info->command.export_size, f,
@@ -257,6 +265,18 @@ static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
 
    /* emit name */
    if (fwrite_exact(dylib->name, sizeof(char), strlen(dylib->name), f) < 0) { return -1; }
+
+   return 0;
+}
+
+static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab) {
+   /* emit dysymtab command */
+   if (fwrite_exact(&dysymtab->command, sizeof(dysymtab->command), 1, f) < 0) { return -1; }
+
+   /* emit indirect symbol table */
+   if (fwrite_at(dysymtab->indirectsyms, sizeof(dysymtab->indirectsyms[0]),
+                 dysymtab->command.nindirectsyms, f, dysymtab->command.indirectsymoff) < 0)
+      { return -1; }
 
    return 0;
 }

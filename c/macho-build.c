@@ -314,11 +314,6 @@ int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *inf
               "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
       return -1;
    }
-   if (dysymtab->command.nindirectsyms) {
-      fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing indirect symbol table not supported\n");
-      return -1;
-   }
    if (dysymtab->command.nextrel) {
       fprintf(stderr,
               "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
@@ -329,14 +324,26 @@ int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *inf
               "macho_parse_dysymtab_32: parsing local relocation entries not supported\n");
       return -1;
    }
+
+   /* build indirect symtab */
+   dysymtab->command.indirectsymoff = info->dataoff;
+   info->dataoff += dysymtab->command.nindirectsyms * sizeof(dysymtab->indirectsyms[0]);
    
    return 0;
 }
 
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) {
+   /* build rebase data */
+   dyld_info->command.rebase_off = info->dataoff;
+   info->dataoff += dyld_info->command.rebase_size;
+   
    /* build bind data */
    dyld_info->command.bind_off = info->dataoff;
    info->dataoff += dyld_info->command.bind_size;
+
+   /* build lazy bind data */
+   dyld_info->command.lazy_bind_off = info->dataoff;
+   info->dataoff += dyld_info->command.lazy_bind_size;
 
    /* build export data */
    dyld_info->command.export_off = info->dataoff;

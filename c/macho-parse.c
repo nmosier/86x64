@@ -387,11 +387,6 @@ static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
               "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
       return -1;
    }
-   if (dysymtab->command.nindirectsyms) {
-      fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing indirect symbol table not supported\n");
-      return -1;
-   }
    if (dysymtab->command.nextrel) {
       fprintf(stderr,
               "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
@@ -402,6 +397,12 @@ static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
               "macho_parse_dysymtab_32: parsing local relocation entries not supported\n");
       return -1;
    }
+
+   /* parse indirect syms */
+   if ((dysymtab->indirectsyms = fmread_at(sizeof(dysymtab->indirectsyms[0]),
+                                           dysymtab->command.nindirectsyms, f,
+                                           dysymtab->command.indirectsymoff)) == NULL)
+      { return -1; }
 
    return 0;
 }
@@ -512,21 +513,18 @@ static int macho_parse_dyld_info(FILE *f, struct dyld_info *dyld_info) {
                    STRUCT_REM(dyld_info->command, cmdsize), 1, f) < 0) { return -1; }
 
    /* feature checks */
-   if (dyld_info->command.rebase_size) {
-      fprintf(stderr, "macho_parse_dyld_info: rebase not supported\n");
-      return -1;
-   }
    if (dyld_info->command.weak_bind_size) {
       fprintf(stderr, "macho_parse_dyld_info: weak bindings not supported\n");
       return -1;
    }
-   if (dyld_info->command.lazy_bind_size) {
-      fprintf(stderr, "macho_parse_dyld_info: lazy bindings not supported\n");
-      return -1;
-   }
 
+   if ((dyld_info->rebase_data = fmread_at(1, dyld_info->command.rebase_size, f,
+                                           dyld_info->command.rebase_off)) == NULL) { return -1; }
    if ((dyld_info->bind_data = fmread_at(1, dyld_info->command.bind_size, f,
                                          dyld_info->command.bind_off)) == NULL) { return -1; }
+   if ((dyld_info->lazy_bind_data = fmread_at(1, dyld_info->command.lazy_bind_size, f,
+                                              dyld_info->command.lazy_bind_off)) == NULL)
+      { return -1; }
    if ((dyld_info->export_data = fmread_at(1, dyld_info->command.export_size, f,
                                            dyld_info->command.export_off)) == NULL) { return -1; }
 

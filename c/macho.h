@@ -61,6 +61,7 @@ struct dysymtab_64 {
 
 struct dysymtab_32 {
    struct dysymtab_command command;
+   uint32_t *indirectsyms;
 };
 
 struct dylinker {
@@ -75,7 +76,9 @@ struct linkedit_data {
 
 struct dyld_info {
    struct dyld_info_command command;
+   void *rebase_data;
    void *bind_data;
+   void *lazy_bind_data;
    void *export_data;
 };
 
