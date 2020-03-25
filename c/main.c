@@ -12,6 +12,7 @@
 #include "macho-parse.h"
 #include "macho-emit.h"
 #include "macho-build.h"
+#include "macho-patch.h"
 
 int main(int argc, char *argv[]) {
    int retv = 0;
@@ -44,17 +45,17 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-   printf("[before] macho.sizeofcmds=0x%x\n", macho.archive.archive_32.header.sizeofcmds);
-   
    /* build 32-bit Mach-O */
-#if 1
    if (macho_build(&macho) < 0) {
       retv = 7;
       goto cleanup;
    }
-#endif
 
-   printf("[after] macho.sizeofcmds=0x%x\n", macho.archive.archive_32.header.sizeofcmds);   
+   /* patch 32-bit Mach-O */
+   if (macho_patch(&macho) < 0) {
+      retv = 8;
+      goto cleanup;
+   }
 
    /* write 32-bit Mach-O */
    if (macho_emit(f64, &macho) < 0) {

@@ -96,3 +96,9 @@ union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_3
 
    return NULL;
 }
+
+int macho_off_cmp(const macho_off_t *a, const macho_off_t *b) {
+   return a - b;
+}
+
+

@@ -25,4 +25,6 @@ struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct se
 
 union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive);
 
+int macho_off_cmp(const macho_off_t *a, const macho_off_t *b);
+
 #endif

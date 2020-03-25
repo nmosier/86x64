@@ -10,6 +10,7 @@
 
 typedef off_t macho_off_t;
 typedef uint64_t macho_addr_t;
+#define MACHO_BAD_ADDR ((macho_addr_t) -1)
 
 struct fat_archive {
    struct fat_arch header;
