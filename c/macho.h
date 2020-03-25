@@ -30,15 +30,15 @@ struct archive_32 {
 struct section_wrapper_32 {
    struct section section;
    void *data;
-   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
-   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
+   int32_t adiff; /*!< Difference in address during build (erased by next build) */
+   int32_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
 struct section_wrapper_64 {
    struct section_64 section;
    void *data;
-   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
-   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
+   int64_t adiff; /*!< Difference in address during build (erased by next build) */
+   int64_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
 struct segment_32 {
@@ -65,6 +65,7 @@ struct symtab_32 {
 
 struct dysymtab_64 {
    struct dysymtab_command command;
+   uint32_t *indirectsyms;
 };
 
 struct dysymtab_32 {

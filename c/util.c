@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "util.h"
 
@@ -92,4 +93,60 @@ void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset) {
       return NULL;
    }
    return fmread(size, nitems, stream);
+}
+
+/**************
+ * LEB128 API *
+ **************/
+
+size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n) {
+   unsigned int bits = 0;
+   uintmax_t acc = 0;
+   const uint8_t *it = buf;
+   while (true) {
+      if (it == buf + buflen) {
+         /* not enough bytes */
+         return buflen + 1;
+      }
+      
+      acc += (*it & ULEB128_DATAMASK) << bits;
+
+      if ((*it & ~ULEB128_DATAMASK)) {
+         break;
+      }
+      
+      bits += 7;
+      if (bits > ULEB128_MAXBITS) {
+         /* overflow */
+         return 0;
+      }
+      ++it;
+   }
+
+   *n = acc;
+   return it - (const uint8_t *) buf;
+}
+
+size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n) {
+   uint8_t *it = buf;
+   while (true) {
+      if (buf && it == buf + buflen) {
+         /* buffer too short */
+         return buflen + 1; // TODO -- return actual length
+      }
+      if (buf) {
+         *it = n & ULEB128_DATAMASK;
+      }
+      n >>= 7;
+      if (n) {
+         if (buf) {
+            *it |= ULEB128_CTRLMASK;
+         }
+      } else {
+         break;
+      }
+      ++it;
+   }
+   
+   return it - (uint8_t *) buf;
 }

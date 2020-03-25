@@ -26,6 +26,5 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info);
 int macho_build_symtab_32(struct symtab_32 *symtab, struct build_info *info);
 int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
-// int macho_build_thread(struct thread *thread, struct build_info *info); 
 
 #endif

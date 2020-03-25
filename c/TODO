@@ -1,3 +1,5 @@
 [ ] dylib syms not updated after changing offsets
 
 [ ] need to patch call, jmp, mov instructions
+
+[ ] check attributes

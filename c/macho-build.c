@@ -60,13 +60,7 @@ int macho_build_load_command_32(union load_command_32 *command, struct build_inf
    switch (command->load.cmd) {
    case LC_SEGMENT:
       return macho_build_segment_32(&command->segment, info);
-      
-   case LC_SYMTAB:
-      return macho_build_symtab_32(&command->symtab, info);
-
-   case LC_DYSYMTAB:
-      return macho_build_dysymtab_32(&command->dysymtab, info);
-
+            
    case LC_LOAD_DYLINKER:
    case LC_UUID:
    case LC_UNIXTHREAD:
@@ -86,7 +80,10 @@ int macho_build_load_command_32(union load_command_32 *command, struct build_inf
       return 0;
 
    case LC_DYLD_INFO_ONLY:
-      return macho_build_dyld_info(&command->dyld_info, info);
+   case LC_SYMTAB:
+   case LC_DYSYMTAB:
+      /* command is build in __LINKEDIT segment */
+      return 0;
 
    default:
       fprintf(stderr, "macho_build_load_command_32: unrecognized load command type 0x%x\n",
@@ -260,28 +257,38 @@ int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_inf
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
    segment->command.vmaddr = info->vmaddr;
    macho_addr_t vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
-   macho_off_t dataoff = info->dataoff;
-   segment->command.fileoff = dataoff;
+   // macho_off_t dataoff = info->dataoff;
+   segment->command.fileoff = info->dataoff;
 
    for (uint32_t i = 0; i < ncmds; ++i) {
       union load_command_32 *command = &archive->commands[i];
       struct linkedit_data *linkedit;
       if ((linkedit = macho_linkedit(command))) {
-         linkedit->command.dataoff = dataoff;
-         dataoff += linkedit->command.datasize;
-      } else if (command->load.cmd == LC_SYMTAB) {
-         struct symtab_32 *symtab = &command->symtab;
-         symtab->command.symoff = dataoff;
-         dataoff += symtab->command.nsyms * sizeof(symtab->entries[0]);
-         symtab->command.stroff = dataoff;
-         dataoff += symtab->command.strsize;
+         linkedit->command.dataoff = info->dataoff;
+         info->dataoff += linkedit->command.datasize;
+      } else {
+         switch (command->load.cmd) {
+         case LC_SYMTAB:
+            if (macho_build_symtab_32(&command->symtab, info) < 0) { return -1; }
+            break;
+         
+         case LC_DYLD_INFO_ONLY:
+         case LC_DYLD_INFO:
+            if (macho_build_dyld_info(&command->dyld_info, info) < 0) { return -1; }
+            break;
+            
+         case LC_DYSYMTAB:
+            if (macho_build_dysymtab_32(&command->dysymtab, info) < 0) { return -1; }
+            break;
+
+         default: break;
+         }
       }
    }
 
-   segment->command.filesize = dataoff - segment->command.fileoff;
+   segment->command.filesize = info->dataoff - segment->command.fileoff;
    segment->command.vmsize = MAX(ALIGN_UP(segment->command.filesize, PAGESIZE), PAGESIZE);
    info->vmaddr += segment->command.vmsize;
-   info->dataoff = dataoff;
    
    // DEBUG
    printf("__LINKEDIT={.size=0x%x}\n", segment->command.filesize);
@@ -346,14 +353,14 @@ int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) 
    /* build bind data */
    dyld_info->command.bind_off = info->dataoff;
    info->dataoff += dyld_info->command.bind_size;
-
+   
    /* build lazy bind data */
    dyld_info->command.lazy_bind_off = info->dataoff;
    info->dataoff += dyld_info->command.lazy_bind_size;
-
+   
    /* build export data */
    dyld_info->command.export_off = info->dataoff;
    info->dataoff += dyld_info->command.export_size;
-
+   
    return 0;
 }

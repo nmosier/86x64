@@ -52,4 +52,32 @@ ssize_t merge(const void *collection[], const size_t counts[], size_t narrs, siz
 
 void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset);
 
+/**************
+ * LEB128 API *
+ **************/
+
+#include <stdint.h>
+
+#define ULEB128_MAXBITS (sizeof(uintmax_t) * 8)
+#define ULEB128_DATAMASK 0x7f
+#define ULEB128_CTRLMASK 0x80
+
+/**
+ * Decode unsigned LEB128 value from buffer.
+ * @param buf input buffer
+ * @param buflen length of input buffer
+ * @param n pointer to where to place result
+ * @return number of bytes used; if exceeds buflen, then need more bytes; if zero, then overflow.
+ */
+size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n);
+
+/**
+ * Encode unsigend LEB128 value to buffer.
+ * @param buf output buffer, or NULL to do a dry run
+ * @param buflen length of buffer
+ * @param n value to encode
+ * @return number of bytes written; if 0, then need more buffer space.
+ */
+size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n);
+
 #endif
