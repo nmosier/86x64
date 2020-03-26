@@ -16,6 +16,8 @@
 # define macho_build_load_command     macho_build_load_command_32
 # define macho_build_segment_LINKEDIT macho_build_segment_32_LINKEDIT
 
+# define macho_find_load_command      macho_find_load_command_32
+
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
 
@@ -30,17 +32,24 @@
 # define SECTION section_64
 # define NLIST nlist_64
 
-# define macho_build_symtab           macho_emit_symtab_64
-# define macho_build_dysymtab         macho_emit_dysymtab_64
-# define macho_build_segment          macho_emit_segment_64
-# define macho_build_archive          macho_emit_archive_64
-# define macho_build_load_command     macho_emit_load_command_64
+# define macho_build_symtab           macho_build_symtab_64
+# define macho_build_dysymtab         macho_build_dysymtab_64
+# define macho_build_segment          macho_build_segment_64
+# define macho_build_archive          macho_build_archive_64
+# define macho_build_load_command     macho_build_load_command_64
 # define macho_build_segment_LINKEDIT macho_build_segment_64_LINKEDIT
+
+# define macho_find_load_command      macho_find_load_command_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
 
 #endif
+
+#include "macho.h"
+#include "macho-util.h"
+
+int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *info);
 
 
 /* NOTES:
@@ -103,8 +112,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
       if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
          /* find function starts command */
          union LOAD_COMMAND *command;
-         if ((command = macho_find_load_command_32(LC_FUNCTION_STARTS,
-                                                   &info->archive->archive_32))) {
+         if ((command = macho_find_load_command(LC_FUNCTION_STARTS, &info->archive->archive_32))) {
             fnstarts = &command->linkedit;
             fnstarts_addrs = fnstarts->data;
             fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
@@ -195,25 +203,25 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
 }
 
 
-int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_info *info) {
+int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *info) {
    /* check for unsupported features */
    if (segment->command.nsects) {
       fprintf(stderr,
-              "macho_build_segment_32_LINKEDIT: __LINKEDIT segment with sections not supported\n");
+              "macho_build_segment_LINKEDIT: __LINKEDIT segment with sections not supported\n");
       return -1;
    }
 
-   struct archive_32 *archive = &info->archive->archive_32;
+   struct ARCHIVE *archive = &info->archive->archive_32;
    uint32_t ncmds = archive->header.ncmds;
-
+   
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
    segment->command.vmaddr = info->vmaddr;
-   macho_addr_t vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
+   MACHO_ADDR_T vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
    // macho_off_t dataoff = info->dataoff;
    segment->command.fileoff = info->dataoff;
 
    for (uint32_t i = 0; i < ncmds; ++i) {
-      union load_command_32 *command = &archive->commands[i];
+      union LOAD_COMMAND *command = &archive->commands[i];
       struct linkedit_data *linkedit;
       if ((linkedit = macho_linkedit(command))) {
          linkedit->command.dataoff = info->dataoff;
@@ -250,6 +258,114 @@ int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_inf
 }
 
 
+int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
+   /* allocate data region */
+   symtab->command.symoff = info->dataoff;
+   info->dataoff += symtab->command.nsyms * sizeof(symtab->entries[0]);
+   symtab->command.stroff = info->dataoff;
+   info->dataoff += symtab->command.strsize;
+
+   // DEBUG
+   printf("symtab dataoff = 0x%x; symtab dataend = 0x%llx\n", symtab->command.symoff,
+          info->dataoff);
+   
+   return 0;
+}
+
+int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info) {
+   if (dysymtab->command.ntoc) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing table of contents not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nmodtab) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing module table not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nextrefsyms) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nextrel) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
+      return -1;
+   }
+   if (dysymtab->command.nlocrel) {
+      fprintf(stderr,
+              "macho_parse_dysymtab_32: parsing local relocation entries not supported\n");
+      return -1;
+   }
+
+   /* build indirect symtab */
+   dysymtab->command.indirectsymoff = info->dataoff;
+   info->dataoff += dysymtab->command.nindirectsyms * sizeof(dysymtab->indirectsyms[0]);
+   
+   return 0;
+}
+
+
+int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info) {
+   switch (command->load.cmd) {
+   case LC_SEGMENT:
+      return macho_build_segment(&command->segment, info);
+            
+   case LC_LOAD_DYLINKER:
+   case LC_UUID:
+   case LC_UNIXTHREAD:
+   case LC_VERSION_MIN_MACOSX:
+   case LC_SOURCE_VERSION:
+   case LC_LOAD_DYLIB:
+      /* nothing to adjust */
+      return 0;
+
+      /* linkedit commands are adjusted by __LINKEDIT segment */
+   case LC_FUNCTION_STARTS:
+   case LC_DATA_IN_CODE:
+      return 0;
+
+   case LC_MAIN:
+      /* command is adjusted in __TEXT,__text section */
+      return 0;
+
+   case LC_DYLD_INFO_ONLY:
+   case LC_SYMTAB:
+   case LC_DYSYMTAB:
+      /* command is build in __LINKEDIT segment */
+      return 0;
+
+   default:
+      fprintf(stderr, "macho_build_load_command_32: unrecognized load command type 0x%x\n",
+              command->load.cmd);
+      return -1;
+   }
+}
+
+int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
+   /* recompute size of commands */
+   size_t sizeofcmds = 0;
+   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
+      sizeofcmds += macho_sizeof_load_command_32(&archive->commands[i]);
+   }
+   archive->header.sizeofcmds = sizeofcmds;
+   
+   /* update data offset */
+   info->dataoff += sizeofcmds + sizeof(archive->header);
+
+   /* build each command */
+   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
+      if (macho_build_load_command_32(&archive->commands[i], info) < 0) {
+         return -1;
+      }
+   }
+
+   return 0;
+}
+
+
+
 
 #undef SYMTAB
 #undef DYSYMTAB
@@ -266,6 +382,8 @@ int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_inf
 #undef macho_build_archive
 #undef macho_build_load_command
 #undef macho_build_segment_LINKEDIT
+
+#undef macho_find_load_command
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T
