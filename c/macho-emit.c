@@ -37,8 +37,7 @@ int macho_emit_archive(FILE *f, const union archive *archive) {
       return macho_emit_archive_32(f, &archive->archive_32);
       
    case MACHO_64:
-      fprintf(stderr, "macho_emit_archive: emitting 32-bit Mach-O archive not supported\n");
-      return -1;
+      return macho_emit_archive_64(f, &archive->archive_64);
    }
 }
 
