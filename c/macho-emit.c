@@ -15,6 +15,11 @@ static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
 static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
 
+#define MACHO_BITS 32
+#include "macho-emit-t.c"
+#define MACHO_BITS 64
+#include "macho-emit-t.c"
+
 int macho_emit(FILE *f, const union macho *macho) {
    switch (macho_kind(macho)) {
    case MACHO_FAT:
@@ -37,141 +42,7 @@ int macho_emit_archive(FILE *f, const union archive *archive) {
    }
 }
 
-int macho_emit_archive_32(FILE *f, const struct archive_32 *archive) {
-   /* emit header */
-   if (fwrite_exact(&archive->header, sizeof(archive->header), 1, f) < 0) {
-      return -1;
-   }
 
-   /* emit commands */
-   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      if (macho_emit_load_command_32(f, &archive->commands[i]) < 0) {
-         return -1;
-      }
-   }
-
-   return 0;
-}
-
-int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
-   off_t start_pos;
-
-   /* get command start position */
-   if ((start_pos = ftell(f)) < 0) {
-      perror("ftell");
-      return -1;
-   }
-
-   switch (command->load.cmd) {
-   case LC_SEGMENT:
-      if (macho_emit_segment_32(f, &command->segment) < 0) { return -1; }
-      break;
-      
-   case LC_SYMTAB:
-      if (macho_emit_symtab_32(f, &command->symtab) < 0) { return -1; }
-      break;
-      
-   case LC_DYSYMTAB:
-      if (macho_emit_dysymtab_32(f, &command->dysymtab) < 0) { return -1; }
-      break;
-      
-   case LC_LOAD_DYLINKER:
-      if (macho_emit_dylinker(f, &command->dylinker) < 0) { return -1; }
-      break;
-      
-   case LC_UUID:
-      if (fwrite_exact(&command->uuid, sizeof(command->uuid), 1, f) < 0) { return -1; }
-      break;
-      
-   case LC_UNIXTHREAD:
-      if (macho_emit_thread(f, &command->thread) < 0) { return -1; }
-      break;
-      
-   case LC_FUNCTION_STARTS:
-   case LC_DATA_IN_CODE:
-      if (macho_emit_linkedit_data(f, &command->linkedit) < 0) { return -1; }
-      break;
-
-   case LC_DYLD_INFO_ONLY:
-      if (macho_emit_dyld_info(f, &command->dyld_info) < 0) { return -1; }
-      break;
-
-   case LC_VERSION_MIN_MACOSX:
-      if (fwrite_exact(&command->version_min, sizeof(command->version_min), 1, f) < 0)
-         { return -1; }
-      break;
-
-   case LC_SOURCE_VERSION:
-      if (fwrite_exact(&command->source_version, sizeof(command->source_version), 1, f) < 0) {
-         return -1;
-      }
-      break;
-
-   case LC_MAIN:
-      if (fwrite_exact(&command->entry_point, sizeof(command->entry_point), 1, f) < 0) {
-         return -1;
-      }
-      break;
-
-   case LC_LOAD_DYLIB:
-      if (macho_emit_dylib(f, &command->dylib) < 0) { return -1; }
-      break;
-
-   default:
-      fprintf(stderr, "macho_emit_load_command_32: unsupported command 0x%x\n", command->load.cmd);
-      return -1;
-   }
-
-   /* seek next cmdsize bytes */
-   if (fseek(f, start_pos + command->load.cmdsize, SEEK_SET) < 0) {
-      perror("fseek");
-      return -1;
-   }
-   
-   return 0;
-}
-
-static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment) {
-   /* emit segment_command struct */
-   if (fwrite_exact(&segment->command, sizeof(segment->command), 1, f) < 0) {
-      return -1;
-   }
-
-   /* emit section headers */
-   uint32_t nsects = segment->command.nsects;
-   for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (fwrite_exact(&sectwr->section, sizeof(sectwr->section), 1, f) < 0) { return -1; }
-   }
-
-   /* emit section data */
-   for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
-         perror("fseek");
-         return -1;
-      }
-      if (fwrite_exact(sectwr->data, 1, sectwr->section.size, f) < 0) { return -1; }
-   }
-
-   return 0;
-}
-
-static int macho_emit_symtab_32(FILE *f, const struct symtab_32 *symtab) {
-   /* emit symtab command */
-   if (fwrite_exact(&symtab->command, sizeof(symtab->command), 1, f) < 0) { return -1; }
-
-   /* emit symbol table entries */
-   if (fwrite_at(symtab->entries, sizeof(struct nlist), symtab->command.nsyms, f,
-                 symtab->command.symoff) < 0) { return -1; }
-
-   /* emit string table */
-   if (fwrite_at(symtab->strtab, 1, symtab->command.strsize, f, symtab->command.stroff) < 0) {
-      return -1;
-   }
-
-   return 0;
-}
 
 static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker) {
    /* emit dylinker command */
@@ -183,12 +54,7 @@ static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker) {
       perror("ftell");
       return -1;
    }
-#if 0
-   if (fwrite_at(dylinker->name, sizeof(char), strlen(dylinker->name), f,
-                 dylinker->command.name.offset + name_pos) < 0) { return -1; }
-#else
    if (fwrite_exact(dylinker->name, sizeof(char), strlen(dylinker->name), f) < 0) { return -1; }
-#endif
 
    return 0;
 }
@@ -269,14 +135,3 @@ static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
    return 0;
 }
 
-static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab) {
-   /* emit dysymtab command */
-   if (fwrite_exact(&dysymtab->command, sizeof(dysymtab->command), 1, f) < 0) { return -1; }
-
-   /* emit indirect symbol table */
-   if (fwrite_at(dysymtab->indirectsyms, sizeof(dysymtab->indirectsyms[0]),
-                 dysymtab->command.nindirectsyms, f, dysymtab->command.indirectsymoff) < 0)
-      { return -1; }
-
-   return 0;
-}
