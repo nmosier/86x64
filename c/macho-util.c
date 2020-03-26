@@ -6,6 +6,11 @@
 #include "macho.h"
 #include "macho-util.h"
 
+#define MACHO_BITS 32
+#include "macho-util-t.c"
+#define MACHO_BITS 64
+#include "macho-util-t.c"
+
 enum macho_kind macho_kind(const union macho *macho) {
    switch (macho->magic) {
    case MH_MAGIC:
@@ -40,62 +45,12 @@ enum macho_bits macho_bits(const union archive *archive) {
    }
 }
 
-bool macho_is_linkedit(const union load_command_32 *command) {
-   switch (command->load.cmd) {
-   case LC_CODE_SIGNATURE:
-   case LC_SEGMENT_SPLIT_INFO:
-   case LC_FUNCTION_STARTS:
-   case LC_DATA_IN_CODE:
-   case LC_DYLIB_CODE_SIGN_DRS:
-   case LC_LINKER_OPTIMIZATION_HINT:
-      return true;
-                  
-   default:
-      return false;
-   }
-
-}
-
 struct linkedit_data *macho_linkedit(union load_command_32 *command) {
-   return macho_is_linkedit(command) ? &command->linkedit : NULL;
+   return macho_is_linkedit_32(command) ? &command->linkedit : NULL;
 }
 
-struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 *archive) {
-   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      union load_command_32 *command = &archive->commands[i];
-      if (command->load.cmd == LC_SEGMENT) {
-         struct segment_32 *segment = &command->segment;
-         if (strncmp(segment->command.segname, segname, sizeof(segment->command.segname)) == 0) {
-            return segment;
-         }
-      }
-   }
 
-   return NULL;
-}
 
-struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment)
-{
-   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (strncmp(sectwr->section.sectname, sectname, sizeof(sectwr->section.sectname)) == 0) {
-         return sectwr;
-      }
-   }
-
-   return NULL;
-}
-
-union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive) {
-   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      union load_command_32 *command = &archive->commands[i];
-      if (command->load.cmd == cmd) {
-         return command;
-      } 
-   }
-
-   return NULL;
-}
 
 int macho_off_cmp(const macho_off_t *a, const macho_off_t *b) {
    return a - b;
