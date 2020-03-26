@@ -294,21 +294,6 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
       }
    }
 
-   // DEBUG
-#if 1
-   printf("LC_SEGMENT={\n\t.segname='%s',\n\t.fileoff=0x%x,\n\t.filesize=0x%x\n\n",
-          segment->command.segname, segment->command.fileoff, segment->command.filesize);
-   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      printf("\tstruct section={.sectname='%s',.offset=0x%x,.size=0x%x}\n",
-             segment->sections[i].section.sectname, segment->sections[i].section.offset,
-             segment->sections[i].section.size);
-      for (size_t j = 0; j < segment->sections[i].section.size; ++j) {
-         printf(" %02x", ((uint8_t *)segment->sections[i].data)[j]);
-      }
-      printf("\n");
-   }
-#endif
-
    return 0;
 }
 
