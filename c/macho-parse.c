@@ -41,13 +41,10 @@ int macho_parse(FILE *f, union macho *macho) {
 
    case MH_MAGIC:
    case MH_CIGAM:
-      return macho_parse_archive(f, &magic, &macho->archive);
-      
    case MH_MAGIC_64:
    case MH_CIGAM_64:
-      fprintf(stderr, "macho_parse: parsing 64-bit mach-o files not supported\n");
-      return -1;
-
+      return macho_parse_archive(f, &magic, &macho->archive);
+      
    default:
       fprintf(stderr, "macho_parse: file not recognized as Mach-O\n");
       return -1;
@@ -115,8 +112,7 @@ int macho_parse_archive(FILE *f, const uint32_t *magicp, union archive *archive)
       
    case MH_MAGIC_64:
    case MH_CIGAM_64:
-      fprintf(stderr, "macho_parse_archive: parsing 64-bit Mach-O unsupported\n");
-      return -1;
+      return macho_parse_archive_64(f, &magic, &archive->archive_64);
 
    default:
       fprintf(stderr, "macho_parse_archive: unexpected magic bytes for archive\n");
@@ -124,40 +120,6 @@ int macho_parse_archive(FILE *f, const uint32_t *magicp, union archive *archive)
    }
 }
 
-int macho_parse_archive_32(FILE *f, const uint32_t *magic, struct archive_32 *archive) {
-   /* parse header */
-   void *hdr_start;
-   size_t hdr_size;
-
-   if (magic) {
-      archive->header.magic = *magic;
-      hdr_start = AFTER(archive->header.magic);
-      hdr_size = STRUCT_REM(archive->header, magic);
-   } else {
-      hdr_start = &archive->header;
-      hdr_size = sizeof(archive->header);
-   }
-
-   if (fread_exact(hdr_start, hdr_size, 1, f) < 0) {
-      return -1;
-   }
-
-   /* allocate commands */
-   if ((archive->commands = calloc(archive->header.ncmds, sizeof(*archive->commands))) == NULL) {
-      perror("calloc");
-      return -1;
-   }
-   
-   /* parse commands */
-   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      union load_command_32 *command = &archive->commands[i];
-      if (macho_parse_load_command_32(f, command) < 0) {
-         return -1;
-      }
-   }
-
-   return 0;
-}
 
 
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid) {

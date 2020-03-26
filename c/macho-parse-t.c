@@ -18,10 +18,12 @@
 # define SEGMENT segment_32
 # define SECTION_WRAPPER section_wrapper_32
 # define LOAD_COMMAND load_command_32
+# define ARCHIVE archive_32
 # define macho_parse_symtab macho_parse_symtab_32
 # define macho_parse_dysymtab macho_parse_dysymtab_32
 # define macho_parse_segment macho_parse_segment_32
 # define macho_parse_load_command macho_parse_load_command_32
+# define macho_parse_archive macho_parse_archive_32
 # define MACHO_SIZE_T uint32_t
 
 #else
@@ -32,10 +34,12 @@
 # define SEGMENT segment_64
 # define SECTION_WRAPPER section_wrapper_64
 # define LOAD_COMMAND load_command_64
+# define ARCHIVE archive_64
 # define macho_parse_symtab macho_parse_symtab_64
 # define macho_parse_dysymtab macho_parse_dysymtab_64
 # define macho_parse_segment macho_parse_segment_64
 # define macho_parse_load_command macho_parse_load_command_64
+# define macho_parse_archive macho_parse_archive_64
 # define MACHO_SIZE_T uint64_t
 
 #endif
@@ -43,8 +47,7 @@
 static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab);
 static int macho_parse_dysymtab(FILE *f, struct DYSYMTAB *dysymtab);
 static int macho_parse_segment(FILE *f, struct SEGMENT *segment);
-
-
+int macho_parse_archive(FILE *f, const uint32_t *magic, struct ARCHIVE *archive);
 
 static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab) {
    /* parse symtab command */
@@ -273,6 +276,11 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
    case LC_LOAD_DYLIB:
       if (macho_parse_dylib(f, &command->dylib) < 0) { return -1; }
       break;
+
+   case LC_BUILD_VERSION:
+      if (fread_exact(AFTER(command->build_version.cmdsize), 1,
+                      STRUCT_REM(command->build_version, cmdsize), f) < 0) { return -1; }
+      break;
       
    default:
       fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n",
@@ -290,17 +298,55 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
 }
 
 
+int macho_parse_archive(FILE *f, const uint32_t *magic, struct ARCHIVE *archive) {
+   /* parse header */
+   void *hdr_start;
+   size_t hdr_size;
+
+   if (magic) {
+      archive->header.magic = *magic;
+      hdr_start = AFTER(archive->header.magic);
+      hdr_size = STRUCT_REM(archive->header, magic);
+   } else {
+      hdr_start = &archive->header;
+      hdr_size = sizeof(archive->header);
+   }
+
+   if (fread_exact(hdr_start, hdr_size, 1, f) < 0) {
+      return -1;
+   }
+
+   /* allocate commands */
+   if ((archive->commands = calloc(archive->header.ncmds, sizeof(*archive->commands))) == NULL) {
+      perror("calloc");
+      return -1;
+   }
+   
+   /* parse commands */
+   for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
+      union LOAD_COMMAND *command = &archive->commands[i];
+      if (macho_parse_load_command(f, command) < 0) {
+         return -1;
+      }
+   }
+
+   return 0;
+}
+
+
 #undef NLIST
 #undef SYMTAB
 #undef DYSYMTAB
 #undef SEGMENT
 #undef SECTION_WRAPPER
 #undef LOAD_COMMAND
+#undef ARCHIVE
 
 #undef macho_parse_symtab
 #undef macho_parse_dysymtab
 #undef macho_parse_segment
 #undef macho_parse_load_command
+#undef macho_parse_archive
 
 #undef MACHO_SIZE_T
 

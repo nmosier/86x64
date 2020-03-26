@@ -136,6 +136,7 @@ union load_command_32 {
    struct source_version_command source_version;
    struct entry_point_command entry_point;
    struct dylib_wrapper dylib;
+   struct build_version_command build_version;
 };
 
 union load_command_64 {
@@ -152,6 +153,7 @@ union load_command_64 {
    struct source_version_command source_version;
    struct entry_point_command entry_point;
    struct dylib_wrapper dylib;
+   struct build_version_command build_version;   
 };
 
 struct archive_64 {

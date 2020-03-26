@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
+#if 0
    /* build 32-bit Mach-O */
    if (macho_build(&macho) < 0) {
       retv = 7;
@@ -62,6 +63,7 @@ int main(int argc, char *argv[]) {
       retv = 6;
       goto cleanup;
    }
+#endif
 
    /* success */
 
