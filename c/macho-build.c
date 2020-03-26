@@ -125,6 +125,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    /* update segment command information */
    segment->command.fileoff = segment_start;
    segment->command.filesize = segment_minsize_aligned;
+   segment->adiff = segment->command.vmaddr - info->vmaddr;
    segment->command.vmaddr = info->vmaddr;
    uint32_t vmsize = MAX(PAGESIZE, segment_minsize_aligned);
    segment->command.vmsize = vmsize;

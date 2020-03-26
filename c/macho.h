@@ -44,11 +44,13 @@ struct section_wrapper_64 {
 struct segment_32 {
    struct segment_command command;
    struct section_wrapper_32 *sections;
+   int32_t adiff;
 };
 
 struct segment_64 {
    struct segment_command_64 command;
    struct section_wrapper_64 *sections;
+   int64_t adiff;
 };
 
 struct symtab_64 {

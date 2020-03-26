@@ -108,10 +108,12 @@ size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n) {
          /* not enough bytes */
          return buflen + 1;
       }
-      
-      acc += (*it & ULEB128_DATAMASK) << bits;
 
-      if ((*it & ~ULEB128_DATAMASK)) {
+      uint8_t byte = *it++;
+      
+      acc += (byte & ULEB128_DATAMASK) << bits;
+
+      if (!(byte & ULEB128_CTRLMASK)) {
          break;
       }
       
@@ -120,7 +122,6 @@ size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n) {
          /* overflow */
          return 0;
       }
-      ++it;
    }
 
    *n = acc;
@@ -129,7 +130,7 @@ size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n) {
 
 size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n) {
    uint8_t *it = buf;
-   while (true) {
+   do {
       if (buf && it == buf + buflen) {
          /* buffer too short */
          return buflen + 1; // TODO -- return actual length
@@ -142,11 +143,9 @@ size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n) {
          if (buf) {
             *it |= ULEB128_CTRLMASK;
          }
-      } else {
-         break;
       }
       ++it;
-   }
+   } while (n);
    
    return it - (uint8_t *) buf;
 }

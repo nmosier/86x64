@@ -27,4 +27,6 @@ union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_3
 
 int macho_off_cmp(const macho_off_t *a, const macho_off_t *b);
 
+struct segment_32 *macho_index_segment_32(uint32_t index, struct archive_32 *archive);
+
 #endif
