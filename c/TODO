@@ -1,10 +1,1 @@
-[ ] dylib syms not updated after changing offsets
-
-[ ] need to patch call, jmp, mov instructions
-
-[ ] check attributes
-
----
-For rebasing information:
-[ ] Write segment indexing function in macho-util
-[ ] Write rebase in patch
+[ ] Compatibility with 64-bit Mach-O

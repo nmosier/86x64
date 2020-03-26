@@ -15,7 +15,14 @@
 
 static int macho_parse_segment_32(FILE *f, struct segment_32 *segment);
 static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab);
-static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab);
+static int macho_parse_dysymtab(FILE *f, struct dysymtab *dysymtab, enum macho_bits bits);
+static inline int macho_parse_dysymtab_32(FILE *f, struct dysymtab *dysymtab) {
+   return macho_parse_dysymtab(f, dysymtab, MACHO_32);
+}
+static inline int macho_parse_dysymtab_64(FILE *f, struct dysymtab *dysymtab) {
+   return macho_parse_dysymtab(f, dysymtab, MACHO_64);
+}
+
 static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker);
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid);
 static int macho_parse_thread(FILE *f, struct thread *thread);
@@ -364,7 +371,7 @@ static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab) {
    return 0;
 }
 
-static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
+static int macho_parse_dysymtab(FILE *f, struct dysymtab *dysymtab, enum macho_bits bits) {
    /* parse dysymtab command */
    if (fread_exact(AFTER(dysymtab->command.cmdsize),
                    STRUCT_REM(dysymtab->command, cmdsize), 1, f) < 0) {
@@ -374,22 +381,22 @@ static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
    /* parse data */
    if (dysymtab->command.ntoc) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing table of contents not supported\n");
+              "macho_parse_dysymtab: parsing table of contents not supported\n");
       return -1;
    }
    if (dysymtab->command.nmodtab) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing module table not supported\n");
+              "macho_parse_dysymtab: parsing module table not supported\n");
       return -1;
    }
    if (dysymtab->command.nextrefsyms) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
+              "macho_parse_dysymtab: parsing referenced symbol table not supported\n");
       return -1;
    }
    if (dysymtab->command.nextrel) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
+              "macho_parse_dysymtab: parsing external relocation entries not supported\n");
       return -1;
    }
    if (dysymtab->command.nlocrel) {
@@ -399,9 +406,10 @@ static int macho_parse_dysymtab_32(FILE *f, struct dysymtab_32 *dysymtab) {
    }
 
    /* parse indirect syms */
-   if ((dysymtab->indirectsyms = fmread_at(sizeof(dysymtab->indirectsyms[0]),
-                                           dysymtab->command.nindirectsyms, f,
-                                           dysymtab->command.indirectsymoff)) == NULL)
+   size_t sizeof_indirectsym = MACHO_SIZEOF(*dysymtab->indirectsyms, bits);
+   if ((dysymtab->indirectsyms_xx =
+        fmread_at(sizeof_indirectsym, dysymtab->command.nindirectsyms, f,
+                  dysymtab->command.indirectsymoff)) == NULL)
       { return -1; }
 
    return 0;

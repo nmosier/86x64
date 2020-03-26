@@ -279,7 +279,7 @@ int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_inf
             break;
             
          case LC_DYSYMTAB:
-            if (macho_build_dysymtab_32(&command->dysymtab, info) < 0) { return -1; }
+            if (macho_build_dysymtab(&command->dysymtab, info, MACHO_32) < 0) { return -1; }
             break;
 
          default: break;
@@ -312,7 +312,8 @@ int macho_build_symtab_32(struct symtab_32 *symtab, struct build_info *info) {
    return 0;
 }
 
-int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *info) {
+int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info, enum macho_bits bits)
+{
    if (dysymtab->command.ntoc) {
       fprintf(stderr,
               "macho_parse_dysymtab_32: parsing table of contents not supported\n");
@@ -340,8 +341,9 @@ int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *inf
    }
 
    /* build indirect symtab */
+   size_t sizeof_indirectsym = MACHO_SIZEOF(*dysymtab->indirectsyms, bits);
    dysymtab->command.indirectsymoff = info->dataoff;
-   info->dataoff += dysymtab->command.nindirectsyms * sizeof(dysymtab->indirectsyms[0]);
+   info->dataoff += dysymtab->command.nindirectsyms * sizeof_indirectsym;
    
    return 0;
 }

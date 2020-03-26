@@ -12,6 +12,9 @@ typedef off_t macho_off_t;
 typedef uint64_t macho_addr_t;
 #define MACHO_BAD_ADDR ((macho_addr_t) -1)
 
+enum macho_kind {MACHO_FAT, MACHO_ARCHIVE};
+enum macho_bits {MACHO_32, MACHO_64};
+
 struct fat_archive {
    struct fat_arch header;
    void *data;
@@ -65,14 +68,13 @@ struct symtab_32 {
    char *strtab;
 };
 
-struct dysymtab_64 {
+struct dysymtab {
    struct dysymtab_command command;
-   uint32_t *indirectsyms;
-};
-
-struct dysymtab_32 {
-   struct dysymtab_command command;
-   uint32_t *indirectsyms;
+   union {
+      void *indirectsyms_xx; /*!< unknown endianness */
+      uint32_t *indirectsyms_32;
+      uint64_t *indirectsyms_64;
+   };
 };
 
 struct dylinker {
@@ -123,7 +125,7 @@ union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
    struct symtab_32 symtab;
-   struct dysymtab_32 dysymtab;
+   struct dysymtab dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;
@@ -139,7 +141,7 @@ union load_command_64 {
    struct load_command load;
    struct segment_64 segment;
    struct symtab_64 symtab;
-   struct dysymtab_64 dysymtab;
+   struct dysymtab dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;

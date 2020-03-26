@@ -13,7 +13,13 @@ static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedi
 static int macho_emit_thread(FILE *f, const struct thread *thread);
 static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
-static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
+static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab, enum macho_bits bits);
+static inline int macho_emit_dysymtab_32(FILE *f, const struct dysymtab *dysymtab) {
+   return macho_emit_dysymtab(f, dysymtab, MACHO_32);
+}
+static inline int macho_emit_dysymtab_64(FILE *f, const struct dysymtab *dysymtab) {
+   return macho_emit_dysymtab(f, dysymtab, MACHO_64);
+}
 
 int macho_emit(FILE *f, const union macho *macho) {
    switch (macho_kind(macho)) {
@@ -269,12 +275,14 @@ static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
    return 0;
 }
 
-static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab) {
+static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab, enum macho_bits bits) {
    /* emit dysymtab command */
    if (fwrite_exact(&dysymtab->command, sizeof(dysymtab->command), 1, f) < 0) { return -1; }
 
    /* emit indirect symbol table */
-   if (fwrite_at(dysymtab->indirectsyms, sizeof(dysymtab->indirectsyms[0]),
+   size_t sizeof_indirectsym = MACHO_SIZEOF(*dysymtab->indirectsyms, bits);
+   printf("sizeof_indirectsym=%zu\n", sizeof_indirectsym); // DEBUG
+   if (fwrite_at(dysymtab->indirectsyms_xx, sizeof_indirectsym,
                  dysymtab->command.nindirectsyms, f, dysymtab->command.indirectsymoff) < 0)
       { return -1; }
 
