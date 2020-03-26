@@ -24,7 +24,7 @@ int macho_build_archive_32(struct archive_32 *archive, struct build_info *info);
 int macho_build_load_command_32(union load_command_32 *command, struct build_info *info);
 int macho_build_segment_32(struct segment_32 *segment, struct build_info *info);
 int macho_build_symtab_32(struct symtab_32 *symtab, struct build_info *info);
-int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info, enum macho_bits bits);
+int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
 
 #endif

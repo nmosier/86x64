@@ -137,9 +137,8 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       struct section_wrapper_32 *sectwr = &segment->sections[i];
       struct section *section = &sectwr->section;
 
-      // macho_addr_t vmaddr_diff = -section->addr;
-      sectwr->adiff = -section->addr;
-      sectwr->odiff = -section->offset;
+      sectwr->adiff = - (macho_off_t) section->addr;
+      sectwr->odiff = - (macho_off_t) section->offset;
 
       /* function starts data */
       struct linkedit_data *fnstarts = NULL;
