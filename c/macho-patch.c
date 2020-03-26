@@ -75,8 +75,10 @@ int macho_patch_TEXT(struct segment_32 *text) {
    }
    for (uint32_t secti = 0; secti < nsects; ++secti) {
       struct section_wrapper_32 *sectwr = &text->sections[secti];
-      old_addrs[secti] = sectwr->section.addr - sectwr->adiff;
+      old_addrs[secti] = (macho_off_t) sectwr->section.addr - sectwr->adiff;
+      printf("adiff=0x%llx,", old_addrs[secti]);
    }
+   printf("\n");
    qsort(old_addrs, nsects, sizeof(old_addrs[0]),
          (int (*)(const void *, const void *)) macho_off_cmp);
    

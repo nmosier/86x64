@@ -125,7 +125,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    /* update segment command information */
    segment->command.fileoff = segment_start;
    segment->command.filesize = segment_minsize_aligned;
-   segment->adiff = segment->command.vmaddr - info->vmaddr;
+   segment->adiff = (macho_addr_t) segment->command.vmaddr - (macho_addr_t) info->vmaddr;
    segment->command.vmaddr = info->vmaddr;
    uint32_t vmsize = MAX(PAGESIZE, segment_minsize_aligned);
    segment->command.vmsize = vmsize;
@@ -138,8 +138,8 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       struct section *section = &sectwr->section;
 
       // macho_addr_t vmaddr_diff = -section->addr;
-      sectwr->adiff = -section->addr;
-      sectwr->odiff = -section->offset;
+      sectwr->adiff = - (macho_addr_t) section->addr;
+      sectwr->odiff = - (macho_off_t) section->offset;
 
       /* function starts data */
       struct linkedit_data *fnstarts = NULL;
