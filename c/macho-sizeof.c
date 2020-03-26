@@ -4,7 +4,6 @@
 #include "util.h"
 #include "macho.h"
 #include "macho-sizeof.h"
-#include "macho-util.h"
 
 uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {
    switch (command->load.cmd) {
@@ -41,8 +40,7 @@ uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {
 
 uint32_t macho_sizeof_segment_32(struct segment_32 *segment) {
    return segment->command.cmdsize =
-      sizeof(segment->command) + segment->command.nsects *
-      MACHO_SIZEOF(segment->sections[0].section, MACHO_32_PLACEHOLDER);
+      sizeof(segment->command) + segment->command.nsects * sizeof(segment->sections[0].section);
 }
 
 uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {

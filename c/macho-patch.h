@@ -7,14 +7,11 @@ int macho_patch(union macho *macho);
 int macho_patch_archive(union archive *archive);
 int macho_patch_archive_32(struct archive_32 *archive);
 
-int macho_patch_TEXT(struct segment_32 *text, enum macho_bits bits);
-macho_addr_t macho_patch_TEXT_address(macho_addr_t addr, const struct segment_32 *seg,
-                                      enum macho_bits bits);
+int macho_patch_TEXT(struct segment_32 *text);
+macho_addr_t macho_patch_TEXT_address(macho_addr_t addr, const struct segment_32 *seg);
 
-int macho_patch_DATA(struct segment_32 *data_seg, const struct segment_32 *text_seg,
-                     enum macho_bits bits);
-macho_addr_t macho_patch_symbol_pointer(macho_addr_t addr, const struct segment_32 *text,
-                                        enum macho_bits bits);
+int macho_patch_DATA(struct segment_32 *data_seg, const struct segment_32 *text_seg);
+macho_addr_t macho_patch_symbol_pointer(macho_addr_t addr, const struct segment_32 *text);
 
 int macho_patch_dyld_info(struct dyld_info *dyld, struct archive_32 *archive);
 

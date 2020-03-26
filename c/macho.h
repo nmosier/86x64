@@ -10,13 +10,7 @@
 
 typedef off_t macho_off_t;
 typedef uint64_t macho_addr_t;
-typedef size_t macho_size_t;
 #define MACHO_BAD_ADDR ((macho_addr_t) -1)
-
-enum macho_kind {MACHO_FAT, MACHO_ARCHIVE};
-enum macho_bits {MACHO_32, MACHO_64};
-#define MACHO_32_PLACEHOLDER MACHO_32
-#define MACHO_64_PLACEHOLDER MACHO_64
 
 struct fat_archive {
    struct fat_arch header;
@@ -33,48 +27,29 @@ struct archive_32 {
    union load_command_32 *commands;
 };
 
-struct section_xx {
-   char sectname[16];
-   char segname[16];
-   /* bits-dependent ... */
-};
-
-struct section_wrapper {
-   union {
-      struct section_xx section_xx;
-      struct section    section_32;
-      struct section_64 section_64;
-   };
-   void *data;
-   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
-   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */ 
-};
-
-#if 0
 struct section_wrapper_32 {
    struct section section;
    void *data;
-   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
-   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
+   int32_t adiff; /*!< Difference in address during build (erased by next build) */
+   int32_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
 struct section_wrapper_64 {
    struct section_64 section;
    void *data;
-   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
-   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
+   int64_t adiff; /*!< Difference in address during build (erased by next build) */
+   int64_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
-#endif
 
 struct segment_32 {
    struct segment_command command;
-   struct section_wrapper *sections;
+   struct section_wrapper_32 *sections;
    int32_t adiff;
 };
 
 struct segment_64 {
    struct segment_command_64 command;
-   struct section_wrapper *sections;
+   struct section_wrapper_64 *sections;
    int64_t adiff;
 };
 
@@ -90,13 +65,14 @@ struct symtab_32 {
    char *strtab;
 };
 
-struct dysymtab {
+struct dysymtab_64 {
    struct dysymtab_command command;
-   union {
-      void *indirectsyms_xx; /*!< unknown endianness */
-      uint32_t *indirectsyms_32;
-      uint64_t *indirectsyms_64;
-   };
+   uint32_t *indirectsyms;
+};
+
+struct dysymtab_32 {
+   struct dysymtab_command command;
+   uint32_t *indirectsyms;
 };
 
 struct dylinker {
@@ -147,7 +123,7 @@ union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
    struct symtab_32 symtab;
-   struct dysymtab dysymtab;
+   struct dysymtab_32 dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;
@@ -163,7 +139,7 @@ union load_command_64 {
    struct load_command load;
    struct segment_64 segment;
    struct symtab_64 symtab;
-   struct dysymtab dysymtab;
+   struct dysymtab_64 dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;

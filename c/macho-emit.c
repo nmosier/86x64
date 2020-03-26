@@ -6,20 +6,14 @@
 #include "util.h"
 
 /* NOTE: Leaves f file position in unspecified state. */
-static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment, enum macho_bits bits);
+static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment);
 static int macho_emit_symtab_32(FILE *f, const struct symtab_32 *symtab);
 static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker);
 static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedit);
 static int macho_emit_thread(FILE *f, const struct thread *thread);
 static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
-static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab, enum macho_bits bits);
-static inline int macho_emit_dysymtab_32(FILE *f, const struct dysymtab *dysymtab) {
-   return macho_emit_dysymtab(f, dysymtab, MACHO_32);
-}
-static inline int macho_emit_dysymtab_64(FILE *f, const struct dysymtab *dysymtab) {
-   return macho_emit_dysymtab(f, dysymtab, MACHO_64);
-}
+static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
 
 int macho_emit(FILE *f, const union macho *macho) {
    switch (macho_kind(macho)) {
@@ -70,7 +64,7 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
 
    switch (command->load.cmd) {
    case LC_SEGMENT:
-      if (macho_emit_segment_32(f, &command->segment, MACHO_32) < 0) { return -1; }
+      if (macho_emit_segment_32(f, &command->segment) < 0) { return -1; }
       break;
       
    case LC_SYMTAB:
@@ -137,7 +131,7 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
    return 0;
 }
 
-static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment, enum macho_bits bits) {
+static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment) {
    /* emit segment_command struct */
    if (fwrite_exact(&segment->command, sizeof(segment->command), 1, f) < 0) {
       return -1;
@@ -146,17 +140,18 @@ static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment, enum
    /* emit section headers */
    uint32_t nsects = segment->command.nsects;
    for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper *sectwr = &segment->sections[i];
-      if (fwrite_exact(MACHO_MEMBPTR(sectwr->section, bits),
-                       MACHO_SIZEOF(sectwr->section, bits),
-                       1, f) < 0) { return -1; }
+      const struct section_wrapper_32 *sectwr = &segment->sections[i];
+      if (fwrite_exact(&sectwr->section, sizeof(sectwr->section), 1, f) < 0) { return -1; }
    }
 
    /* emit section data */
    for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper *sectwr = &segment->sections[i];
-      if (fwrite_at(sectwr->data, 1, MACHO_MEMBER_SUFFIX(sectwr->section, bits, .size), f,
-                    MACHO_MEMBER_SUFFIX(sectwr->section, bits, .offset)) < 0) { return -1; }
+      const struct section_wrapper_32 *sectwr = &segment->sections[i];
+      if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
+         perror("fseek");
+         return -1;
+      }
+      if (fwrite_exact(sectwr->data, 1, sectwr->section.size, f) < 0) { return -1; }
    }
 
    return 0;
@@ -274,14 +269,12 @@ static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
    return 0;
 }
 
-static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab, enum macho_bits bits) {
+static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab) {
    /* emit dysymtab command */
    if (fwrite_exact(&dysymtab->command, sizeof(dysymtab->command), 1, f) < 0) { return -1; }
 
    /* emit indirect symbol table */
-   size_t sizeof_indirectsym = MACHO_SIZEOF(*dysymtab->indirectsyms, bits);
-   printf("sizeof_indirectsym=%zu\n", sizeof_indirectsym); // DEBUG
-   if (fwrite_at(dysymtab->indirectsyms_xx, sizeof_indirectsym,
+   if (fwrite_at(dysymtab->indirectsyms, sizeof(dysymtab->indirectsyms[0]),
                  dysymtab->command.nindirectsyms, f, dysymtab->command.indirectsymoff) < 0)
       { return -1; }
 

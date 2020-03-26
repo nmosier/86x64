@@ -108,17 +108,14 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    /* get max alignment */
    uint32_t section_maxalign = 0;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      section_maxalign = MAX(MACHO_MEMBER_SUFFIX(segment->sections[i].section, MACHO_32_PLACEHOLDER, .align),
-                             section_maxalign);
-      // section_maxalign = MAX(segment->sections[i].section.align, section_maxalign);
+      section_maxalign = MAX(segment->sections[i].section.align, section_maxalign);
    }
    
    /* recompute size required for all sections */
    /* NOTE: This is conservative in alignment requirements. */
    uint32_t segment_minsize = 0;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      segment_minsize += ALIGN_UP(MACHO_MEMBER_SUFFIX(segment->sections[i].section, MACHO_32_PLACEHOLDER, .size), 1 << section_maxalign);
-      // segment_minsize += ALIGN_UP(segment->sections[i].section.size, 1 << section_maxalign);
+      segment_minsize += ALIGN_UP(segment->sections[i].section.size, 1 << section_maxalign);
    }
    uint32_t segment_minsize_aligned = ALIGN_UP(segment_minsize, PAGESIZE);
 
@@ -128,7 +125,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    /* update segment command information */
    segment->command.fileoff = segment_start;
    segment->command.filesize = segment_minsize_aligned;
-   segment->adiff = (macho_addr_t) segment->command.vmaddr - (macho_addr_t) info->vmaddr;
+   segment->adiff = segment->command.vmaddr - info->vmaddr;
    segment->command.vmaddr = info->vmaddr;
    uint32_t vmsize = MAX(PAGESIZE, segment_minsize_aligned);
    segment->command.vmsize = vmsize;
@@ -137,12 +134,12 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
    macho_off_t dataoff = info->dataoff;
    macho_addr_t vmaddr = info->vmaddr + dataoff % PAGESIZE;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      struct section_wrapper *sectwr = &segment->sections[i];
-      // struct section *section = &sectwr->section;
+      struct section_wrapper_32 *sectwr = &segment->sections[i];
+      struct section *section = &sectwr->section;
 
       // macho_addr_t vmaddr_diff = -section->addr;
-      sectwr->adiff = - (macho_addr_t) MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .addr);
-      sectwr->odiff = - (macho_off_t) MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .offset);
+      sectwr->adiff = -section->addr;
+      sectwr->odiff = -section->offset;
 
       /* function starts data */
       struct linkedit_data *fnstarts = NULL;
@@ -153,7 +150,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
       struct entry_point_command *entry_point = NULL;
 
       /* check if __text -- if so, then update function starts */
-      if (macho_is_section(&sectwr->section_xx, SECT_TEXT)) {
+      if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
          /* find function starts command */
          union load_command_32 *command;
          if ((command = macho_find_load_command_32(LC_FUNCTION_STARTS,
@@ -162,7 +159,7 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
             fnstarts_addrs = fnstarts->data;
             fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
             for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
-               fnstarts_addrs[i] -= MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .addr);
+               fnstarts_addrs[i] -= section->addr;
             }
          }
 
@@ -172,40 +169,38 @@ int macho_build_segment_32(struct segment_32 *segment, struct build_info *info) 
             printf("old entryoff = 0x%llx\n", command->entry_point.entryoff);
             
             entry_point = &command->entry_point;
-            entry_point->entryoff -= MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .offset);
+            entry_point->entryoff -= section->offset;
          }
       }
 
       /* update offsets */
-      dataoff = ALIGN_UP(dataoff, 1 << MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .align));
-      MACHO_ASSIGN_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .offset, dataoff);
-      // section->offset = dataoff;
-      dataoff += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .size); // section->size;
+      dataoff = ALIGN_UP(dataoff, 1 << section->align);
+      section->offset = dataoff;
+      dataoff += section->size;
 
       /* update virtual address */
-      vmaddr = ALIGN_UP(vmaddr, 1 << MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .align));
-      MACHO_ASSIGN_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .addr, vmaddr);
-      // section->addr = vmaddr;
-      vmaddr += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .size); // section->size;
+      vmaddr = ALIGN_UP(vmaddr, 1 << section->align);
+      section->addr = vmaddr;
+      vmaddr += section->size;
 
       /* patch function starts */
       if (fnstarts) {
          for (uint32_t i = 0; i < fnstarts_naddrs; ++i) {
-            fnstarts_addrs[i] += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .addr); // section->addr;
+            fnstarts_addrs[i] += section->addr;
          }
       }
 
       /* patch entry point command */
       if (entry_point) {
-         entry_point->entryoff += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .offset);// section->offset;
+         entry_point->entryoff += section->offset;
 
          // DEBUG
          printf("new entryoff = 0x%llx\n", entry_point->entryoff);
       }
 
       // vmaddr_diff += section->addr;
-      sectwr->adiff += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .addr); // section->addr;
-      sectwr->odiff += MACHO_MEMBER_SUFFIX(sectwr->section, MACHO_32_PLACEHOLDER, .offset); // section->offset;
+      sectwr->adiff += section->addr;
+      sectwr->odiff += section->offset;
 
       /* patch symbols */
       union load_command_32 *symtab_tmp;
@@ -284,7 +279,7 @@ int macho_build_segment_32_LINKEDIT(struct segment_32 *segment, struct build_inf
             break;
             
          case LC_DYSYMTAB:
-            if (macho_build_dysymtab(&command->dysymtab, info, MACHO_32) < 0) { return -1; }
+            if (macho_build_dysymtab_32(&command->dysymtab, info) < 0) { return -1; }
             break;
 
          default: break;
@@ -317,8 +312,7 @@ int macho_build_symtab_32(struct symtab_32 *symtab, struct build_info *info) {
    return 0;
 }
 
-int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info, enum macho_bits bits)
-{
+int macho_build_dysymtab_32(struct dysymtab_32 *dysymtab, struct build_info *info) {
    if (dysymtab->command.ntoc) {
       fprintf(stderr,
               "macho_parse_dysymtab_32: parsing table of contents not supported\n");
@@ -346,9 +340,8 @@ int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info, enu
    }
 
    /* build indirect symtab */
-   size_t sizeof_indirectsym = MACHO_SIZEOF(*dysymtab->indirectsyms, bits);
    dysymtab->command.indirectsymoff = info->dataoff;
-   info->dataoff += dysymtab->command.nindirectsyms * sizeof_indirectsym;
+   info->dataoff += dysymtab->command.nindirectsyms * sizeof(dysymtab->indirectsyms[0]);
    
    return 0;
 }
