@@ -8,32 +8,43 @@
 /* function names */
 
 /* define struct names */
+
+/* declarations */
 #if MACHO_BITS == 32
+
 # define NLIST nlist
 # define SYMTAB symtab_32
 # define DYSYMTAB dysymtab_32
 # define SEGMENT segment_32
 # define SECTION_WRAPPER section_wrapper_32
+# define LOAD_COMMAND load_command_32
 # define macho_parse_symtab macho_parse_symtab_32
 # define macho_parse_dysymtab macho_parse_dysymtab_32
 # define macho_parse_segment macho_parse_segment_32
+# define macho_parse_load_command macho_parse_load_command_32
 # define MACHO_SIZE_T uint32_t
+
 #else
+
 # define NLIST nlist_64
 # define SYMTAB symtab_64
 # define DYSYMTAB dysymtab_64
 # define SEGMENT segment_64
 # define SECTION_WRAPPER section_wrapper_64
+# define LOAD_COMMAND load_command_64
 # define macho_parse_symtab macho_parse_symtab_64
 # define macho_parse_dysymtab macho_parse_dysymtab_64
 # define macho_parse_segment macho_parse_segment_64
+# define macho_parse_load_command macho_parse_load_command_64
 # define MACHO_SIZE_T uint64_t
+
 #endif
 
-/* declarations */
 static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab);
 static int macho_parse_dysymtab(FILE *f, struct DYSYMTAB *dysymtab);
 static int macho_parse_segment(FILE *f, struct SEGMENT *segment);
+
+
 
 static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab) {
    /* parse symtab command */
@@ -188,16 +199,108 @@ static int macho_parse_segment(FILE *f, struct SEGMENT *segment) {
    return 0;
 }
 
+int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
+   off_t offset;
+
+   /* save offset */
+   if ((offset = ftell(f)) < 0) {
+      perror("ftell");
+      return -1;
+   }
+   
+   /* parse shared load command preamble */
+   if (fread_exact(&command->load, sizeof(command->load), 1, f) < 0) { return -1; }
+
+   switch (command->load.cmd) {
+#if MACHO_BITS == 32
+   case LC_SEGMENT:
+      if (macho_parse_segment_32(f, &command->segment) < 0) { return -1; }
+      break;
+#else
+   case LC_SEGMENT_64:
+      if (macho_parse_segment_64(f, &command->segment) < 0) { return -1; }
+      break;
+#endif
+   case LC_SYMTAB:
+      if (macho_parse_symtab(f, &command->symtab) < 0) { return -1; }
+      break;
+
+   case LC_DYSYMTAB:
+      if (macho_parse_dysymtab(f, &command->dysymtab) < 0) { return -1; }
+      break;
+
+   case LC_LOAD_DYLINKER:
+      if (macho_parse_dylinker(f, &command->dylinker) < 0) { return -1; }
+      break;
+
+   case LC_UUID:
+      if (macho_parse_uuid(f, &command->uuid) < 0) { return -1; }
+      break;
+
+   case LC_UNIXTHREAD:
+      if (macho_parse_thread(f, &command->thread) < 0) { return -1; }
+      break;
+
+   case LC_FUNCTION_STARTS:
+   case LC_DATA_IN_CODE:
+      if (macho_parse_linkedit(f, &command->linkedit) < 0) { return -1; }
+      break;
+
+   case LC_DYLD_INFO:
+   case LC_DYLD_INFO_ONLY:
+      if (macho_parse_dyld_info(f, &command->dyld_info) < 0) { return -1; }
+      break;
+
+   case LC_VERSION_MIN_MACOSX:
+      if (fread_exact(AFTER(command->version_min.cmdsize), 1,
+                      STRUCT_REM(command->version_min, cmdsize), f) < 0) { return -1; }
+      break;
+
+   case LC_SOURCE_VERSION:
+      if (fread_exact(AFTER(command->source_version.cmdsize), 1,
+                      STRUCT_REM(command->source_version, cmdsize), f) < 0) { return -1; }
+      break;
+
+   case LC_MAIN:
+      if (fread_exact(AFTER(command->entry_point.cmdsize), 1,
+                      STRUCT_REM(command->entry_point, cmdsize), f) < 0) { return -1; }
+
+      // DEBUG
+      printf("LC_MAIN={.entryoff=0x%llx}\n", command->entry_point.entryoff);
+      
+      break;
+
+   case LC_LOAD_DYLIB:
+      if (macho_parse_dylib(f, &command->dylib) < 0) { return -1; }
+      break;
+      
+   default:
+      fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n",
+              command->load.cmd);
+      return -1;
+   }
+
+   /* restore offset */
+   if (fseek(f, offset + command->load.cmdsize, SEEK_SET) < 0) {
+      perror("fseek");
+      return -1;
+   }
+
+   return 0;
+}
+
 
 #undef NLIST
 #undef SYMTAB
 #undef DYSYMTAB
 #undef SEGMENT
 #undef SECTION_WRAPPER
+#undef LOAD_COMMAND
 
 #undef macho_parse_symtab
 #undef macho_parse_dysymtab
 #undef macho_parse_segment
+#undef macho_parse_load_command
 
 #undef MACHO_SIZE_T
 

@@ -44,6 +44,7 @@ int macho_parse_archive_32(FILE *f, const uint32_t *magic, struct archive_32 *ar
  * @param dataoff absolute file offset of data in archive
  */
 int macho_parse_load_command_32(FILE *f, union load_command_32 *command);
+int macho_parse_load_command_64(FILE *f, union load_command_64 *command);
 
 #endif
 

@@ -20,6 +20,8 @@ static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
 static int macho_parse_dyld_info(FILE *f, struct dyld_info *dyld_info);
 static int macho_parse_dylib(FILE *f, struct dylib_wrapper *dylib);
 
+static int macho_parse_segment_64(FILE *f, struct segment_64 *segment);
+
 #define MACHO_BITS 32
 #include "macho-parse-t.c"
 #define MACHO_BITS 64
@@ -157,114 +159,6 @@ int macho_parse_archive_32(FILE *f, const uint32_t *magic, struct archive_32 *ar
    return 0;
 }
 
-int macho_parse_load_command_32(FILE *f, union load_command_32 *command) {
-   off_t offset;
-
-   /* save offset */
-   if ((offset = ftell(f)) < 0) {
-      perror("ftell");
-      return -1;
-   }
-   
-   /* parse shared load command preamble */
-   if (fread_exact(&command->load, sizeof(command->load), 1, f) < 0) { return -1; }
-
-   switch (command->load.cmd) {
-   case LC_SEGMENT:
-      if (macho_parse_segment_32(f, &command->segment) < 0) { return -1; }
-      break;
-
-   case LC_SYMTAB:
-      if (macho_parse_symtab_32(f, &command->symtab) < 0) { return -1; }
-      break;
-
-   case LC_DYSYMTAB:
-      if (macho_parse_dysymtab_32(f, &command->dysymtab) < 0) { return -1; }
-      break;
-
-   case LC_LOAD_DYLINKER:
-      if (macho_parse_dylinker(f, &command->dylinker) < 0) { return -1; }
-      break;
-
-   case LC_UUID:
-      if (macho_parse_uuid(f, &command->uuid) < 0) { return -1; }
-      break;
-
-   case LC_UNIXTHREAD:
-      if (macho_parse_thread(f, &command->thread) < 0) { return -1; }
-      break;
-
-   case LC_FUNCTION_STARTS:
-   case LC_DATA_IN_CODE:
-      if (macho_parse_linkedit(f, &command->linkedit) < 0) { return -1; }
-      break;
-
-   case LC_DYLD_INFO:
-   case LC_DYLD_INFO_ONLY:
-      if (macho_parse_dyld_info(f, &command->dyld_info) < 0) { return -1; }
-      break;
-
-   case LC_VERSION_MIN_MACOSX:
-      if (fread_exact(AFTER(command->version_min.cmdsize), 1,
-                      STRUCT_REM(command->version_min, cmdsize), f) < 0) { return -1; }
-      break;
-
-   case LC_SOURCE_VERSION:
-      if (fread_exact(AFTER(command->source_version.cmdsize), 1,
-                      STRUCT_REM(command->source_version, cmdsize), f) < 0) { return -1; }
-      break;
-
-   case LC_MAIN:
-      if (fread_exact(AFTER(command->entry_point.cmdsize), 1,
-                      STRUCT_REM(command->entry_point, cmdsize), f) < 0) { return -1; }
-
-      // DEBUG
-      printf("LC_MAIN={.entryoff=0x%llx}\n", command->entry_point.entryoff);
-      
-      break;
-
-   case LC_LOAD_DYLIB:
-      if (macho_parse_dylib(f, &command->dylib) < 0) { return -1; }
-      break;
-      
-   default:
-      fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n",
-              command->load.cmd);
-      return -1;
-   }
-
-   /* restore offset */
-   if (fseek(f, offset + command->load.cmdsize, SEEK_SET) < 0) {
-      perror("fseek");
-      return -1;
-   }
-
-   return 0;
-}
-
-
-static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker) {
-   /* parse dylinker command */
-   /* NOTE: This might be buggy. */
-   if (fread_exact(AFTER(dylinker->command.cmdsize),
-                   STRUCT_REM(dylinker->command, cmdsize), 1, f) < 0) {
-      return -1;
-   }
-
-   /* allocate space for name */
-   size_t name_len = dylinker->command.cmdsize - sizeof(dylinker->command);
-   if ((dylinker->name = calloc(name_len + 1, 1))
-       == NULL) {
-      return -1;
-   }
-
-   /* parse name */
-   if (fread_exact(dylinker->name, 1, name_len, f) < 0) {
-      return -1;
-   }
-
-   return 0;
-}
 
 static int macho_parse_uuid(FILE *f, struct uuid_command *uuid) {
    return fread_exact(AFTER(uuid->cmdsize), STRUCT_REM(*uuid, cmdsize), 1, f);
@@ -379,3 +273,25 @@ static int macho_parse_dylib(FILE *f, struct dylib_wrapper *dylib) {
    return 0;
 }
 
+static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker) {
+   /* parse dylinker command */
+   /* NOTE: This might be buggy. */
+   if (fread_exact(AFTER(dylinker->command.cmdsize),
+                   STRUCT_REM(dylinker->command, cmdsize), 1, f) < 0) {
+      return -1;
+   }
+
+   /* allocate space for name */
+   size_t name_len = dylinker->command.cmdsize - sizeof(dylinker->command);
+   if ((dylinker->name = calloc(name_len + 1, 1))
+       == NULL) {
+      return -1;
+   }
+
+   /* parse name */
+   if (fread_exact(dylinker->name, 1, name_len, f) < 0) {
+      return -1;
+   }
+
+   return 0;
+}
