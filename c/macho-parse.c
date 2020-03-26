@@ -13,7 +13,7 @@
 #include "macho-util.h"
 #include "util.h"
 
-static int macho_parse_segment_32(FILE *f, struct segment_32 *segment);
+static int macho_parse_segment(FILE *f, struct segment_32 *segment, enum macho_bits bits);
 static int macho_parse_symtab_32(FILE *f, struct symtab_32 *symtab);
 static int macho_parse_dysymtab(FILE *f, struct dysymtab *dysymtab, enum macho_bits bits);
 static inline int macho_parse_dysymtab_32(FILE *f, struct dysymtab *dysymtab) {
@@ -176,7 +176,7 @@ int macho_parse_load_command_32(FILE *f, union load_command_32 *command) {
 
    switch (command->load.cmd) {
    case LC_SEGMENT:
-      if (macho_parse_segment_32(f, &command->segment) < 0) { return -1; }
+      if (macho_parse_segment(f, &command->segment, MACHO_32) < 0) { return -1; }
       break;
 
    case LC_SYMTAB:
@@ -249,7 +249,7 @@ int macho_parse_load_command_32(FILE *f, union load_command_32 *command) {
 
 /* NOTE: Load command prefix already parsed. 
  * NOTE: Leaves file offset in indeterminate state. */
-static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
+static int macho_parse_segment(FILE *f, struct segment_32 *segment, enum macho_bits bits) {
    /* parse segment command */
    if (fread_exact(AFTER(segment->command.cmdsize),
                    STRUCT_REM(segment->command, cmdsize), 1, f) < 0) {
@@ -270,13 +270,16 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
 
       /* parse sections array */
       for (uint32_t i = 0; i < nsects; ++i) {
-         struct section_wrapper_32 *sectwr = &segment->sections[i];
+         struct section_wrapper *sectwr = &segment->sections[i];
 
          /* read section struct */
-         if (fread_exact(&sectwr->section, sizeof(sectwr->section), 1, f) < 0) { return -1; }
+         if (fread_exact(MACHO_MEMBPTR(sectwr->section, bits),
+                         MACHO_SIZEOF(sectwr->section, bits),
+                         1, f) < 0) { return -1; }
 
          /* guard against unsupported features */
-         if (sectwr->section.nreloc != 0) {
+         if (MACHO_MEMBER_SUFFIX(sectwr->section, bits, .nreloc) != 0) {
+            // if (sectwr->section.nreloc != 0) {
             fprintf(stderr, "macho_parse_segment_32: relocation entries not supported\n");
             return -1;
          }
@@ -284,37 +287,18 @@ static int macho_parse_segment_32(FILE *f, struct segment_32 *segment) {
 
       /* do section_wrapper initialization work */
       for (uint32_t i = 0; i < nsects; ++i) {
-         struct section_wrapper_32 *sectwr = &segment->sections[i];
-         uint32_t data_size = sectwr->section.size;
+         struct section_wrapper *sectwr = &segment->sections[i];
+         macho_size_t data_size = MACHO_MEMBER_SUFFIX(sectwr->section, bits, .size);
+         // uint32_t data_size = sectwr->section.size;
          if (data_size == 0) {
             sectwr->data = NULL;
          } else {
-            /* seek to data */
-            if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
-               perror("fseek");
-               return -1;
-            }
-            
-            /* parse data */
-            if ((sectwr->data = fmread(1, sectwr->section.size, f)) == NULL) { return -1; }
+            if ((sectwr->data = fmread_at(1, data_size, f,
+                                          MACHO_MEMBER_SUFFIX(sectwr->section, bits, .offset)))
+                == NULL) { return -1; }
          }
       }
    }
-
-   // DEBUG
-#if 1
-   printf("LC_SEGMENT={\n\t.segname='%s',\n\t.fileoff=0x%x,\n\t.filesize=0x%x\n\n",
-          segment->command.segname, segment->command.fileoff, segment->command.filesize);
-   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      printf("\tstruct section={.sectname='%s',.offset=0x%x,.size=0x%x}\n",
-             segment->sections[i].section.sectname, segment->sections[i].section.offset,
-             segment->sections[i].section.size);
-      for (size_t j = 0; j < segment->sections[i].section.size; ++j) {
-         printf(" %02x", ((uint8_t *)segment->sections[i].data)[j]);
-      }
-      printf("\n");
-   }
-#endif
 
    return 0;
 }

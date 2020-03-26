@@ -6,7 +6,7 @@
 #include "util.h"
 
 /* NOTE: Leaves f file position in unspecified state. */
-static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment);
+static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment, enum macho_bits bits);
 static int macho_emit_symtab_32(FILE *f, const struct symtab_32 *symtab);
 static int macho_emit_dylinker(FILE *f, const struct dylinker *dylinker);
 static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedit);
@@ -70,7 +70,7 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
 
    switch (command->load.cmd) {
    case LC_SEGMENT:
-      if (macho_emit_segment_32(f, &command->segment) < 0) { return -1; }
+      if (macho_emit_segment_32(f, &command->segment, MACHO_32) < 0) { return -1; }
       break;
       
    case LC_SYMTAB:
@@ -137,7 +137,7 @@ int macho_emit_load_command_32(FILE *f, const union load_command_32 *command) {
    return 0;
 }
 
-static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment) {
+static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment, enum macho_bits bits) {
    /* emit segment_command struct */
    if (fwrite_exact(&segment->command, sizeof(segment->command), 1, f) < 0) {
       return -1;
@@ -146,18 +146,17 @@ static int macho_emit_segment_32(FILE *f, const struct segment_32 *segment) {
    /* emit section headers */
    uint32_t nsects = segment->command.nsects;
    for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (fwrite_exact(&sectwr->section, sizeof(sectwr->section), 1, f) < 0) { return -1; }
+      const struct section_wrapper *sectwr = &segment->sections[i];
+      if (fwrite_exact(MACHO_MEMBPTR(sectwr->section, bits),
+                       MACHO_SIZEOF(sectwr->section, bits),
+                       1, f) < 0) { return -1; }
    }
 
    /* emit section data */
    for (uint32_t i = 0; i < nsects; ++i) {
-      const struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
-         perror("fseek");
-         return -1;
-      }
-      if (fwrite_exact(sectwr->data, 1, sectwr->section.size, f) < 0) { return -1; }
+      const struct section_wrapper *sectwr = &segment->sections[i];
+      if (fwrite_at(sectwr->data, 1, MACHO_MEMBER_SUFFIX(sectwr->section, bits, .size), f,
+                    MACHO_MEMBER_SUFFIX(sectwr->section, bits, .offset)) < 0) { return -1; }
    }
 
    return 0;

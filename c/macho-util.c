@@ -74,11 +74,12 @@ struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 
    return NULL;
 }
 
-struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment)
+struct section_wrapper *macho_find_section_32(const char *sectname, struct segment_32 *segment)
 {
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
-      struct section_wrapper_32 *sectwr = &segment->sections[i];
-      if (strncmp(sectwr->section.sectname, sectname, sizeof(sectwr->section.sectname)) == 0) {
+      struct section_wrapper *sectwr = &segment->sections[i];
+      if (macho_is_section(&sectwr->section_xx, sectname)) {
+   // if (strncmp(sectwr->section.sectname, sectname, sizeof(sectwr->section.sectname)) == 0) {
          return sectwr;
       }
    }
@@ -114,3 +115,4 @@ struct segment_32 *macho_index_segment_32(uint32_t index, struct archive_32 *arc
 
    return NULL;
 }
+

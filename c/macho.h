@@ -10,10 +10,13 @@
 
 typedef off_t macho_off_t;
 typedef uint64_t macho_addr_t;
+typedef size_t macho_size_t;
 #define MACHO_BAD_ADDR ((macho_addr_t) -1)
 
 enum macho_kind {MACHO_FAT, MACHO_ARCHIVE};
 enum macho_bits {MACHO_32, MACHO_64};
+#define MACHO_32_PLACEHOLDER MACHO_32
+#define MACHO_64_PLACEHOLDER MACHO_64
 
 struct fat_archive {
    struct fat_arch header;
@@ -30,6 +33,24 @@ struct archive_32 {
    union load_command_32 *commands;
 };
 
+struct section_xx {
+   char sectname[16];
+   char segname[16];
+   /* bits-dependent ... */
+};
+
+struct section_wrapper {
+   union {
+      struct section_xx section_xx;
+      struct section    section_32;
+      struct section_64 section_64;
+   };
+   void *data;
+   macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
+   macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */ 
+};
+
+#if 0
 struct section_wrapper_32 {
    struct section section;
    void *data;
@@ -43,16 +64,17 @@ struct section_wrapper_64 {
    macho_off_t adiff; /*!< Difference in address during build (erased by next build) */
    macho_off_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
+#endif
 
 struct segment_32 {
    struct segment_command command;
-   struct section_wrapper_32 *sections;
+   struct section_wrapper *sections;
    int32_t adiff;
 };
 
 struct segment_64 {
    struct segment_command_64 command;
-   struct section_wrapper_64 *sections;
+   struct section_wrapper *sections;
    int64_t adiff;
 };
 
