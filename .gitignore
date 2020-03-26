@@ -8,3 +8,6 @@ cmake_install.cmake
 *.o
 *.s
 *.dmp
+a.ot
+a.out
+*.asm
