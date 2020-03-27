@@ -15,6 +15,7 @@
 # define macho_build_archive          macho_build_archive_32
 # define macho_build_load_command     macho_build_load_command_32
 # define macho_build_segment_LINKEDIT macho_build_segment_32_LINKEDIT
+# define macho_build_dyld_info        macho_build_dyld_info_32
 
 # define macho_find_load_command      macho_find_load_command_32
 # define macho_linkedit               macho_linkedit_32
@@ -22,6 +23,8 @@
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
+
+# define build_info build_info_32
 
 #else
 
@@ -40,10 +43,13 @@
 # define macho_build_archive          macho_build_archive_64
 # define macho_build_load_command     macho_build_load_command_64
 # define macho_build_segment_LINKEDIT macho_build_segment_64_LINKEDIT
+# define macho_build_dyld_info        macho_build_dyld_info_64
 
 # define macho_find_load_command      macho_find_load_command_64
 # define macho_linkedit               macho_linkedit_64
 # define macho_sizeof_load_command    macho_sizeof_load_command_64
+
+# define build_info build_info_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
@@ -58,6 +64,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info);
 int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info);
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
+int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
 
 /* NOTES:
  *  - Each segment needs to start on a page bounary, i.e. its file offset must be a multiple of
@@ -92,7 +99,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
    /* update segment command information */
    segment->command.fileoff = segment_start;
    segment->command.filesize = segment_minsize_aligned;
-   segment->adiff = segment->command.vmaddr - info->vmaddr;
+   segment->adiff = info->vmaddr - segment->command.vmaddr; // segment->command.vmaddr - info->vmaddr;
    segment->command.vmaddr = info->vmaddr;
    MACHO_SIZE_T vmsize = MAX(PAGESIZE, segment_minsize_aligned);
    segment->command.vmsize = vmsize;
@@ -119,7 +126,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
       if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
          /* find function starts command */
          union LOAD_COMMAND *command;
-         if ((command = macho_find_load_command(LC_FUNCTION_STARTS, &info->archive->ARCHIVE))) {
+         if ((command = macho_find_load_command(LC_FUNCTION_STARTS, info->archive))) {
             fnstarts = &command->linkedit;
             fnstarts_addrs = fnstarts->data;
             fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
@@ -129,7 +136,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
          }
 
          /* find entry point command */
-         if ((command = macho_find_load_command(LC_MAIN, &info->archive->ARCHIVE))) {
+         if ((command = macho_find_load_command(LC_MAIN, info->archive))) {
             // DEBUG
             printf("old entryoff = 0x%llx\n", command->entry_point.entryoff);
             
@@ -169,7 +176,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
 
       /* patch symbols */
       union LOAD_COMMAND *symtab_tmp;
-      if ((symtab_tmp = macho_find_load_command(LC_SYMTAB, &info->archive->ARCHIVE))) {
+      if ((symtab_tmp = macho_find_load_command(LC_SYMTAB, info->archive))) {
          struct SYMTAB *symtab = &symtab_tmp->symtab;
          for (uint32_t j = 0; j < symtab->command.nsyms; ++j) {
             struct NLIST *entry = &symtab->entries[j];
@@ -182,7 +189,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
 
       /* patch thread states */
       union LOAD_COMMAND *thread_tmp;
-      if ((thread_tmp = macho_find_load_command(LC_UNIXTHREAD, &info->archive->ARCHIVE))) {
+      if ((thread_tmp = macho_find_load_command(LC_UNIXTHREAD, info->archive))) {
          struct thread_list *it = thread_tmp->thread.entries;
          while (it) {
             switch (it->entry.header.flavor) {
@@ -218,7 +225,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
       return -1;
    }
 
-   struct ARCHIVE *archive = &info->archive->ARCHIVE;
+   struct ARCHIVE *archive = info->archive;
    uint32_t ncmds = archive->header.ncmds;
    
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
@@ -259,7 +266,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
    
    // DEBUG
    printf("__LINKEDIT={.size=0x%llx}\n", (uint64_t) segment->command.filesize);
-   printf("dataoff=0x%llx,datatend=0x%llx\n", start_offset, info->dataoff);
+   printf("dataoff=0x%llx,datatend=0x%llx\n", (uint64_t) start_offset, (uint64_t) info->dataoff);
 
    return 0;
 }
@@ -274,7 +281,7 @@ int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
 
    // DEBUG
    printf("symtab dataoff = 0x%x; symtab dataend = 0x%llx\n", symtab->command.symoff,
-          info->dataoff);
+          (uint64_t) info->dataoff);
    
    return 0;
 }
@@ -376,6 +383,27 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
    return 0;
 }
 
+int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) {
+   /* build rebase data */
+   dyld_info->command.rebase_off = info->dataoff;
+   info->dataoff += dyld_info->command.rebase_size;
+   
+   /* build bind data */
+   dyld_info->command.bind_off = info->dataoff;
+   info->dataoff += dyld_info->command.bind_size;
+   
+   /* build lazy bind data */
+   dyld_info->command.lazy_bind_off = info->dataoff;
+   info->dataoff += dyld_info->command.lazy_bind_size;
+   
+   /* build export data */
+   dyld_info->command.export_off = info->dataoff;
+   info->dataoff += dyld_info->command.export_size;
+   
+   return 0;
+}
+
+
 
 #undef SYMTAB
 #undef DYSYMTAB
@@ -392,6 +420,7 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
 #undef macho_build_archive
 #undef macho_build_load_command
 #undef macho_build_segment_LINKEDIT
+#undef macho_build_dyld_info
 
 #undef macho_find_load_command
 #undef macho_linkedit
@@ -399,5 +428,7 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T
+
+#undef build_info
 
 #undef MACHO_BITS

@@ -11,6 +11,8 @@
 
 # define macho_sizeof_load_command macho_sizeof_load_command_32
 # define macho_sizeof_segment macho_sizeof_segment_32
+# define macho_sizeof_dylib macho_sizeof_dylib_32
+# define macho_sizeof_dylinker macho_sizeof_dylinker_32
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
@@ -28,12 +30,16 @@
 
 # define macho_sizeof_load_command macho_sizeof_load_command_64
 # define macho_sizeof_segment macho_sizeof_segment_64
+# define macho_sizeof_dylib macho_sizeof_dylib_64
+# define macho_sizeof_dylinker macho_sizeof_dylinker_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
 
 #endif
 
+uint32_t macho_sizeof_dylib(struct dylib_wrapper *dylib);
+uint32_t macho_sizeof_dylinker(struct dylinker *dylinker);
 
 uint32_t macho_sizeof_load_command(union LOAD_COMMAND *command) {
    switch (command->load.cmd) {
@@ -78,6 +84,19 @@ uint32_t macho_sizeof_segment(struct SEGMENT *segment) {
       sizeof(segment->command) + segment->command.nsects * sizeof(segment->sections[0].section);
 }
 
+uint32_t macho_sizeof_dylib(struct dylib_wrapper *dylib) {
+   return dylib->command.cmdsize = sizeof(dylib->command) +
+      ALIGN_UP(strlen(dylib->name), sizeof(MACHO_SIZE_T));
+}
+
+uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
+   uint32_t namelen = strlen(dylinker->name);
+   return dylinker->command.cmdsize
+      = ALIGN_UP(sizeof(dylinker->command) + namelen, sizeof(MACHO_SIZE_T));
+}
+
+
+
 #undef SYMTAB
 #undef DYSYMTAB
 #undef SEGMENT
@@ -89,6 +108,8 @@ uint32_t macho_sizeof_segment(struct SEGMENT *segment) {
 
 #undef macho_sizeof_load_command
 #undef macho_sizeof_segment
+#undef macho_sizeof_dylib
+#undef macho_sizeof_dylinker
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T

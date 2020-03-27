@@ -10,10 +10,6 @@
 #define MACHO_BITS 64
 #include "macho-sizeof-t.c"
 
-uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
-   uint32_t namelen = strlen(dylinker->name);
-   return dylinker->command.cmdsize = sizeof(dylinker->command) + ALIGN_UP(namelen, sizeof(uint32_t));
-}
 
 uint32_t macho_sizeof_thread(struct thread *thread) {
    uint32_t size = sizeof(thread->command);
@@ -27,7 +23,3 @@ uint32_t macho_sizeof_thread(struct thread *thread) {
    return thread->command.cmdsize = size;
 }
 
-uint32_t macho_sizeof_dylib(struct dylib_wrapper *dylib) {
-   return dylib->command.cmdsize = sizeof(dylib->command) +
-      ALIGN_UP(strlen(dylib->name), sizeof(uint32_t));
-}

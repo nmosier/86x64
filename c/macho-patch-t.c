@@ -314,6 +314,9 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
                  (uleb + segment->command.vmaddr - segment->adiff, segment))
                 == MACHO_BAD_ADDR) {
                fprintf(stderr, "macho_patch_dyld_info: bad address 0x%jx\n", uleb);
+               fprintf(stderr, "[segment %*s, base addr 0x%x]\n",
+                       (int) sizeof(segment->command.segname), segment->command.segname,
+                       segment->command.vmaddr - segment->adiff);
                return -1;
             }
             new_uleb = new_addr - segment->command.vmaddr;
