@@ -15,6 +15,7 @@
 # define macho_patch_DATA           macho_patch_DATA_32
 # define macho_patch_dyld_info      macho_patch_dyld_info_32
 # define macho_patch_symbol_pointer macho_patch_symbol_pointer_32
+# define macho_patch_address        macho_patch_address_32
 
 # define macho_find_segment         macho_find_segment_32
 # define macho_index_segment        macho_index_segment_32
@@ -39,6 +40,7 @@
 # define macho_patch_DATA           macho_patch_DATA_64
 # define macho_patch_dyld_info      macho_patch_dyld_info_64
 # define macho_patch_symbol_pointer macho_patch_symbol_pointer_64
+# define macho_patch_address        macho_patch_address_64
 
 # define macho_find_segment         macho_find_segment_64
 # define macho_index_segment        macho_index_segment_64
@@ -51,7 +53,7 @@
 #include "macho.h"
 #include "macho-util.h"
 
-int macho_patch_TEXT(struct SEGMENT *text);
+int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive);
 int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg);
 MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT *text);
 struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive);
@@ -71,6 +73,26 @@ MACHO_ADDR_T macho_patch_TEXT_address(MACHO_ADDR_T addr, const struct SEGMENT *s
    return MACHO_BAD_ADDR;
 }
 
+MACHO_ADDR_T macho_patch_address(MACHO_ADDR_T addr, const struct ARCHIVE *archive) {
+   const uint32_t ncmds = archive->header.ncmds;
+   for (uint32_t cmdi = 0; cmdi < ncmds; ++cmdi) {
+      union LOAD_COMMAND *command = &archive->commands[cmdi];
+      if (command->load.cmd == (MACHO_BITS == 32 ? LC_SEGMENT : LC_SEGMENT_64)) {
+         struct SEGMENT *segment = &command->segment;
+         const uint32_t nsects = segment->command.nsects;
+         for (uint32_t secti = 0; secti < nsects; ++secti) {
+            struct SECTION_WRAPPER *sectwr = &segment->sections[secti];
+            const struct SECTION *section = &sectwr->section;
+            MACHO_ADDR_T adjusted_addr = addr + sectwr->adiff;
+            if (adjusted_addr >= section->addr && adjusted_addr < section->addr + section->size) {
+               return adjusted_addr;
+            }
+         }
+      }
+   }
+   return MACHO_BAD_ADDR;
+}
+
 int macho_patch_archive(struct ARCHIVE *archive) {
    uint32_t ncmds = archive->header.ncmds;
    
@@ -78,7 +100,7 @@ int macho_patch_archive(struct ARCHIVE *archive) {
    seg_text = macho_find_segment(SEG_TEXT, archive);
    seg_data = macho_find_segment(SEG_DATA, archive);
    if (seg_text) {
-      if (macho_patch_TEXT(seg_text) < 0) { return -1; }
+      if (macho_patch_TEXT(seg_text, archive) < 0) { return -1; }
    }
    if (seg_data) {
       if (macho_patch_DATA(seg_data, seg_text) < 0) { return -1; }
@@ -104,7 +126,7 @@ int macho_patch_archive(struct ARCHIVE *archive) {
 }
 
 
-int macho_patch_TEXT(struct SEGMENT *text) {
+int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
    uint32_t nsects = text->command.nsects;
 
    /* reconstruct old addresses */
@@ -174,7 +196,8 @@ int macho_patch_TEXT(struct SEGMENT *text) {
          for (unsigned int i = 0; i < noperands; ++i) {
             xed_reg_enum_t basereg = xed_decoded_inst_get_base_reg(operands, i);
             xed_reg_enum_t indexreg = xed_decoded_inst_get_index_reg(operands, i);
-            if (basereg == XED_REG_ESI && indexreg == XED_REG_INVALID &&
+            if (basereg == (MACHO_BITS == 32 ? XED_REG_EIP : XED_REG_RIP)
+                && indexreg == XED_REG_INVALID &&
                 xed_operand_values_has_memory_displacement(operands)) {
                /* get old address of this instruction */
                macho_addr_t old_inst_addr = (it - start) + section->addr - sectwr->adiff;
@@ -183,13 +206,15 @@ int macho_patch_TEXT(struct SEGMENT *text) {
                xed_int64_t old_memdisp = xed_decoded_inst_get_memory_displacement(operands, i);
 
                /* compute old target address */
-               MACHO_ADDR_T old_target_addr = old_inst_addr + old_memdisp;
+               MACHO_ADDR_T old_target_addr = old_inst_addr + xed_decoded_inst_get_length(&xedd) +
+                  old_memdisp;
                
                /* translate to new address */
-               MACHO_ADDR_T new_target_addr = macho_patch_TEXT_address(old_target_addr, text);
+               MACHO_ADDR_T new_target_addr = macho_patch_address(old_target_addr, archive);
 
                /* compute new memory displacement */
-               xed_int64_t new_memdisp = old_memdisp + new_target_addr - old_target_addr;
+               xed_int64_t new_memdisp = old_memdisp + new_target_addr - old_target_addr -
+                  sectwr->adiff;
 
                /* patch instruction with new memory displacement */
                xed_enc_displacement_t disp =
@@ -201,6 +226,11 @@ int macho_patch_TEXT(struct SEGMENT *text) {
                           old_inst_addr);
                   return -1;
                }
+
+               // DEBUG
+               printf("[patched instruction at address 0x%llx/0x%llx]\n", old_inst_addr,
+                      old_inst_addr + sectwr->adiff);
+               
             }
 
             /* Jumps [RELATIVE] */
@@ -421,6 +451,7 @@ MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT 
 #undef macho_patch_DATA
 #undef macho_patch_dyld_info
 #undef macho_patch_symbol_pointer
+#undef macho_patch_address
 
 #undef macho_find_segment
 #undef macho_index_segment
