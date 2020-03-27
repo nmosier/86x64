@@ -10,6 +10,7 @@
 # define macho_find_section      macho_find_section_32
 # define macho_find_load_command macho_find_load_command_32
 # define macho_linkedit          macho_linkedit_32
+# define macho_index_segment     macho_index_segment_32
 
 #else
 
@@ -23,6 +24,7 @@
 # define macho_find_section      macho_find_section_64
 # define macho_find_load_command macho_find_load_command_64
 # define macho_linkedit          macho_linkedit_64
+# define macho_index_segment     macho_index_segment_64
 
 #endif
 
@@ -85,6 +87,21 @@ struct linkedit_data *macho_linkedit(union LOAD_COMMAND *command) {
 }
 
 
+struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive) {
+   uint32_t ncmds = archive->header.ncmds;
+
+   uint32_t found = 0;
+   for (uint32_t i = 0; i < ncmds; ++i) {
+      union LOAD_COMMAND *command = &archive->commands[i];
+      if (command->load.cmd == LC_SEGMENT && found++ == index) {
+         return &command->segment;
+      }
+   }
+
+   return NULL;
+}
+
+
 #undef ARCHIVE
 #undef LOAD_COMMAND
 #undef SEGMENT
@@ -95,5 +112,6 @@ struct linkedit_data *macho_linkedit(union LOAD_COMMAND *command) {
 #undef macho_find_section
 #undef macho_find_load_command
 #undef macho_linkedit
+#undef macho_index_segment
 
 #undef MACHO_BITS

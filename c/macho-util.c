@@ -53,16 +53,3 @@ int macho_off_cmp(const macho_off_t *a, const macho_off_t *b) {
    return a - b;
 }
 
-struct segment_32 *macho_index_segment_32(uint32_t index, struct archive_32 *archive) {
-   uint32_t ncmds = archive->header.ncmds;
-
-   uint32_t found = 0;
-   for (uint32_t i = 0; i < ncmds; ++i) {
-      union load_command_32 *command = &archive->commands[i];
-      if (command->load.cmd == LC_SEGMENT && found++ == index) {
-         return &command->segment;
-      }
-   }
-
-   return NULL;
-}

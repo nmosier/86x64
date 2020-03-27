@@ -21,7 +21,9 @@ struct linkedit_data *macho_linkedit_32(union load_command_32 *command);
 struct linkedit_data *macho_linkedit_64(union load_command_64 *command);
 
 struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 *archive);
+struct segment_64 *macho_find_segment_64(const char *segname, struct archive_64 *archive);
 struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment);
+struct section_wrapper_64 *macho_find_section_64(const char *sectname, struct segment_64 *segment);
 
 union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive);
 union load_command_64 *macho_find_load_command_64(uint32_t cmd, struct archive_64 *archive);
