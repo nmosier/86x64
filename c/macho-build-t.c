@@ -107,7 +107,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
    /* update section information */
    MACHO_SIZE_T dataoff = info->dataoff;
    MACHO_ADDR_T vmaddr = info->vmaddr + dataoff % PAGESIZE;
-   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+   for (uint32_t i = 0; i < segment->command.nsects; ++i, ++info->nsects) {
       struct SECTION_WRAPPER *sectwr = &segment->sections[i];
       struct SECTION *section = &sectwr->section;
 
@@ -180,11 +180,23 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
          struct SYMTAB *symtab = &symtab_tmp->symtab;
          for (uint32_t j = 0; j < symtab->command.nsyms; ++j) {
             struct NLIST *entry = &symtab->entries[j];
-            if (entry->n_sect == i + 1) {
+            if (entry->n_sect == info->nsects + 1) {
+               // DEBUG
+               printf("nlist{name='%s',value=0x%llx}\n", symtab->strtab + entry->n_un.n_strx,
+                      (uint64_t) entry->n_value);
+               
                /* patch symbol address */
                entry->n_value += sectwr->adiff; // vmaddr_diff;
+
+               // DEBUG
+               printf("nlist{name='%s',value=0x%llx}\n", symtab->strtab + entry->n_un.n_strx,
+                      (uint64_t) entry->n_value);
+               
             }
          }
+
+         // DEBUG
+         printf("[built symtab]\n");
       }
 
       /* patch thread states */

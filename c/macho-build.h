@@ -5,20 +5,12 @@
 
 #include "macho.h"
 
-#if 0
-struct build_info {
-   union archive *archive;
-   macho_off_t curoff; /*!< current file offset */
-   macho_off_t dataoff; /*!< data file offset */
-   macho_addr_t vmaddr; /*!< current virtual memory address */
-};
-#endif
-
 struct build_info_32 {
    struct archive_32 *archive;
    uint32_t curoff;
    uint32_t dataoff;
    uint32_t vmaddr;
+   uint8_t  nsects; /*!< section counter */
 };
 
 struct build_info_64 {
@@ -26,6 +18,7 @@ struct build_info_64 {
    uint64_t curoff;
    uint64_t dataoff;
    uint64_t vmaddr;
+   uint8_t  nsects; /*!< section counter */   
 };
 
 /**
