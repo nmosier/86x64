@@ -31,7 +31,13 @@
 struct SEGMENT *macho_find_segment(const char *segname, struct ARCHIVE *archive) {
    for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
       union LOAD_COMMAND *command = &archive->commands[i];
-      if (command->load.cmd == LC_SEGMENT) {
+      if (command->load.cmd ==
+#if MACHO_BITS == 32
+          LC_SEGMENT
+#else
+          LC_SEGMENT_64
+#endif
+          ) {
          struct SEGMENT *segment = &command->segment;
          if (strncmp(segment->command.segname, segname, sizeof(segment->command.segname)) == 0) {
             return segment;
@@ -93,7 +99,13 @@ struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive) {
    uint32_t found = 0;
    for (uint32_t i = 0; i < ncmds; ++i) {
       union LOAD_COMMAND *command = &archive->commands[i];
-      if (command->load.cmd == LC_SEGMENT && found++ == index) {
+      if (command->load.cmd ==
+#if MACHO_BITS == 32
+          LC_SEGMENT
+#else
+          LC_SEGMENT_64
+#endif
+          && found++ == index) {
          return &command->segment;
       }
    }

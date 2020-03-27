@@ -316,7 +316,11 @@ int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info) {
 
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info) {
    switch (command->load.cmd) {
+#if MACHO_BITS == 32
    case LC_SEGMENT:
+#else
+   case LC_SEGMENT_64:
+#endif
       return macho_build_segment(&command->segment, info);
             
    case LC_LOAD_DYLINKER:
@@ -325,6 +329,7 @@ int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *inf
    case LC_VERSION_MIN_MACOSX:
    case LC_SOURCE_VERSION:
    case LC_LOAD_DYLIB:
+   case LC_BUILD_VERSION:
       /* nothing to adjust */
       return 0;
 

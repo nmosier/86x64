@@ -112,27 +112,27 @@ static int macho_parse_dysymtab(FILE *f, struct DYSYMTAB *dysymtab) {
    /* parse data */
    if (dysymtab->command.ntoc) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing table of contents not supported\n");
+              "macho_parse_dysymtab: parsing table of contents not supported\n");
       return -1;
    }
    if (dysymtab->command.nmodtab) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing module table not supported\n");
+              "macho_parse_dysymtab: parsing module table not supported\n");
       return -1;
    }
    if (dysymtab->command.nextrefsyms) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing referenced symbol table not supported\n");
+              "macho_parse_dysymtab: parsing referenced symbol table not supported\n");
       return -1;
    }
    if (dysymtab->command.nextrel) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing external relocation entries not supported\n");
+              "macho_parse_dysymtab: parsing external relocation entries not supported\n");
       return -1;
    }
    if (dysymtab->command.nlocrel) {
       fprintf(stderr,
-              "macho_parse_dysymtab_32: parsing local relocation entries not supported\n");
+              "macho_parse_dysymtab: parsing local relocation entries not supported\n");
       return -1;
    }
 
@@ -175,7 +175,7 @@ static int macho_parse_segment(FILE *f, struct SEGMENT *segment) {
 
          /* guard against unsupported features */
          if (sectwr->section.nreloc != 0) {
-            fprintf(stderr, "macho_parse_segment_32: relocation entries not supported\n");
+            fprintf(stderr, "macho_parse_segment: relocation entries not supported\n");
             return -1;
          }
       }
@@ -283,7 +283,7 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
       break;
       
    default:
-      fprintf(stderr, "macho_parse_load_command_32: unrecognized load command type 0x%x\n",
+      fprintf(stderr, "macho_parse_load_command: unrecognized load command type 0x%x\n",
               command->load.cmd);
       return -1;
    }

@@ -35,8 +35,7 @@ int macho_build_archive(union archive *archive, struct build_info *info) {
       return macho_build_archive_32(&archive->archive_32, info);
       
    case MACHO_64:
-      fprintf(stderr, "macho_build_archive: building 64-bit Mach-O archives not supported\n");
-      return -1;
+      return macho_build_archive_64(&archive->archive_64, info);
    }
 }
 

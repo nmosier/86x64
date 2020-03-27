@@ -37,7 +37,11 @@
 
 uint32_t macho_sizeof_load_command(union LOAD_COMMAND *command) {
    switch (command->load.cmd) {
+#if MACHO_BITS == 32
    case LC_SEGMENT:
+#else
+   case LC_SEGMENT_64:
+#endif
       return macho_sizeof_segment(&command->segment);
 
       /* These command sizes never change. */
@@ -50,6 +54,7 @@ uint32_t macho_sizeof_load_command(union LOAD_COMMAND *command) {
    case LC_VERSION_MIN_MACOSX:
    case LC_SOURCE_VERSION:
    case LC_MAIN:
+   case LC_BUILD_VERSION:
       return command->load.cmdsize;
       
    case LC_LOAD_DYLINKER:
