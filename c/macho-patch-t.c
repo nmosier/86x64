@@ -139,7 +139,12 @@ int macho_patch_TEXT(struct SEGMENT *text) {
 
          xed_tables_init();
          xed_state_zero(&dstate);
+#if MACHO_BITS == 32
          dstate.mmode = XED_MACHINE_MODE_LEGACY_32;
+#else
+         dstate.mmode = XED_MACHINE_MODE_LONG_64;
+#endif
+         ;
          dstate.stack_addr_width = XED_ADDRESS_WIDTH_32b;
          xed_decoded_inst_zero_set_mode(&xedd, &dstate);
          xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
@@ -178,10 +183,10 @@ int macho_patch_TEXT(struct SEGMENT *text) {
                xed_int64_t old_memdisp = xed_decoded_inst_get_memory_displacement(operands, i);
 
                /* compute old target address */
-               macho_addr_t old_target_addr = old_inst_addr + old_memdisp;
+               MACHO_ADDR_T old_target_addr = old_inst_addr + old_memdisp;
                
                /* translate to new address */
-               macho_addr_t new_target_addr = macho_patch_TEXT_address(old_target_addr, text);
+               MACHO_ADDR_T new_target_addr = macho_patch_TEXT_address(old_target_addr, text);
 
                /* compute new memory displacement */
                xed_int64_t new_memdisp = old_memdisp + new_target_addr - old_target_addr;
@@ -197,6 +202,40 @@ int macho_patch_TEXT(struct SEGMENT *text) {
                   return -1;
                }
             }
+
+            /* Jumps [RELATIVE] */
+            if (xed_operand_values_has_branch_displacement(operands)) {
+               /* old relative displacement of this branch */
+               const xed_int32_t old_branchdisp = xed_decoded_inst_get_branch_displacement(operands);
+
+               /* get $rip value that this displacement is relative to */
+               const MACHO_ADDR_T inst_addr = (it - start) + section->addr - sectwr->adiff;
+               const MACHO_ADDR_T base_addr = inst_addr + xed_decoded_inst_get_length(&xedd);
+
+               /* compute old target address */
+               const MACHO_ADDR_T old_target_addr = base_addr + old_branchdisp;
+
+               /* translate to new address */
+               const MACHO_ADDR_T new_target_addr = macho_patch_TEXT_address(old_target_addr, text);
+
+               /* compute new displacement */
+               const xed_int32_t new_branchdisp = old_branchdisp + new_target_addr -
+                  old_target_addr - sectwr->adiff;
+
+               /* patch instruction with new memory displacement */
+               xed_encoder_operand_t disp =
+                  {.type = XED_ENCODER_OPERAND_TYPE_BRDISP,
+                   .u = {.brdisp = new_branchdisp},
+                   .width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd)
+                  };
+               if (!xed_patch_relbr(&xedd, it, disp)) {
+                  fprintf(stderr,
+                          "xed_patch_relbr: failed to patch instruction at address 0x%llx\n",
+                          (uint64_t) inst_addr);
+                  return -1;
+               }
+            }
+            
          }
 
          /* update byte iterator */
@@ -222,15 +261,20 @@ int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg) {
          MACHO_SIZE_T naddrs = section->size / sizeof(addrs[0]);
 
          // DEBUG
+         const char *debug_fmt;
          switch ((section->flags & (S_NON_LAZY_SYMBOL_POINTERS | S_LAZY_SYMBOL_POINTERS))) {
          case S_NON_LAZY_SYMBOL_POINTERS:
-            printf("S_NON_LAZY_SYMBOL_POINTERS [0x%llx]:", (uint64_t) section->addr);
-            for (MACHO_SIZE_T i = 0; i < naddrs; ++i) {
-               printf(" 0x%llx", (uint64_t) addrs[i]);
-            }
-            printf("\n");
+            debug_fmt = "S_NON_LAZY_SYMBOL_POINERS [0x%llx]:";
+            break;
+         case S_LAZY_SYMBOL_POINTERS:
+            debug_fmt = "S_LAZY_SYMBOL_POINTERS [0x%llx]:";
             break;
          }
+         printf(debug_fmt, (uint64_t) section->addr);
+         for (MACHO_SIZE_T i = 0; i < naddrs; ++i) {
+            printf(" 0x%llx", (uint64_t) addrs[i]);
+         }
+         printf("\n");
          
          for (MACHO_SIZE_T i = 0; i < naddrs; ++i) {
             MACHO_ADDR_T new_addr;
@@ -314,9 +358,9 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
                  (uleb + segment->command.vmaddr - segment->adiff, segment))
                 == MACHO_BAD_ADDR) {
                fprintf(stderr, "macho_patch_dyld_info: bad address 0x%jx\n", uleb);
-               fprintf(stderr, "[segment %*s, base addr 0x%x]\n",
+               fprintf(stderr, "[segment %*s, base addr 0x%llx]\n",
                        (int) sizeof(segment->command.segname), segment->command.segname,
-                       segment->command.vmaddr - segment->adiff);
+                       (uint64_t) (segment->command.vmaddr - segment->adiff));
                return -1;
             }
             new_uleb = new_addr - segment->command.vmaddr;
