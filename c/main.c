@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 #include <mach-o/loader.h>
 
@@ -45,7 +46,6 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-#if 1
    /* build 32-bit Mach-O */
    if (macho_build(&macho) < 0) {
       retv = 7;
@@ -63,8 +63,15 @@ int main(int argc, char *argv[]) {
       retv = 6;
       goto cleanup;
    }
-#endif
 
+   /* make executable */
+   int fd64 = fileno(f64);
+   if (fchmod(fd64, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0) {
+      perror("fchmod");
+      retv = 10;
+      goto cleanup;
+   }
+   
    /* success */
 
  cleanup:
