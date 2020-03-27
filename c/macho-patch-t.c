@@ -219,7 +219,8 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
                /* patch instruction with new memory displacement */
                xed_enc_displacement_t disp =
                   {.displacement = new_memdisp,
-                   .displacement_bits = xed_decoded_inst_get_memory_displacement_width(operands, i)
+                   .displacement_bits =
+                   xed_decoded_inst_get_memory_displacement_width_bits(operands, i)
                   };
                if (!xed_patch_disp(&xedd, it, disp)) {
                   fprintf(stderr, "xed_path_disp: failed to patch instruction at address 0x%llx\n",
