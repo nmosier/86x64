@@ -87,14 +87,13 @@ uint32_t macho_sizeof_segment(struct SEGMENT *segment) {
 }
 
 uint32_t macho_sizeof_dylib(struct dylib_wrapper *dylib) {
-   return dylib->command.cmdsize = sizeof(dylib->command) +
-      ALIGN_UP(strlen(dylib->name), sizeof(MACHO_SIZE_T));
+   return dylib->command.cmdsize =
+      ALIGN_UP(sizeof(dylib->command) + strlen(dylib->name), sizeof(MACHO_SIZE_T));
 }
 
 uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
-   uint32_t namelen = strlen(dylinker->name);
    return dylinker->command.cmdsize
-      = ALIGN_UP(sizeof(dylinker->command) + namelen, sizeof(MACHO_SIZE_T));
+      = ALIGN_UP(sizeof(dylinker->command) + strlen(dylinker->name), sizeof(MACHO_SIZE_T));
 }
 
 MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment) {
@@ -124,6 +123,7 @@ MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment) {
 #undef macho_sizeof_segment
 #undef macho_sizeof_dylib
 #undef macho_sizeof_dylinker
+#undef macho_vmsizeof_segment
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T
