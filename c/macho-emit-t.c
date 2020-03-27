@@ -77,11 +77,11 @@ static int macho_emit_segment(FILE *f, const struct SEGMENT *segment) {
    /* emit section data */
    for (uint32_t i = 0; i < nsects; ++i) {
       const struct SECTION_WRAPPER *sectwr = &segment->sections[i];
-      if (fseek(f, sectwr->section.offset, SEEK_SET) < 0) {
-         perror("fseek");
-         return -1;
+      if (sectwr->section.offset != 0 && sectwr->section.size != 0) {
+         if (fwrite_at(sectwr->data, 1, sectwr->section.size, f, sectwr->section.offset) < 0) {
+            return -1;
+         }
       }
-      if (fwrite_exact(sectwr->data, 1, sectwr->section.size, f) < 0) { return -1; }
    }
 
    return 0;

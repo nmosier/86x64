@@ -183,8 +183,7 @@ static int macho_parse_segment(FILE *f, struct SEGMENT *segment) {
       /* do section_wrapper initialization work */
       for (uint32_t i = 0; i < nsects; ++i) {
          struct SECTION_WRAPPER *sectwr = &segment->sections[i];
-         MACHO_SIZE_T data_size = sectwr->section.size;
-         if (data_size == 0) {
+         if (sectwr->section.size == 0 || sectwr->section.offset == 0) {
             sectwr->data = NULL;
          } else {
             /* seek to data */

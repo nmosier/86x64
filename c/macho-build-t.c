@@ -16,10 +16,12 @@
 # define macho_build_load_command     macho_build_load_command_32
 # define macho_build_segment_LINKEDIT macho_build_segment_32_LINKEDIT
 # define macho_build_dyld_info        macho_build_dyld_info_32
+# define macho_build_segment_BSS      macho_build_segment_BSS_32
 
 # define macho_find_load_command      macho_find_load_command_32
 # define macho_linkedit               macho_linkedit_32
 # define macho_sizeof_load_command    macho_sizeof_load_command_32
+# define macho_vmsizeof_segment       macho_vmsizeof_segment_32
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
@@ -44,6 +46,8 @@
 # define macho_build_load_command     macho_build_load_command_64
 # define macho_build_segment_LINKEDIT macho_build_segment_64_LINKEDIT
 # define macho_build_dyld_info        macho_build_dyld_info_64
+# define macho_build_segment_BSS      macho_build_segment_BSS_64
+# define macho_vmsizeof_segment       macho_vmsizeof_segment_64
 
 # define macho_find_load_command      macho_find_load_command_64
 # define macho_linkedit               macho_linkedit_64
@@ -56,6 +60,8 @@
 
 #endif
 
+#include <assert.h>
+
 #include "macho.h"
 #include "macho-util.h"
 #include "macho-build.h"
@@ -65,6 +71,8 @@ int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info);
 int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info);
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
+
+MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment);
 
 /* NOTES:
  *  - Each segment needs to start on a page bounary, i.e. its file offset must be a multiple of
@@ -146,9 +154,11 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
       }
 
       /* update offsets */
-      dataoff = ALIGN_UP(dataoff, 1 << section->align);
-      section->offset = dataoff;
-      dataoff += section->size;
+      if (section->offset != 0) {
+         dataoff = ALIGN_UP(dataoff, 1 << section->align);
+         section->offset = dataoff;
+         dataoff += section->size;
+      }
 
       /* update virtual address */
       vmaddr = ALIGN_UP(vmaddr, 1 << section->align);
@@ -224,6 +234,15 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
    /* update build info */
    info->dataoff = MAX(segment_start + segment_minsize_aligned, info->dataoff);
    info->vmaddr += vmsize;
+
+#if 1
+   /* consistency checks */
+   for (uint32_t i = 0; i < segment->command.nsects; ++i) {
+      struct SECTION *section = &segment->sections[i].section;
+      assert(section->addr >= segment->command.vmaddr);
+      assert(section->addr + section->size <= segment->command.vmaddr + segment->command.vmsize);
+   }
+#endif
    
    return 0;
 }
@@ -282,6 +301,34 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
 
    return 0;
 }
+
+#if 0
+/* Sections in the BSS segment don't require any storage in the object file,
+ * but they still need to be assigned virtual addresses.
+ */
+int macho_build_segment_BSS(struct SEGMENT *bss, struct build_info *info) {
+   uint32_t nsects = bss->command.nsects;
+   
+   /* compute size of all sections */
+   bss->command.vmsize = macho_vmsizeof_segment(bss);
+
+   /* assign address range */
+   bss->command.vmaddr = info->vmaddr;
+   info->vmaddr += bss->command.vmsize;
+
+   /* assign address subranges to segments */
+   MACHO_ADDR_T addr = bss->command.vmaddr;
+   for (uint32_t i = 0; i < bss->command.nsects; ++i) {
+      struct SECTION *section = &bss->sections[i].section;
+      addr = ALIGN_UP(addr, 1 << section->align);
+      section->addr = addr;
+      addr += section->size;
+      section->offset = 0;
+   }
+
+   return 0;
+}
+#endif
 
 
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
@@ -433,10 +480,12 @@ int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) 
 #undef macho_build_load_command
 #undef macho_build_segment_LINKEDIT
 #undef macho_build_dyld_info
+#undef macho_build_segment_BSS
 
 #undef macho_find_load_command
 #undef macho_linkedit
 #undef macho_sizeof_load_command
+#undef macho_vmsizeof_segment
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T

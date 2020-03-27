@@ -13,6 +13,7 @@
 # define macho_sizeof_segment macho_sizeof_segment_32
 # define macho_sizeof_dylib macho_sizeof_dylib_32
 # define macho_sizeof_dylinker macho_sizeof_dylinker_32
+# define macho_vmsizeof_segment macho_vmsizeof_segment_32
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
@@ -32,6 +33,7 @@
 # define macho_sizeof_segment macho_sizeof_segment_64
 # define macho_sizeof_dylib macho_sizeof_dylib_64
 # define macho_sizeof_dylinker macho_sizeof_dylinker_64
+# define macho_vmsizeof_segment macho_vmsizeof_segment_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
@@ -93,6 +95,18 @@ uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
    uint32_t namelen = strlen(dylinker->name);
    return dylinker->command.cmdsize
       = ALIGN_UP(sizeof(dylinker->command) + namelen, sizeof(MACHO_SIZE_T));
+}
+
+MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment) {
+   uint32_t nsects = segment->command.nsects;
+
+   MACHO_SIZE_T size = 0;
+   for (uint32_t i = 0; i < nsects; ++i) {
+      struct SECTION *section = &segment->sections[i].section;
+      size = ALIGN_UP(size, 1 << section->align) + section->size;
+   }
+
+   return ALIGN_UP(size, PAGESIZE);
 }
 
 

@@ -173,11 +173,13 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
          
          /* decode instruction */
          if ((err = xed_decode(&xedd, it, end - it)) != XED_ERROR_NONE) {
-            fprintf(stderr, "macho_patch_TEXT: xed_decode (section %*s, addr 0x%x): %s\n",
-                    (int) sizeof(section->sectname), section->sectname,
-                    (uint32_t) (it - start + section->addr - sectwr->adiff),
-                    xed_error_enum_t2str(err));
-            return -1;
+            // DEBUG
+            printf("macho_patch_TEXT: xed_decode (section %*s, addr 0x%llx): %s\n",
+                   (int) sizeof(section->sectname), section->sectname,
+                   (uint64_t) (it - start + section->addr - sectwr->adiff),
+                   xed_error_enum_t2str(err));
+            ++it;
+            continue;
          }
 
          /* OPERANDS REQUIRING PATCHING
@@ -286,7 +288,8 @@ int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg) {
       struct SECTION_WRAPPER *sectwr = &data_seg->sections[i];
       struct SECTION *section = &sectwr->section;
 
-      if ((section->flags & (S_NON_LAZY_SYMBOL_POINTERS | S_LAZY_SYMBOL_POINTERS))) {
+      if ((section->flags & (S_NON_LAZY_SYMBOL_POINTERS | S_LAZY_SYMBOL_POINTERS))
+          && sectwr->data) {
          /* patch addresses */
          MACHO_ADDR_T *addrs = sectwr->data;
          MACHO_SIZE_T naddrs = section->size / sizeof(addrs[0]);
@@ -315,7 +318,11 @@ int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg) {
             
             if ((new_addr = macho_patch_symbol_pointer(addrs[i], text_seg)) == MACHO_BAD_ADDR) {
                fprintf(stderr,
-                       "macho_patch_data: macho_patch_symbol_pointer: 0x%llx: bad address\n",
+                       "macho_patch_data: macho_patch_symbol_pointer(0x%llx, %.*s, %.*s): " \
+                       "0x%llx: bad address\n",
+                       (uint64_t) (section->addr + sizeof(addrs[i]) * i - sectwr->adiff),
+                       (int) sizeof(section->segname), section->segname,
+                       (int) sizeof(section->sectname), section->sectname,
                        (uint64_t) addrs[i]);
                return -1;
             }
