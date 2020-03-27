@@ -10,7 +10,7 @@
 
 typedef off_t macho_off_t;
 typedef uint64_t macho_addr_t;
-#define MACHO_BAD_ADDR ((macho_addr_t) -1)
+#define MACHO_BAD_ADDR (-1)
 
 enum macho_kind {MACHO_FAT, MACHO_ARCHIVE};
 enum macho_bits {MACHO_32 = 32, MACHO_64 = 64};

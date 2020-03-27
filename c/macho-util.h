@@ -17,12 +17,14 @@ bool macho_is_linkedit_64(const union load_command_64 *command);
  * @param command load command
  * @return pointer to linkedit command if found; NULL otherwise.
  */
-struct linkedit_data *macho_linkedit(union load_command_32 *command);
+struct linkedit_data *macho_linkedit_32(union load_command_32 *command);
+struct linkedit_data *macho_linkedit_64(union load_command_64 *command);
 
 struct segment_32 *macho_find_segment_32(const char *segname, struct archive_32 *archive);
 struct section_wrapper_32 *macho_find_section_32(const char *sectname, struct segment_32 *segment);
 
 union load_command_32 *macho_find_load_command_32(uint32_t cmd, struct archive_32 *archive);
+union load_command_64 *macho_find_load_command_64(uint32_t cmd, struct archive_64 *archive);
 
 int macho_off_cmp(const macho_off_t *a, const macho_off_t *b);
 

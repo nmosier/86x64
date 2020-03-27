@@ -45,9 +45,6 @@ enum macho_bits macho_bits(const union archive *archive) {
    }
 }
 
-struct linkedit_data *macho_linkedit(union load_command_32 *command) {
-   return macho_is_linkedit_32(command) ? &command->linkedit : NULL;
-}
 
 
 

@@ -5,43 +5,10 @@
 #include "macho.h"
 #include "macho-sizeof.h"
 
-uint32_t macho_sizeof_load_command_32(union load_command_32 *command) {
-   switch (command->load.cmd) {
-   case LC_SEGMENT:
-      return macho_sizeof_segment_32(&command->segment);
-
-      /* These command sizes never change. */
-   case LC_SYMTAB:
-   case LC_DYSYMTAB:
-   case LC_UUID:      
-   case LC_FUNCTION_STARTS:
-   case LC_DATA_IN_CODE:
-   case LC_DYLD_INFO_ONLY:
-   case LC_VERSION_MIN_MACOSX:
-   case LC_SOURCE_VERSION:
-   case LC_MAIN:
-      return command->load.cmdsize;
-      
-   case LC_LOAD_DYLINKER:
-      return macho_sizeof_dylinker(&command->dylinker);
-      
-   case LC_UNIXTHREAD:
-      return macho_sizeof_thread(&command->thread);
-
-   case LC_LOAD_DYLIB:
-      return macho_sizeof_dylib(&command->dylib);
-
-   default:
-      fprintf(stderr, "macho_sizeof_load_command_32: unrecognized load command 0x%x\n",
-              command->load.cmd);
-      abort();
-   }
-}
-
-uint32_t macho_sizeof_segment_32(struct segment_32 *segment) {
-   return segment->command.cmdsize =
-      sizeof(segment->command) + segment->command.nsects * sizeof(segment->sections[0].section);
-}
+#define MACHO_BITS 32
+#include "macho-sizeof-t.c"
+#define MACHO_BITS 64
+#include "macho-sizeof-t.c"
 
 uint32_t macho_sizeof_dylinker(struct dylinker *dylinker) {
    uint32_t namelen = strlen(dylinker->name);

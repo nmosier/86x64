@@ -10,6 +10,11 @@
 #include "macho-util.h"
 #include "util.h"
 
+#define MACHO_BITS 32
+#include "macho-patch-t.c"
+#define MACHO_BITS 64
+#include "macho-patch-t.c"
+
 int macho_patch(union macho *macho) {
    switch (macho_kind(macho)) {
    case MACHO_FAT:
@@ -141,7 +146,7 @@ int macho_patch_TEXT(struct segment_32 *text) {
                macho_addr_t old_target_addr = old_inst_addr + old_memdisp;
                
                /* translate to new address */
-               macho_addr_t new_target_addr = macho_patch_TEXT_address(old_target_addr, text);
+               macho_addr_t new_target_addr = macho_patch_TEXT_address_32(old_target_addr, text);
 
                /* compute new memory displacement */
                xed_int64_t new_memdisp = old_memdisp + new_target_addr - old_target_addr;
@@ -167,20 +172,6 @@ int macho_patch_TEXT(struct segment_32 *text) {
    return 0;
 }
 
-macho_addr_t macho_patch_TEXT_address(macho_addr_t addr, const struct segment_32 *segment) {
-   const uint32_t nsects = segment->command.nsects;
-   for (uint32_t i = 0; i < nsects; ++i) {
-      struct section_wrapper_32 *sectwr = &segment->sections[i];
-      const struct section *section = &sectwr->section;
-      macho_addr_t adjusted_addr = addr + sectwr->adiff;
-      if (adjusted_addr >= section->addr &&
-          adjusted_addr < section->addr + section->size) {
-         return adjusted_addr;
-      }
-   }
-
-   return MACHO_BAD_ADDR;
-}
 
 int macho_patch_DATA(struct segment_32 *data_seg, const struct segment_32 *text_seg) {
    uint32_t nsects = data_seg->command.nsects;

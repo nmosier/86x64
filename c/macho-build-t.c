@@ -17,6 +17,8 @@
 # define macho_build_segment_LINKEDIT macho_build_segment_32_LINKEDIT
 
 # define macho_find_load_command      macho_find_load_command_32
+# define macho_linkedit               macho_linkedit_32
+# define macho_sizeof_load_command    macho_sizeof_load_command_32
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
@@ -40,6 +42,8 @@
 # define macho_build_segment_LINKEDIT macho_build_segment_64_LINKEDIT
 
 # define macho_find_load_command      macho_find_load_command_64
+# define macho_linkedit               macho_linkedit_64
+# define macho_sizeof_load_command    macho_sizeof_load_command_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
@@ -48,9 +52,12 @@
 
 #include "macho.h"
 #include "macho-util.h"
+#include "macho-build.h"
 
 int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *info);
-
+int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info);
+int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info);
+int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
 
 /* NOTES:
  *  - Each segment needs to start on a page bounary, i.e. its file offset must be a multiple of
@@ -112,7 +119,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
       if (strncmp(section->sectname, SECT_TEXT, sizeof(section->sectname)) == 0) {
          /* find function starts command */
          union LOAD_COMMAND *command;
-         if ((command = macho_find_load_command(LC_FUNCTION_STARTS, &info->archive->archive_32))) {
+         if ((command = macho_find_load_command(LC_FUNCTION_STARTS, &info->archive->ARCHIVE))) {
             fnstarts = &command->linkedit;
             fnstarts_addrs = fnstarts->data;
             fnstarts_naddrs = fnstarts->command.datasize / sizeof(fnstarts_addrs[0]);
@@ -122,7 +129,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
          }
 
          /* find entry point command */
-         if ((command = macho_find_load_command_32(LC_MAIN, &info->archive->archive_32))) {
+         if ((command = macho_find_load_command(LC_MAIN, &info->archive->ARCHIVE))) {
             // DEBUG
             printf("old entryoff = 0x%llx\n", command->entry_point.entryoff);
             
@@ -162,7 +169,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
 
       /* patch symbols */
       union LOAD_COMMAND *symtab_tmp;
-      if ((symtab_tmp = macho_find_load_command_32(LC_SYMTAB, &info->archive->archive_32))) {
+      if ((symtab_tmp = macho_find_load_command(LC_SYMTAB, &info->archive->ARCHIVE))) {
          struct SYMTAB *symtab = &symtab_tmp->symtab;
          for (uint32_t j = 0; j < symtab->command.nsyms; ++j) {
             struct NLIST *entry = &symtab->entries[j];
@@ -175,7 +182,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
 
       /* patch thread states */
       union LOAD_COMMAND *thread_tmp;
-      if ((thread_tmp = macho_find_load_command_32(LC_UNIXTHREAD, &info->archive->archive_32))) {
+      if ((thread_tmp = macho_find_load_command(LC_UNIXTHREAD, &info->archive->ARCHIVE))) {
          struct thread_list *it = thread_tmp->thread.entries;
          while (it) {
             switch (it->entry.header.flavor) {
@@ -211,7 +218,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
       return -1;
    }
 
-   struct ARCHIVE *archive = &info->archive->archive_32;
+   struct ARCHIVE *archive = &info->archive->ARCHIVE;
    uint32_t ncmds = archive->header.ncmds;
    
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
@@ -229,7 +236,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
       } else {
          switch (command->load.cmd) {
          case LC_SYMTAB:
-            if (macho_build_symtab_32(&command->symtab, info) < 0) { return -1; }
+            if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
             break;
          
          case LC_DYLD_INFO_ONLY:
@@ -238,7 +245,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
             break;
             
          case LC_DYSYMTAB:
-            if (macho_build_dysymtab_32(&command->dysymtab, info) < 0) { return -1; }
+            if (macho_build_dysymtab(&command->dysymtab, info) < 0) { return -1; }
             break;
 
          default: break;
@@ -251,7 +258,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
    info->vmaddr += segment->command.vmsize;
    
    // DEBUG
-   printf("__LINKEDIT={.size=0x%x}\n", segment->command.filesize);
+   printf("__LINKEDIT={.size=0x%llx}\n", (uint64_t) segment->command.filesize);
    printf("dataoff=0x%llx,datatend=0x%llx\n", start_offset, info->dataoff);
 
    return 0;
@@ -347,7 +354,7 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
    /* recompute size of commands */
    size_t sizeofcmds = 0;
    for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      sizeofcmds += macho_sizeof_load_command_32(&archive->commands[i]);
+      sizeofcmds += macho_sizeof_load_command(&archive->commands[i]);
    }
    archive->header.sizeofcmds = sizeofcmds;
    
@@ -356,15 +363,13 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
 
    /* build each command */
    for (uint32_t i = 0; i < archive->header.ncmds; ++i) {
-      if (macho_build_load_command_32(&archive->commands[i], info) < 0) {
+      if (macho_build_load_command(&archive->commands[i], info) < 0) {
          return -1;
       }
    }
 
    return 0;
 }
-
-
 
 
 #undef SYMTAB
@@ -384,6 +389,8 @@ int macho_build_archive(struct ARCHIVE *archive, struct build_info *info) {
 #undef macho_build_segment_LINKEDIT
 
 #undef macho_find_load_command
+#undef macho_linkedit
+#undef macho_sizeof_load_command
 
 #undef MACHO_SIZE_T
 #undef MACHO_ADDR_T
