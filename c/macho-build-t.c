@@ -87,7 +87,7 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
       return macho_build_segment_LINKEDIT(segment, info);
    }
 
-#if 0
+#if 1
    /* get max alignment */
    uint32_t section_maxalign = 0;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
@@ -99,6 +99,9 @@ int macho_build_segment(struct SEGMENT *segment, struct build_info *info) {
    MACHO_SIZE_T segment_minsize = 0;
    for (uint32_t i = 0; i < segment->command.nsects; ++i) {
       segment_minsize += ALIGN_UP(segment->sections[i].section.size, 1 << section_maxalign);
+   }
+   if (segment_minsize > 0) {
+      segment_minsize += info->dataoff % PAGESIZE; /* since data won't start until here */
    }
    MACHO_SIZE_T segment_minsize_aligned = ALIGN_UP(segment_minsize, PAGESIZE);
 #else
