@@ -3,6 +3,7 @@
 # define ARCHIVE         archive_32
 # define LOAD_COMMAND    load_command_32
 # define SEGMENT         segment_32
+# define SECTION         section
 # define SECTION_WRAPPER section_wrapper_32
 
 # define macho_find_segment      macho_find_segment_32
@@ -11,12 +12,17 @@
 # define macho_find_load_command macho_find_load_command_32
 # define macho_linkedit          macho_linkedit_32
 # define macho_index_segment     macho_index_segment_32
+# define macho_vmaddr_to_section macho_vmaddr_to_section_32
+
+# define MACHO_SIZE_T uint32_t
+# define MACHO_ADDR_T uint32_t
 
 #else
 
 # define ARCHIVE      archive_64
 # define LOAD_COMMAND load_command_64
 # define SEGMENT      segment_64
+# define SECTION         section_64
 # define SECTION_WRAPPER section_wrapper_64
 
 # define macho_find_segment      macho_find_segment_64
@@ -25,6 +31,10 @@
 # define macho_find_load_command macho_find_load_command_64
 # define macho_linkedit          macho_linkedit_64
 # define macho_index_segment     macho_index_segment_64
+# define macho_vmaddr_to_section macho_vmaddr_to_section_64
+
+# define MACHO_SIZE_T uint64_t
+# define MACHO_ADDR_T uint64_t
 
 #endif
 
@@ -113,10 +123,23 @@ struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive) {
    return NULL;
 }
 
+struct SECTION_WRAPPER *macho_vmaddr_to_section(MACHO_ADDR_T addr, struct SEGMENT *segment) {
+   const uint32_t nsects = segment->command.nsects;
+   for (uint32_t i = 0; i < nsects; ++i) {
+      struct SECTION_WRAPPER *sectwr = &segment->sections[i];
+      struct SECTION *section = &sectwr->section;
+      if (addr >= section->addr && addr < section->addr + section->size) {
+         return sectwr;
+      }
+   }
+   return NULL;
+}
+
 
 #undef ARCHIVE
 #undef LOAD_COMMAND
 #undef SEGMENT
+#undef SECTION
 #undef SECTION_WRAPPER
 
 #undef macho_find_segment
@@ -125,5 +148,9 @@ struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive) {
 #undef macho_find_load_command
 #undef macho_linkedit
 #undef macho_index_segment
+#undef macho_vmaddr_to_section
+
+#undef MACHO_ADDR_T
+#undef MACHO_SIZE_T
 
 #undef MACHO_BITS
