@@ -425,7 +425,7 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
                return -1;
             }
 
-            if ((sectwr->section.flags & S_REGULAR)) {
+            if (sectwr->section.flags == S_REGULAR) {
                /*   get pointee pointer value */
                void *ptr = (char *) sectwr->data + (new_addr - sectwr->section.addr);
                MACHO_ADDR_T val = * (MACHO_ADDR_T *) ptr;
