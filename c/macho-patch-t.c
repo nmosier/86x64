@@ -16,6 +16,9 @@
 # define macho_patch_dyld_info      macho_patch_dyld_info_32
 # define macho_patch_symbol_pointer macho_patch_symbol_pointer_32
 # define macho_patch_address        macho_patch_address_32
+# define macho_patch_dyld_info_rebase_uleb macho_patch_dyld_info_rebase_uleb_32
+# define macho_patch_dyld_info_rebase_dst macho_patch_dyld_info_rebase_dst_32
+# define macho_patch_dyld_info_do_rebase macho_patch_dyld_info_do_rebase_32 
 
 # define macho_find_segment         macho_find_segment_32
 # define macho_index_segment        macho_index_segment_32
@@ -42,6 +45,9 @@
 # define macho_patch_dyld_info      macho_patch_dyld_info_64
 # define macho_patch_symbol_pointer macho_patch_symbol_pointer_64
 # define macho_patch_address        macho_patch_address_64
+# define macho_patch_dyld_info_rebase_uleb macho_patch_dyld_info_rebase_uleb_64
+# define macho_patch_dyld_info_rebase_dst macho_patch_dyld_info_rebase_dst_64
+# define macho_patch_dyld_info_do_rebase macho_patch_dyld_info_do_rebase_64
 
 # define macho_find_segment         macho_find_segment_64
 # define macho_index_segment        macho_index_segment_64
@@ -60,6 +66,14 @@ int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg);
 MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT *text);
 struct SEGMENT *macho_index_segment(uint32_t index, struct ARCHIVE *archive);
 struct SECTION_WRAPPER *macho_vmaddr_to_section(MACHO_ADDR_T addr, struct SEGMENT *segment);
+static void *macho_patch_dyld_info_rebase_uleb(void *uleb_ptr, size_t size,
+                                               struct SEGMENT *segment,
+                                               struct ARCHIVE *archive, MACHO_ADDR_T *new_addr);
+static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *segment,
+                                            struct ARCHIVE *archive);
+static int macho_patch_dyld_info_do_rebase(MACHO_ADDR_T addr, uint8_t type,
+                                           struct SEGMENT *segment, struct ARCHIVE *archive);
+
 
 MACHO_ADDR_T macho_patch_TEXT_address(MACHO_ADDR_T addr, const struct SEGMENT *segment) {
    const uint32_t nsects = segment->command.nsects;
@@ -342,6 +356,12 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
    /* patch rebase info */
    uint8_t *rebase_begin = dyld->rebase_data;
    uint8_t *rebase_end = rebase_begin + dyld->command.rebase_size;
+
+   int32_t seg_index = -1;
+   uint8_t type = 0;
+   struct SEGMENT *segment;
+   MACHO_ADDR_T new_addr; /* rebase address */
+   
    for (uint8_t *rebase_it = rebase_begin;
         rebase_it != dyld->rebase_data + dyld->command.rebase_size; ) {
       
@@ -351,105 +371,63 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
       uint8_t imm = *rebase_it & REBASE_IMMEDIATE_MASK;
       uintmax_t uleb;
       size_t uleb_len;
-      size_t rebase_rem;
-      bool uleb_adjust = false;
-      int32_t seg_index = -1;
+      // size_t rebase_rem;
+      // bool uleb_adjust = false;
       
       ++rebase_it;
+
+      size_t rebase_rem = rebase_end - rebase_it;
       
       switch (opcode) {
       case REBASE_OPCODE_DONE:
          return 0;
-         
+
       case REBASE_OPCODE_SET_TYPE_IMM:
-      case REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
-      case REBASE_OPCODE_DO_REBASE_IMM_TIMES:
+         type = imm;
          break;
          
-      case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:         
-         uleb_adjust = true;
-         seg_index = imm; // TODO
+      case REBASE_OPCODE_DO_REBASE_IMM_TIMES:
+         // TODO: export this into separate function.
+         for (uint8_t i = 0; i < imm; ++i) {
+            if (macho_patch_dyld_info_do_rebase(new_addr, type, segment, archive) < 0)
+               { return -1; }
+            new_addr += sizeof(MACHO_ADDR_T);
+         }
+         break;
+
+      case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+         seg_index = imm;
+         if ((segment = macho_index_segment(seg_index, archive)) == NULL) {
+            fprintf(stderr, "macho_patch_dyld_info: segment %d not found\n", seg_index);
+            return -1;
+         }
+         
+         if ((rebase_it =
+              macho_patch_dyld_info_rebase_uleb(rebase_it, rebase_rem, segment,
+                                                archive, &new_addr)) == NULL) { return -1; }
+         break;
+         
+
+      case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
+         /* do rebase */
+         if (macho_patch_dyld_info_do_rebase(new_addr, type, segment, archive) < 0) { return -1; }
+         new_addr += sizeof(MACHO_ADDR_T);
          /* fallthrough */
       case REBASE_OPCODE_ADD_ADDR_ULEB:
-      case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
-      case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
-      case REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
-         rebase_rem = rebase_end - rebase_it;
          uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
          if (uleb_len == 0) {
-            fprintf(stderr, "macho_patch_dyld_info: unsigned LEB128 value is too long\n");
+            fprintf(stderr, "macho_patch_dyld_info: unsigned LEB128 overflow\n");
             return -1;
          } else if (uleb_len > rebase_rem) {
             fprintf(stderr,
-                    "macho_patch_dyld_info: unsigned LEB128 value runs past end of rebase data\n");
+                    "macho_patch_dyld_info: unsigned LEB128 runs past end of rebase info\n");
             return -1;
          }
-
-         if (uleb_adjust) {
-            struct SEGMENT *segment;
-            MACHO_ADDR_T new_addr;
-            uintmax_t new_uleb;
-
-            /* compute new ULEB offset */
-            if ((segment = macho_index_segment(seg_index, archive)) == NULL) {
-               fprintf(stderr, "macho_patch_dyld_info: segment %d not found\n", seg_index);
-               return -1;
-            }
-            if ((new_addr = macho_patch_symbol_pointer
-                 (uleb + segment->command.vmaddr - segment->adiff, segment))
-                == MACHO_BAD_ADDR) {
-               fprintf(stderr, "macho_patch_dyld_info: bad address 0x%jx\n", uleb);
-               fprintf(stderr, "[segment %*s, base addr 0x%llx]\n",
-                       (int) sizeof(segment->command.segname), segment->command.segname,
-                       (uint64_t) (segment->command.vmaddr - segment->adiff));
-               return -1;
-            }
-            new_uleb = new_addr - segment->command.vmaddr;
-            
-            /* check if different number of bits */
-            size_t new_uleb_len = uleb128_encode(NULL, SIZE_MAX, new_uleb);
-            if (new_uleb_len != uleb_len) {
-               fprintf(stderr, "macho_patch_dyld_info: changing length of unsigned LEB128 not "\
-                       "supported yet (0x%jx -> 0x%jx)\n", uleb, new_uleb);
-               return -1;
-            }
-
-            uleb128_encode(rebase_it, new_uleb_len, new_uleb);
-
-            /* also need to 'rebase' pointee itself [IF NECESSARY] */
-            /*   find pointee in section */
-            struct SECTION_WRAPPER *sectwr;
-            if ((sectwr = macho_vmaddr_to_section(new_addr, segment)) == NULL) {
-               fprintf(stderr, "macho_patch_dyld_info: address 0x%llx not found in any section\n",
-                       (uint64_t) new_addr);
-               return -1;
-            }
-
-            if (sectwr->section.flags == S_REGULAR) {
-               /*   get pointee pointer value */
-               void *ptr = (char *) sectwr->data + (new_addr - sectwr->section.addr);
-               MACHO_ADDR_T val = * (MACHO_ADDR_T *) ptr;
-               
-               /*   rebase value (pointer) */
-               MACHO_ADDR_T newval;
-               if ((newval = macho_patch_address(val, archive)) == MACHO_BAD_ADDR) {
-                  fprintf(stderr,
-                          "macho_patch_dyld_info: unable to patch pointer 0x%llx at address 0x%llx " \
-                          "(previously 0x%llx)\n",
-                          (uint64_t) val,
-                          (uint64_t) new_addr,
-                          (uint64_t) (uleb + segment->command.vmaddr - segment->adiff)
-                          );
-                  return -1;
-               }
-               
-               /*   save value */
-               * (MACHO_ADDR_T *) ptr = newval;
-            }
-         }
+         new_addr += uleb;
          rebase_it += uleb_len;
          break;
          
+      case REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
       default:
          fprintf(stderr, "macho_patch_dyld_info: invalid rebase opcode 0x%x\n", opcode);
          return -1;
@@ -474,7 +452,104 @@ MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT 
    return MACHO_BAD_ADDR;
 }
 
+static void *macho_patch_dyld_info_rebase_uleb(void *uleb_ptr, size_t size,
+                                               struct SEGMENT *segment,
+                                               struct ARCHIVE *archive, MACHO_ADDR_T *new_addr) {
+   /* decode ULEB */
+   uintmax_t uleb;
+   size_t uleb_len = uleb128_decode(uleb_ptr, size, &uleb);
 
+   if (uleb_len == 0) {
+      fprintf(stderr, "macho_patch_dyld_info_rebase_uleb: unsigned LEB128 value is too long\n");
+      return NULL;
+   } else if (uleb_len > size) {
+      fprintf(stderr,
+              "macho_patch_dyld_info: unsigned LEB128 value runs past end of rebase data\n");
+      return NULL;      
+   }
+
+   MACHO_ADDR_T new_addr_;
+   uintmax_t new_uleb;
+
+   /* compute new ULEB offset */
+   if ((new_addr_ = macho_patch_symbol_pointer
+        (uleb + segment->command.vmaddr - segment->adiff, segment))
+       == MACHO_BAD_ADDR) {
+      fprintf(stderr, "macho_patch_dyld_info: bad address 0x%jx\n", uleb);
+      fprintf(stderr, "[segment %*s, base addr 0x%llx]\n",
+              (int) sizeof(segment->command.segname), segment->command.segname,
+              (uint64_t) (segment->command.vmaddr - segment->adiff));
+      return NULL;
+   }
+   new_uleb = new_addr_ - segment->command.vmaddr;
+            
+   /* check if different number of bits */
+   size_t new_uleb_len = uleb128_encode(NULL, SIZE_MAX, new_uleb);
+   if (new_uleb_len != uleb_len) {
+      fprintf(stderr, "macho_patch_dyld_info: changing length of unsigned LEB128 not "\
+              "supported yet (0x%jx -> 0x%jx)\n", uleb, new_uleb);
+      return NULL;
+   }
+
+   uleb128_encode(uleb_ptr, new_uleb_len, new_uleb);
+   
+   if (new_addr) { *new_addr = new_addr_; }
+
+   return uleb_ptr + new_uleb_len;
+}
+
+static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *segment,
+                                            struct ARCHIVE *archive) {
+   struct SECTION_WRAPPER *sectwr;
+   if ((sectwr = macho_vmaddr_to_section(addr, segment)) == NULL) {
+      fprintf(stderr, "macho_patch_dyld_info: address 0x%llx not found in any section\n",
+              (uint64_t) addr);
+      return -1;
+   }
+
+   if (sectwr->section.flags == S_REGULAR) {
+      /*   get pointee pointer value */
+      void *ptr = (char *) sectwr->data + (addr - sectwr->section.addr);
+      MACHO_ADDR_T val = * (MACHO_ADDR_T *) ptr;
+      
+      /*   rebase value (pointer) */
+      MACHO_ADDR_T newval;
+      if ((newval = macho_patch_address(val, archive)) == MACHO_BAD_ADDR) {
+         fprintf(stderr,
+                 "macho_patch_dyld_info: unable to patch pointer 0x%llx at new address 0x%llx\n",
+                 (uint64_t) val, (uint64_t) addr);
+         return -1;
+      }
+               
+      /*   save value */
+      * (MACHO_ADDR_T *) ptr = newval;      
+   }
+
+   return 0;
+}
+
+static int macho_patch_dyld_info_do_rebase(MACHO_ADDR_T addr, uint8_t type,
+                                           struct SEGMENT *segment, struct ARCHIVE *archive) {
+   switch (type) {
+#if MACHO_BITS == 32
+   case REBASE_TYPE_TEXT_ABSOLUTE32:      
+#endif
+   case REBASE_TYPE_POINTER:
+      if (macho_patch_dyld_info_rebase_dst(addr, segment, archive) < 0) { return -1; }
+      break;
+
+#if MACHO_BITS == 64
+   case REBASE_TYPE_TEXT_ABSOLUTE32:      
+#endif
+   case REBASE_TYPE_TEXT_PCREL32:
+   default:
+      fprintf(stderr, "macho_patch_dyld_info_do_rebase: invalid rebase opcode type 0x%x\n",
+              type);
+      return -1; 
+   }
+                 
+   return 0;
+}
 
 
 #undef SYMTAB
@@ -493,6 +568,9 @@ MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT 
 #undef macho_patch_dyld_info
 #undef macho_patch_symbol_pointer
 #undef macho_patch_address
+#undef macho_patch_dyld_info_rebase_uleb
+#undef macho_patch_dyld_info_rebase_dst
+#undef macho_patch_dyld_info_do_rebase
 
 #undef macho_find_segment
 #undef macho_index_segment
