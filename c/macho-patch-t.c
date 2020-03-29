@@ -58,6 +58,8 @@
 
 #endif
 
+#include <assert.h>
+
 #include "macho.h"
 #include "macho-util.h"
 
@@ -380,10 +382,17 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
       
       switch (opcode) {
       case REBASE_OPCODE_DONE:
+         // DEBUG
+         printf("REBASE_OPCODE_DONE\n");
+         
          return 0;
 
       case REBASE_OPCODE_SET_TYPE_IMM:
          type = imm;
+
+         // DEBUG
+         printf("REBASE_OPCODE_SET_TYPE_IMM: type=0x%x\n", type);
+         
          break;
          
       case REBASE_OPCODE_DO_REBASE_IMM_TIMES:
@@ -393,6 +402,10 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
                { return -1; }
             new_addr += sizeof(MACHO_ADDR_T);
          }
+
+         // DEBUG
+         printf("REBASE_OPCODE_DO_REBASE_IMM_TIMES: times=0x%x\n", imm);
+         
          break;
 
       case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
@@ -405,6 +418,11 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
          if ((rebase_it =
               macho_patch_dyld_info_rebase_uleb(rebase_it, rebase_rem, segment,
                                                 archive, &new_addr)) == NULL) { return -1; }
+
+         // DEBUG
+         printf("REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB: index=0x%x, offset=0x%jx\n",
+                seg_index, uleb);
+         
          break;
          
 
@@ -425,9 +443,94 @@ int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
          }
          new_addr += uleb;
          rebase_it += uleb_len;
+
+         // DEBUG
+         printf("%s: add=0x%jx\n", opcode == REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB ?
+                "REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB" : "REBASE_OPCODE_ADD_ADDR_ULEB",
+                uleb);
+         
+         break;
+
+      case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
+         /* read ULEB */
+         uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+         if (uleb_len == 0) {
+            fprintf(stderr, "macho_patch_dyld_info: unsigned LEB128 overflow\n");
+            return -1;
+         } else if (uleb_len > rebase_rem) {
+            fprintf(stderr,
+                    "macho_patch_dyld_info: unsigned LEB128 runs past end of rebase info\n");
+            return -1;
+         }
+         rebase_it += uleb_len;
+
+         /* do rebase */
+         for (uintmax_t i = 0; i < uleb; ++i) {
+            if (macho_patch_dyld_info_do_rebase(new_addr, type, segment, archive) < 0)
+               { return -1; }
+            new_addr += sizeof(MACHO_ADDR_T);
+         }
+
+         // DEBUG
+         printf("REBASE_OPCODE_DO_REBASE_ULEB_TIMES: times=0x%jx\n", uleb);
+         
+         break;
+
+      case REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
+         /* NOTE: Unclear what do scale by, but assume it's pointer size. */
+         new_addr += imm * sizeof(MACHO_ADDR_T);
+
+         // DEBUG
+         printf("REBASE_OPCODE_ADD_ADDR_IMM_SCALED: imm=0x%x\n", imm);
+         
+         break;
+
+      case REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
+         /* NOTE: Unclear whether skipping assumes pointer size, but assume it does. */
+         {
+            uintmax_t times, skip;
+
+            /* read times ULEB */
+            uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+            if (uleb_len == 0) {
+               fprintf(stderr, "macho_patch_dyld_info: unsigned LEB128 overflow\n");
+               return -1;
+            } else if (uleb_len > rebase_rem) {
+               fprintf(stderr,
+                       "macho_patch_dyld_info: unsigned LEB128 runs past end of rebase info\n");
+               return -1;
+            }
+            rebase_it += uleb_len;
+            rebase_rem -= uleb_len;
+            times = uleb;
+
+            /* read skip ULEB */
+            uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+            if (uleb_len == 0) {
+               fprintf(stderr, "macho_patch_dyld_info: unsigned LEB128 overflow\n");
+               return -1;
+            } else if (uleb_len > rebase_rem) {
+               fprintf(stderr,
+                       "macho_patch_dyld_info: unsigned LEB128 runs past end of rebase info\n");
+               return -1;
+            }
+            rebase_it += uleb_len;
+            rebase_rem -= uleb_len;
+            skip = uleb;
+
+            // DEBUG
+            printf("REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB: times=0x%jx, skip=0x%jx\n",
+                   times, skip);
+            
+            /* do rebase */
+            for (uintmax_t i = 0; i < times; ++i) {
+               if (macho_patch_dyld_info_do_rebase(new_addr, type, segment, archive) < 0)
+                  { return -1; }
+               new_addr += sizeof(MACHO_ADDR_T) + skip;
+            }
+         }
          break;
          
-      case REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
       default:
          fprintf(stderr, "macho_patch_dyld_info: invalid rebase opcode 0x%x\n", opcode);
          return -1;
@@ -507,7 +610,7 @@ static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *s
       return -1;
    }
 
-   if (sectwr->section.flags == S_REGULAR) {
+   if ((sectwr->section.flags & SECTION_TYPE) == S_REGULAR) {
       /*   get pointee pointer value */
       void *ptr = (char *) sectwr->data + (addr - sectwr->section.addr);
       MACHO_ADDR_T val = * (MACHO_ADDR_T *) ptr;
@@ -522,7 +625,10 @@ static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *s
       }
                
       /*   save value */
-      * (MACHO_ADDR_T *) ptr = newval;      
+      * (MACHO_ADDR_T *) ptr = newval;
+
+      // DEBUG
+      // printf("rebase 0x%llx\n", (uint64_t) newval);
    }
 
    return 0;
@@ -530,6 +636,8 @@ static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *s
 
 static int macho_patch_dyld_info_do_rebase(MACHO_ADDR_T addr, uint8_t type,
                                            struct SEGMENT *segment, struct ARCHIVE *archive) {
+   assert(addr);
+   
    switch (type) {
 #if MACHO_BITS == 32
    case REBASE_TYPE_TEXT_ABSOLUTE32:      
