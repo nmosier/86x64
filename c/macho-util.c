@@ -53,3 +53,20 @@ int macho_off_cmp(const macho_off_t *a, const macho_off_t *b) {
    return a - b;
 }
 
+enum macho_endian macho_endian(uint32_t magic) {
+   switch (magic) {
+   case FAT_MAGIC:
+   case MH_MAGIC_64:
+   case MH_MAGIC:
+      return MACHO_ENDIAN_SAME;
+
+   case FAT_CIGAM:
+   case MH_CIGAM_64:
+   case MH_CIGAM:
+      return MACHO_ENDIAN_DIFF;
+
+   default:
+      fprintf(stderr, "macho_endian: invalid endianness\n");
+      abort();
+   }
+}

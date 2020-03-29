@@ -14,6 +14,7 @@ static int macho_emit_thread(FILE *f, const struct thread *thread);
 static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
 static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
+static int macho_emit_build_version(FILE *f, const struct build_version *build);
 
 #define MACHO_BITS 32
 #include "macho-emit-t.c"
@@ -134,3 +135,14 @@ static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib) {
    return 0;
 }
 
+static int macho_emit_build_version(FILE *f, const struct build_version *build) {
+   /* emit command */
+   if (fwrite_exact(&build->command, sizeof(build->command), 1, f) < 0) { return -1; }
+
+   /* emit tools */
+   if (fwrite_exact(build->tools, sizeof(build->tools[0]), build->command.ntools, f) < 0) {
+      return -1;
+   }
+
+   return 0;
+}

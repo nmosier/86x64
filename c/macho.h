@@ -14,6 +14,7 @@ typedef uint64_t macho_addr_t;
 
 enum macho_kind {MACHO_FAT, MACHO_ARCHIVE};
 enum macho_bits {MACHO_32 = 32, MACHO_64 = 64};
+enum macho_endian {MACHO_ENDIAN_SAME, MACHO_ENDIAN_DIFF};
 
 struct fat_archive {
    struct fat_arch header;
@@ -122,6 +123,11 @@ struct dylib_wrapper {
    char *name;
 };
 
+struct build_version {
+   struct build_version_command command;
+   struct build_tool_version *tools;
+};
+
 union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
@@ -136,7 +142,7 @@ union load_command_32 {
    struct source_version_command source_version;
    struct entry_point_command entry_point;
    struct dylib_wrapper dylib;
-   struct build_version_command build_version;
+   struct build_version build_version;
 };
 
 union load_command_64 {
@@ -153,7 +159,7 @@ union load_command_64 {
    struct source_version_command source_version;
    struct entry_point_command entry_point;
    struct dylib_wrapper dylib;
-   struct build_version_command build_version;   
+   struct build_version build_version;   
 };
 
 struct archive_64 {

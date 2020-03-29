@@ -158,9 +158,7 @@ int macho_emit_load_command(FILE *f, const union LOAD_COMMAND *command) {
       break;
 
    case LC_BUILD_VERSION:
-      if (fwrite_exact(&command->build_version, sizeof(command->build_version), 1, f) < 0) {
-         return -1;
-      }
+      if (macho_emit_build_version(f, &command->build_version) < 0) { return -1; }
       break;
 
    default:

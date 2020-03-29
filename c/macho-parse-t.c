@@ -24,6 +24,7 @@
 # define macho_parse_segment macho_parse_segment_32
 # define macho_parse_load_command macho_parse_load_command_32
 # define macho_parse_archive macho_parse_archive_32
+
 # define MACHO_SIZE_T uint32_t
 
 #else
@@ -279,8 +280,7 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
       break;
 
    case LC_BUILD_VERSION:
-      if (fread_exact(AFTER(command->build_version.cmdsize), 1,
-                      STRUCT_REM(command->build_version, cmdsize), f) < 0) { return -1; }
+      if (macho_parse_build_version(f, &command->build_version) < 0) { return -1; }
       break;
 
    default:

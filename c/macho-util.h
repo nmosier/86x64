@@ -9,6 +9,8 @@ enum macho_kind macho_kind(const union macho *macho);
 
 enum macho_bits macho_bits(const union archive *archive);
 
+enum macho_endian macho_endian(uint32_t magic);
+
 bool macho_is_linkedit_32(const union load_command_32 *command);
 bool macho_is_linkedit_64(const union load_command_64 *command);
 

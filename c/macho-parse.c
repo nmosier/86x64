@@ -19,6 +19,7 @@ static int macho_parse_thread(FILE *f, struct thread *thread);
 static int macho_parse_linkedit(FILE *f, struct linkedit_data *linkedit);
 static int macho_parse_dyld_info(FILE *f, struct dyld_info *dyld_info);
 static int macho_parse_dylib(FILE *f, struct dylib_wrapper *dylib);
+static int macho_parse_build_version(FILE *f, struct build_version *build);
 
 static int macho_parse_segment_64(FILE *f, struct segment_64 *segment);
 
@@ -253,6 +254,27 @@ static int macho_parse_dylinker(FILE *f, struct dylinker *dylinker) {
    /* parse name */
    if (fread_exact(dylinker->name, 1, name_len, f) < 0) {
       return -1;
+   }
+
+   return 0;
+}
+
+static int macho_parse_build_version(FILE *f, struct build_version *build) {
+   /* parse command */
+   if (fread_exact(AFTER(build->command.cmdsize), STRUCT_REM(build->command, cmdsize), 1, f) < 0) {
+      return -1;
+   }
+
+   /* parse tools */
+   uint32_t ntools = build->command.ntools;
+   if (ntools == 0) {
+      build->tools = NULL;
+   } else {
+      if ((build->tools = calloc(ntools, sizeof(build->tools[0]))) == NULL) {
+         perror("calloc");
+         return -1;
+      }
+      if (fread_exact(build->tools, sizeof(build->tools[0]), ntools, f) < 0) { return -1; }
    }
 
    return 0;
