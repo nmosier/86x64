@@ -403,11 +403,13 @@ int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *inf
    case LC_VERSION_MIN_MACOSX:
    case LC_SOURCE_VERSION:
    case LC_LOAD_DYLIB:
+   case LC_ID_DYLIB:
    case LC_BUILD_VERSION:
       /* nothing to adjust */
       return 0;
 
       /* linkedit commands are adjusted by __LINKEDIT segment */
+   case LC_CODE_SIGNATURE:
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
       return 0;

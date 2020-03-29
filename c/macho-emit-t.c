@@ -124,7 +124,8 @@ int macho_emit_load_command(FILE *f, const union LOAD_COMMAND *command) {
    case LC_UNIXTHREAD:
       if (macho_emit_thread(f, &command->thread) < 0) { return -1; }
       break;
-      
+
+   case LC_CODE_SIGNATURE:
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
       if (macho_emit_linkedit_data(f, &command->linkedit) < 0) { return -1; }
@@ -151,6 +152,7 @@ int macho_emit_load_command(FILE *f, const union LOAD_COMMAND *command) {
       }
       break;
 
+   case LC_ID_DYLIB:
    case LC_LOAD_DYLIB:
       if (macho_emit_dylib(f, &command->dylib) < 0) { return -1; }
       break;

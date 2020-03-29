@@ -243,6 +243,7 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
       if (macho_parse_thread(f, &command->thread) < 0) { return -1; }
       break;
 
+   case LC_CODE_SIGNATURE:
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
       if (macho_parse_linkedit(f, &command->linkedit) < 0) { return -1; }
@@ -272,6 +273,7 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
       
       break;
 
+   case LC_ID_DYLIB:
    case LC_LOAD_DYLIB:
       if (macho_parse_dylib(f, &command->dylib) < 0) { return -1; }
       break;
@@ -280,7 +282,7 @@ int macho_parse_load_command(FILE *f, union LOAD_COMMAND *command) {
       if (fread_exact(AFTER(command->build_version.cmdsize), 1,
                       STRUCT_REM(command->build_version, cmdsize), f) < 0) { return -1; }
       break;
-      
+
    default:
       fprintf(stderr, "macho_parse_load_command: unrecognized load command type 0x%x\n",
               command->load.cmd);

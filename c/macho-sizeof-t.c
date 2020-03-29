@@ -55,7 +55,8 @@ uint32_t macho_sizeof_load_command(union LOAD_COMMAND *command) {
       /* These command sizes never change. */
    case LC_SYMTAB:
    case LC_DYSYMTAB:
-   case LC_UUID:      
+   case LC_UUID:
+   case LC_CODE_SIGNATURE:
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
    case LC_DYLD_INFO_ONLY:
@@ -71,6 +72,7 @@ uint32_t macho_sizeof_load_command(union LOAD_COMMAND *command) {
    case LC_UNIXTHREAD:
       return macho_sizeof_thread(&command->thread);
 
+   case LC_ID_DYLIB:
    case LC_LOAD_DYLIB:
       return macho_sizeof_dylib(&command->dylib);
 
