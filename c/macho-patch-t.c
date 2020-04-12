@@ -201,6 +201,12 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
             continue;
          }
 
+
+         // DEBUG
+         if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_RET_FAR) {
+            printf("macho_patch_TEXT: retf instruction\n");
+         }
+         
          /* OPERANDS REQUIRING PATCHING
           * - Memory, direct
           * - Relative jump outside of section

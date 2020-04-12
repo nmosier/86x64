@@ -71,7 +71,7 @@ struct symtab_32 {
 
 struct dysymtab_64 {
    struct dysymtab_command command;
-   uint32_t *indirectsyms;
+   uint64_t *indirectsyms;
 };
 
 struct dysymtab_32 {
