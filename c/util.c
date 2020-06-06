@@ -95,6 +95,13 @@ void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset) {
    return fmread(size, nitems, stream);
 }
 
+void *memdup(const void *buf, size_t size) {
+   void *newbuf;
+   if ((newbuf = malloc(size)) == NULL) { return NULL; }
+   memcpy(newbuf, buf, size);
+   return newbuf;
+}
+
 /**************
  * LEB128 API *
  **************/
@@ -149,3 +156,4 @@ size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n) {
    
    return it - (uint8_t *) buf;
 }
+

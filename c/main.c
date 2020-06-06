@@ -14,6 +14,9 @@
 #include "macho-emit.h"
 #include "macho-build.h"
 #include "macho-patch.h"
+#include "macho-transform.h"
+
+#define TRANSFORM 1
 
 int main(int argc, char *argv[]) {
    int retv = 0;
@@ -58,7 +61,15 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-   /* write 32-bit Mach-O */
+#if TRANSFORM
+   union macho macho64;
+   macho64.magic = MH_CIGAM_64;
+   if (macho_transform_archive_32to64(&macho.archive.archive_32, &macho64.archive.archive_64) < 0) {
+      return -1;
+   }
+#endif
+
+   /* write Mach-O */
    if (macho_emit(f64, &macho) < 0) {
       retv = 6;
       goto cleanup;

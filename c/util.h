@@ -52,6 +52,14 @@ ssize_t merge(const void *collection[], const size_t counts[], size_t narrs, siz
 
 void *fmread_at(size_t size, size_t nitems, FILE *stream, off_t offset);
 
+/**
+ * Duplicate memory.
+ * @param buffer to duplicate
+ * @param size of buffer to duplicate
+ * @return duplicate of buffer on success; NULL on error.
+ */
+void *memdup(const void *buf, size_t size);
+
 /**************
  * LEB128 API *
  **************/

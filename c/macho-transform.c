@@ -3,6 +3,7 @@
 #include <mach/machine.h>
 
 #include "macho-transform.h"
+#include "util.h"
 
 static int macho_transform_command_32to64(const union load_command_32 *cmd32,
                                           union load_command_64 *cmd64);
@@ -15,6 +16,9 @@ static int macho_transform_symtab_32to64(const struct symtab_32 *symtab32,
 static int macho_transform_nlist_32to64(const struct nlist *ent32, struct nlist_64 *ent64);
 static int macho_transform_dysymtab_32to64(const struct dysymtab_32 *dy32,
                                            struct dysymtab_64 *dy64);
+static int macho_transform_dyld_info_32to64(const struct dyld_info *dl32, struct dyld_info *dl64);
+static int macho_transform_linkedit_32to64(const struct linkedit_data *linkedit32,
+                                           struct linkedit_data *linkedit64);
 
 int macho_transform_archive_32to64(const struct archive_32 *archive32,
                                    struct archive_64 *archive64) {
@@ -30,7 +34,7 @@ int macho_transform_archive_32to64(const struct archive_32 *archive32,
    hdr64->sizeofcmds = hdr32->sizeofcmds;
    hdr64->flags = hdr32->flags;
 
-   /* allocate 64-bit commands */
+   /* flags 64-bit commands */
    if ((archive64->commands = calloc(hdr64->ncmds, sizeof(archive64->commands[0]))) == NULL) {
       perror("calloc");
       return -1;
@@ -62,21 +66,28 @@ static int macho_transform_command_32to64(const union load_command_32 *cmd32,
       break;
 
    case LC_LOAD_DYLINKER:
-      abort();
+      cmd64->dylinker.command = cmd32->dylinker.command;
+      cmd64->dylinker.name = strdup(cmd32->dylinker.name);
+      break;
 
    case LC_UUID:
       cmd64->uuid = cmd32->uuid;
       break;
 
    case LC_UNIXTHREAD:
-
+      fprintf(stderr, "transforming LC_UNIXTHREAD not supported\n");
+      return -1;
+      
    case LC_CODE_SIGNATURE:
    case LC_FUNCTION_STARTS:
    case LC_DATA_IN_CODE:
+      if (macho_transform_linkedit_32to64(&cmd32->linkedit, &cmd64->linkedit) < 0) { return -1; }
+      break;
 
    case LC_DYLD_INFO:
    case LC_DYLD_INFO_ONLY:
-      abort();
+      if (macho_transform_dyld_info_32to64(&cmd32->dyld_info, &cmd64->dyld_info) < 0) { return -1; }
+      break;
 
    case LC_VERSION_MIN_MACOSX:
       cmd64->version_min = cmd32->version_min;
@@ -87,7 +98,8 @@ static int macho_transform_command_32to64(const union load_command_32 *cmd32,
       break;
 
    case LC_MAIN:
-      abort();
+      cmd64->entry_point = cmd32->entry_point;
+      break;
 
    case LC_ID_DYLIB:
    case LC_LOAD_DYLIB:
@@ -103,9 +115,8 @@ static int macho_transform_command_32to64(const union load_command_32 *cmd32,
               cmd32->load.cmd);
       return -1;
    }
-   
-   // TODO
-   abort();
+
+   return 0;
 }
 
 static int macho_transform_segment_32to64(const struct segment_32 *seg32, struct segment_64 *seg64)
@@ -123,6 +134,12 @@ static int macho_transform_segment_32to64(const struct segment_32 *seg32, struct
    cmd64->initprot = cmd32->initprot;
    cmd64->nsects   = cmd32->nsects;
    cmd64->flags    = cmd32->flags;
+
+   /* allocate sections */
+   if ((seg64->sections = calloc(cmd32->nsects, sizeof(seg64->sections[0]))) == NULL) {
+      perror("calloc");
+      return -1;
+   }
 
    for (uint32_t i = 0; i < cmd32->nsects; ++i) {
       if (macho_transform_section_32to64(&seg32->sections[i], &seg64->sections[i]) < 0) {
@@ -211,4 +228,23 @@ static int macho_transform_dysymtab_32to64(const struct dysymtab_32 *dy32,
    }
 
    return 0;
+}
+
+static int macho_transform_dyld_info_32to64(const struct dyld_info *dl32, struct dyld_info *dl64) {
+   dl64->command = dl32->command;
+
+   /* duplicate data */
+
+   // TODO
+   fprintf(stderr, "macho_transform_dyld_info_32to64: stub\n");
+   abort();
+}
+
+/* NOTE: This might not work. */
+static int macho_transform_linkedit_32to64(const struct linkedit_data *linkedit32,
+                                            struct linkedit_data *linkedit64) {
+   linkedit64->command = linkedit32->command;
+   linkedit64->data = memdup(linkedit32->data, linkedit32->command.datasize);
+   
+   return 0; 
 }
