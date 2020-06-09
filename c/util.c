@@ -106,7 +106,7 @@ void *memdup(const void *buf, size_t size) {
  * LEB128 API *
  **************/
 
-size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n) {
+size_t uleb128_decode(const void *buf, size_t buflen, uintmax_t *n) {
    unsigned int bits = 0;
    uintmax_t acc = 0;
    const uint8_t *it = buf;

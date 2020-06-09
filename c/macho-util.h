@@ -33,5 +33,9 @@ union load_command_64 *macho_find_load_command_64(uint32_t cmd, struct archive_6
 int macho_off_cmp(const macho_off_t *a, const macho_off_t *b);
 
 struct segment_32 *macho_index_segment_32(uint32_t index, struct archive_32 *archive);
+struct segment_64 *macho_index_segment_64(uint32_t index, struct archive_64 *archive);
+
+void *macho_vmaddr_to_ptr_32(uint32_t addr, struct segment_32 *segment);
+void *macho_vmaddr_to_ptr_64(uint64_t addr, struct segment_64 *segment);
 
 #endif

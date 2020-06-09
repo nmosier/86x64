@@ -13,6 +13,7 @@
 # define macho_linkedit          macho_linkedit_32
 # define macho_index_segment     macho_index_segment_32
 # define macho_vmaddr_to_section macho_vmaddr_to_section_32
+# define macho_vmaddr_to_ptr     macho_vmaddr_to_ptr_32
 
 # define MACHO_SIZE_T uint32_t
 # define MACHO_ADDR_T uint32_t
@@ -32,6 +33,7 @@
 # define macho_linkedit          macho_linkedit_64
 # define macho_index_segment     macho_index_segment_64
 # define macho_vmaddr_to_section macho_vmaddr_to_section_64
+# define macho_vmaddr_to_ptr     macho_vmaddr_to_ptr_64
 
 # define MACHO_SIZE_T uint64_t
 # define MACHO_ADDR_T uint64_t
@@ -135,6 +137,23 @@ struct SECTION_WRAPPER *macho_vmaddr_to_section(MACHO_ADDR_T addr, struct SEGMEN
    return NULL;
 }
 
+void *macho_vmaddr_to_ptr(MACHO_ADDR_T addr, struct SEGMENT *segment) {
+   struct SECTION_WRAPPER *sectwr;
+
+   /* find section */
+   if ((sectwr = macho_vmaddr_to_section(addr, segment)) == NULL) {
+      return NULL;
+   }
+
+   /* find offset within section */
+   const MACHO_SIZE_T off = addr - sectwr->section.addr;
+
+   /* return pointer */
+   return (uint8_t *) sectwr->data + off;
+}
+
+
+
 
 #undef ARCHIVE
 #undef LOAD_COMMAND
@@ -149,6 +168,7 @@ struct SECTION_WRAPPER *macho_vmaddr_to_section(MACHO_ADDR_T addr, struct SEGMEN
 #undef macho_linkedit
 #undef macho_index_segment
 #undef macho_vmaddr_to_section
+#undef macho_vmaddr_to_ptr
 
 #undef MACHO_ADDR_T
 #undef MACHO_SIZE_T

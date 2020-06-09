@@ -248,3 +248,105 @@ static int macho_transform_linkedit_32to64(const struct linkedit_data *linkedit3
    
    return 0; 
 }
+
+static int macho_transform_rebase_info_32to64(const void *rebase_data_32, uint32_t rebase_size_32,
+                                              void **rebase_data_64, uint32_t *rebase_size_64) {
+   /* create duplicate */
+   const uint8_t *rebase_begin, *rebase_end;
+   if ((rebase_begin = memdup(rebase_data_64, rebase_size_32)) == NULL) {
+      return -1;
+   }
+   rebase_end = rebase_begin + rebase_size_32;
+
+   int32_t seg_idx = -1;
+   uint8_t type = 0;
+   struct SEGMENT *segment;
+   MACHO_ADDR_T addr; /* rebase address */
+
+   for (const uint8_t *rebase_it = rebase_begin; rebase_it != rebase_end; ) {
+      const uint8_t opcode = *rebase_it & REBASE_OPCODE_MASK;
+      const uint8_t imm = *rebase_it & REBASE_IMMEDIATE_MASK;
+      uintmax_t uleb;
+      size_t uleb_len;
+      void *ptr;
+
+      uint8_t *rebase_instr = rebase_it; // for subsequent modification
+      ++rebase_it;
+
+      size_t rebase_rem = rebase_end - rebase_it;
+
+      switch (opcode) {
+      case REBASE_OPCODE_DONE:
+         return 0;
+
+      case REBASE_OPCODE_SET_TYPE_IMM:
+         /* convert to 32-bit absolute address */
+         *rebase_instr = REBASE_OPCODE_SET_TYPE_IMM | REBASE_TYPE_ABS32;
+         break;
+
+      case REBASE_OPCODE_DO_REBASE_IMM_TIMES:
+         break;
+
+      case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+         seg_idx = imm;
+         if ((segment = macho_index_segment(seg_idx, archive)) == NULL) {
+            fprintf(stderr, "macho_rebase_iterate: segment %d not found\n", seg_idx);
+            return -1;
+         }
+         
+         uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+         if (uleb_len > rebase_rem) {
+            fprintf(stderr, "macho_rebase_iterate: rebase data ends inside ULEB\n");
+            return -1;
+         }
+         if (uleb_len == 0) {
+            fprintf(stderr, "macho_rebase_iterate: rebase data ULEB overflow\n");
+            return -1; 
+         }
+
+         addr = uleb;
+         rebase_it += uleb_len;
+         break;
+
+      case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
+         /* do rebase */
+         if ((ptr = macho_vmaddr_to_ptr(addr, segment)) == NULL) {
+            fprintf(stderr, "macho_rebase_iterate: vmaddr out of range in segment\n");
+            return -1;
+         }
+         func(ptr, arg);
+         /* fall through */
+      case REBASE_OPCODE_ADD_ADDR_ULEB:
+         uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+         if (uleb_len == 0) {
+            fprintf(stderr, "macho_patch_iterate: ULEB overflow\n");
+            return -1;
+         }
+         if (uleb_len > rebase_rem) {
+            fprintf(stderr, "macho_patch_iteraet: rebase info ends inside ULEB\n");
+            return -1;
+         }
+         addr += uleb;
+         rebase_it += uleb_len;
+         break;
+
+      case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
+         /* read ULEB */
+         uleb_len = uleb128_decode(rebase_it, rebase_rem, &uleb);
+         if (uleb_len == 0) {
+            fprintf(stderr, "macho_rebase_iterate: ULEB overflow\n");
+            return -1; 
+         }
+         if (uleb_len > rebase_rem) {
+            fprintf(stderr, "macho_rebase_iterate: rebase info ends inside ULEB\n");
+            return -1;
+         }
+         rebase_it += uleb_len;
+
+         /* do rebase */
+         // TODO
+         
+      }
+   }
+   
+}

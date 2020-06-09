@@ -70,3 +70,16 @@ enum macho_endian macho_endian(uint32_t magic) {
       abort();
    }
 }
+
+
+int macho_remove_command(union macho *macho) {
+   switch (macho->magic) {
+   case MH_CIGAM:
+      
+      
+   case MH_MAGIC:
+   default:
+      fprintf(stderr, "macho_remove_command: magic number %d not supported\n", macho->magic);
+      return -1;
+   }
+}

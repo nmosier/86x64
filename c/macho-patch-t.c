@@ -59,6 +59,7 @@
 #endif
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include "macho.h"
 #include "macho-util.h"
@@ -75,7 +76,7 @@ static int macho_patch_dyld_info_rebase_dst(MACHO_ADDR_T addr, struct SEGMENT *s
                                             struct ARCHIVE *archive);
 static int macho_patch_dyld_info_do_rebase(MACHO_ADDR_T addr, uint8_t type,
                                            struct SEGMENT *segment, struct ARCHIVE *archive);
-
+int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive);
 
 MACHO_ADDR_T macho_patch_TEXT_address(MACHO_ADDR_T addr, const struct SEGMENT *segment) {
    const uint32_t nsects = segment->command.nsects;
@@ -363,7 +364,7 @@ int macho_patch_DATA(struct SEGMENT *data_seg, const struct SEGMENT *text_seg) {
 int macho_patch_dyld_info(struct dyld_info *dyld, struct ARCHIVE *archive) {
    /* patch rebase info */
    uint8_t *rebase_begin = dyld->rebase_data;
-   uint8_t *rebase_end = rebase_begin + dyld->command.rebase_size;
+   const uint8_t *rebase_end = rebase_begin + dyld->command.rebase_size;
 
    int32_t seg_index = -1;
    uint8_t type = 0;
@@ -563,7 +564,8 @@ MACHO_ADDR_T macho_patch_symbol_pointer(MACHO_ADDR_T addr, const struct SEGMENT 
 
 static void *macho_patch_dyld_info_rebase_uleb(void *uleb_ptr, size_t size,
                                                struct SEGMENT *segment,
-                                               struct ARCHIVE *archive, MACHO_ADDR_T *new_addr) {
+                                               struct ARCHIVE *archive,
+                                               MACHO_ADDR_T *new_addr) {
    /* decode ULEB */
    uintmax_t uleb;
    size_t uleb_len = uleb128_decode(uleb_ptr, size, &uleb);

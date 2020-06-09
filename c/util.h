@@ -77,7 +77,7 @@ void *memdup(const void *buf, size_t size);
  * @param n pointer to where to place result
  * @return number of bytes used; if exceeds buflen, then need more bytes; if zero, then overflow.
  */
-size_t uleb128_decode(void *buf, size_t buflen, uintmax_t *n);
+size_t uleb128_decode(const void *buf, size_t buflen, uintmax_t *n);
 
 /**
  * Encode unsigend LEB128 value to buffer.
