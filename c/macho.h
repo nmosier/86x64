@@ -69,12 +69,7 @@ struct symtab_32 {
    char *strtab;
 };
 
-struct dysymtab_64 {
-   struct dysymtab_command command;
-   uint64_t *indirectsyms;
-};
-
-struct dysymtab_32 {
+struct dysymtab {
    struct dysymtab_command command;
    uint32_t *indirectsyms;
 };
