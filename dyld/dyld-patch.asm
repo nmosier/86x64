@@ -18,7 +18,7 @@ join:
 2:  74 09                   je     d <rebase_type_pointer>
 0000000000000004 <rebase_type_abs32>:
 4:  45 01 26                add    DWORD PTR [r14],r12d
-7:  49 83 c6 04             add    r14,0x4
+7:  49 83 c6 08             add    r14,0x8
 b:  eb 07                   jmp    14 <join>
 000000000000000d <rebase_type_pointer>:
 d:  4d 01 26                add    QWORD PTR [r14],r12

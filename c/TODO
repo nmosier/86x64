@@ -1,4 +1,5 @@
-[ ] Need to patch relative jump instructions
-[ ] Export template header info into shared file
-[ ] self-building templates?
-[ ] includable Template headers 
+[ ] Patch bind info
+[ ] Transform rebase info
+[ ] Transform bind info
+[ ] Write utility that converts executable to dylib.
+
