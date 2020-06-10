@@ -187,7 +187,9 @@ size_t sleb128_decode(const void *buf, size_t buflen, intmax_t *n) {
       bits += 7;
       
       if (!(byte & SLEB128_CTRLMASK)) {
-         *n = signbit ? sacc : uacc;
+         if (n) {
+            *n = signbit ? sacc : uacc;
+         }
          return it - begin;
       }
 

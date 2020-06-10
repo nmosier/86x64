@@ -14,6 +14,9 @@
 
 #define PAGESIZE 0x1000
 
+#define STR(s) #s
+#define XSTR(s) STR(s)
+
 int fread_exact(void *ptr, size_t size, size_t nitems, FILE *stream);
 int fwrite_exact(const void *ptr, size_t size, size_t nitems, FILE *stream);
 

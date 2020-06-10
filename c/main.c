@@ -67,10 +67,29 @@ int main(int argc, char *argv[]) {
    if (macho_transform_archive_32to64(&macho.archive.archive_32, &macho64.archive.archive_64) < 0) {
       return -1;
    }
+
+   /* rebuild */
+   if (macho_build(&macho64) < 0) {
+      retv = 9;
+      goto cleanup;
+   }
+
+   /* repatch */
+   if (macho_patch(&macho64) < 0) {
+      retv = 10;
+      goto cleanup;
+   }
+   
 #endif
 
    /* write Mach-O */
-   if (macho_emit(f64, &macho) < 0) {
+   if (macho_emit(f64,
+#if TRANSFORM
+                  &macho64
+#else
+                  &macho
+#endif
+                  ) < 0) {
       retv = 6;
       goto cleanup;
    }

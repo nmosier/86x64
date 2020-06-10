@@ -21,7 +21,8 @@ static int macho_transform_linkedit_32to64(const struct linkedit_data *linkedit3
                                            struct linkedit_data *linkedit64);
 static int macho_transform_rebase_info_32to64(const void *rebase_data_32, uint32_t rebase_size_32,
                                               void **rebase_data_64, uint32_t *rebase_size_64);
-
+static int macho_transform_bind_info_32to64(const void *bind_data_32, uint32_t bind_size_32,
+                                            void **bind_data_64, uint32_t *bind_size_64);
 
 int macho_transform_archive_32to64(const struct archive_32 *archive32,
                                    struct archive_64 *archive64) {
@@ -126,8 +127,9 @@ static int macho_transform_segment_32to64(const struct segment_32 *seg32, struct
 {
    const struct segment_command *cmd32 = &seg32->command;
    struct segment_command_64 *cmd64 = &seg64->command;
-   cmd64->cmd      = cmd32->cmd;
-   cmd64->cmdsize  = cmd32->cmdsize;
+   cmd64->cmd      = LC_SEGMENT_64;
+   cmd64->cmdsize  =
+      ALIGN_UP(sizeof(struct segment_command_64) + cmd32->nsects * sizeof(struct section_64), 8);
    memcpy(cmd64->segname, cmd32->segname, sizeof(cmd64->segname));
    cmd64->vmaddr   = cmd32->vmaddr;
    cmd64->vmsize   = cmd32->vmsize;
@@ -236,17 +238,20 @@ static int macho_transform_dysymtab_32to64(const struct dysymtab_32 *dy32,
 static int macho_transform_dyld_info_32to64(const struct dyld_info *dl32, struct dyld_info *dl64) {
    dl64->command = dl32->command;
 
-   /* transform rebase info */
    if (macho_transform_rebase_info_32to64(dl32->rebase_data, dl32->command.rebase_size,
                                           &dl64->rebase_data, &dl64->command.rebase_size) < 0) {
       return -1;
    }
 
-   /* */
+   if (macho_transform_bind_info_32to64(dl32->bind_data, dl32->command.bind_size,
+                                        &dl64->bind_data, &dl64->command.bind_size) < 0) {
+      return -1;
+   }
 
-   // TODO
-   fprintf(stderr, "macho_transform_dyld_info_32to64: stub\n");
-   abort();
+   dl64->lazy_bind_data = dl32->lazy_bind_data;
+   dl64->export_data = dl32->export_data;
+
+   return 0;
 }
 
 /* NOTE: This might not work. */
@@ -280,6 +285,11 @@ static int macho_transform_rebase_info_32to64(const void *rebase_data_32, uint32
          goto done;
 
       case REBASE_OPCODE_SET_TYPE_IMM:
+         if (imm != BIND_TYPE_POINTER) {
+            fprintf(stderr, "macho_transform_rebase_info_32to64: unsupported rebase type %d\n",
+                    imm);
+            return -1;
+         }
          /* convert to 32-bit absolute address */
          *rebase_instr = REBASE_OPCODE_SET_TYPE_IMM | REBASE_TYPE_TEXT_ABSOLUTE32;
          break;
@@ -313,5 +323,141 @@ static int macho_transform_rebase_info_32to64(const void *rebase_data_32, uint32
    *rebase_data_64 = rebase_begin;
    *rebase_size_64 = rebase_size_32;
 
+   return 0;
+}
+
+static int macho_transform_bind_info_32to64(const void *bind_data_32, uint32_t bind_size_32,
+                                            void **bind_data_64, uint32_t *bind_size_64) {
+   /* duplicate */
+   uint8_t *bind_begin;
+   if ((bind_begin = memdup(bind_data_32, bind_size_32)) == NULL) {
+      perror("memdup");
+      return -1;
+   }
+
+   uint8_t *bind_it = bind_begin;
+   const uint8_t *bind_end = bind_begin + bind_size_32;
+
+   while (bind_it < bind_end) {
+      size_t uleb_len, sleb_len;
+      
+      const uint8_t opcode = (*bind_it & BIND_OPCODE_MASK);
+      const uint8_t imm = (*bind_it & BIND_IMMEDIATE_MASK);
+
+      ++bind_it;
+
+      size_t bind_rem = bind_end - bind_it;
+      
+      switch (opcode) {
+      case BIND_OPCODE_DONE:
+         goto done;
+
+      case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+      case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+         // TODO: How to manage reordering?
+         break;
+
+      case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+         uleb_len = uleb128_decode(bind_it, bind_rem, NULL);
+         if (uleb_len > bind_rem) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: bind info ended inside ULEB\n");
+            return -1;
+         } else if (uleb_len == 0) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: ULEB overflow\n");
+            return -1;
+         }
+         bind_it += uleb_len;
+         break;
+
+      case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+         /* symbol name follows */
+         switch (imm) {
+         case 0x0:
+            while (*bind_it++ != '\0') {} /* skip symbol string */
+            break;
+
+         default:
+            fprintf(stderr, "macho_transform_bind_info_32to64: unrecognized trailing flags type 0x%x\n", imm);
+            return -1;
+         }
+         break;
+
+      case BIND_OPCODE_SET_TYPE_IMM:
+         switch (imm) {
+         case BIND_TYPE_POINTER:
+            *(bind_it - 1) = BIND_TYPE_TEXT_ABSOLUTE32;
+            break;
+         case BIND_TYPE_TEXT_ABSOLUTE32:
+            fprintf(stderr,
+                    "macho_transform_bind_info_32to64: eek -- encountered BIND_TYPE_TEXT_ABSOLUTE32\n");
+            return -1;
+         default:
+            fprintf(stderr, "macho_transform_bind_info_32to64: unsupported bind type %d\n", imm);
+            return -1;
+         }
+         break;
+
+      case BIND_OPCODE_SET_ADDEND_SLEB:
+         sleb_len = sleb128_decode(bind_it, bind_rem, NULL);
+         if (sleb_len == 0) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: SLEB overflow\n");
+            return -1;
+         } else if (sleb_len > bind_rem) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: bind info ends inside SLEB\n");
+            return -1;
+         }
+         bind_it += sleb_len;
+         break;
+
+      case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+      case BIND_OPCODE_ADD_ADDR_ULEB:
+      case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+         uleb_len = uleb128_decode(bind_it, bind_rem, NULL);
+         if (uleb_len == 0) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: ULEB overflow\n");
+            return -1;
+         } else if (uleb_len > bind_rem) {
+            fprintf(stderr, "macho_transform_bind_info_32to64: bind info ends inside ULEB\n");
+         }
+         bind_it += uleb_len;
+         break;
+
+      case BIND_OPCODE_DO_BIND:
+         break;
+
+      case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+         {
+            uintmax_t ulebs[2];
+            size_t uleb_lens[2];
+
+            for (int i = 0; i < 2; ++i) {
+               uleb_lens[i] = uleb128_decode(bind_it, bind_rem, &ulebs[i]);
+               if (uleb_lens[i] == 0) {
+                  fprintf(stderr, "macho_transform_bind_info_32to64: ULEB overflow\n");
+                  return -1;
+               } else if (uleb_lens[i] > bind_rem) {
+                  fprintf(stderr, "macho_transform_bind_info_32to64: bind info ends inside ULEB\n");
+                  return -1;
+               }
+               bind_it += uleb_lens[i];
+               bind_rem -= uleb_lens[i];
+            }
+         }
+         break;
+
+      case BIND_OPCODE_THREADED:
+         fprintf(stderr, "macho_transform_bind_info_32to64: BIND_OPCODE_THREADED unsupported\n");
+         return -1;
+         
+      default:
+         fprintf(stderr, "macho_transform_bind_info_32to64: unrecognized opcode 0x%02x\n", opcode);
+         return -1;
+      }
+   }
+
+ done:
+   *bind_size_64 = bind_size_32;
+   *bind_data_64 = bind_begin;
+   
    return 0;
 }

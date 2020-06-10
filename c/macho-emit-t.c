@@ -162,7 +162,7 @@ int macho_emit_load_command(FILE *f, const union LOAD_COMMAND *command) {
       break;
 
    default:
-      fprintf(stderr, "macho_emit_load_command_32: unsupported command 0x%x\n", command->load.cmd);
+      fprintf(stderr, XSTR(macho_emit_load_command) ": unsupported command 0x%x\n", command->load.cmd);
       return -1;
    }
 
