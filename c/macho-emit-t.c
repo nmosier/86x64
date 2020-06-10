@@ -1,7 +1,6 @@
 #if MACHO_BITS == 32
 
 # define SYMTAB symtab_32
-# define DYSYMTAB dysymtab_32
 # define SEGMENT segment_32
 # define SECTION_WRAPPER section_wrapper_32
 # define ARCHIVE archive_32
@@ -16,7 +15,6 @@
 #else
 
 # define SYMTAB symtab_64
-# define DYSYMTAB dysymtab_64
 # define SEGMENT segment_64
 # define SECTION_WRAPPER section_wrapper_64
 # define ARCHIVE archive_64
@@ -31,7 +29,7 @@
 #endif
 
 static int macho_emit_symtab(FILE *f, const struct SYMTAB *symtab);
-static int macho_emit_dysymtab(FILE *f, const struct DYSYMTAB *dysymtab);
+static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab);
 
 static int macho_emit_symtab(FILE *f, const struct SYMTAB *symtab) {
    /* emit symtab command */
@@ -49,7 +47,7 @@ static int macho_emit_symtab(FILE *f, const struct SYMTAB *symtab) {
    return 0;
 }
 
-static int macho_emit_dysymtab(FILE *f, const struct DYSYMTAB *dysymtab) {
+static int macho_emit_dysymtab(FILE *f, const struct dysymtab *dysymtab) {
    /* emit dysymtab command */
    if (fwrite_exact(&dysymtab->command, sizeof(dysymtab->command), 1, f) < 0) { return -1; }
 
@@ -193,7 +191,6 @@ int macho_emit_archive(FILE *f, const struct ARCHIVE *archive) {
 
 
 #undef SYMTAB
-#undef DYSYMTAB
 #undef SEGMENT
 #undef SECTION_WRAPPER
 #undef ARCHIVE

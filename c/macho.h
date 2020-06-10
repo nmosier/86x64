@@ -127,7 +127,7 @@ union load_command_32 {
    struct load_command load;
    struct segment_32 segment;
    struct symtab_32 symtab;
-   struct dysymtab_32 dysymtab;
+   struct dysymtab dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;
@@ -144,7 +144,7 @@ union load_command_64 {
    struct load_command load;
    struct segment_64 segment;
    struct symtab_64 symtab;
-   struct dysymtab_64 dysymtab;
+   struct dysymtab dysymtab;
    struct dylinker dylinker;
    struct uuid_command uuid;
    struct thread thread;

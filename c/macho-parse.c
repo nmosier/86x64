@@ -97,7 +97,7 @@ int macho_parse_fat(FILE *f, const uint32_t *magic, struct fat *fat) {
 int macho_parse_archive(FILE *f, const uint32_t *magicp, union archive *archive) {
    /* get magic bytes */
    uint32_t magic;
-   if (magic) {
+   if (magicp) {
       magic = *magicp;
    } else {
       if (fread_exact(&magic, sizeof(magic), 1, f) < 0) {

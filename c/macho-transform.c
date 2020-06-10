@@ -14,8 +14,8 @@ static int macho_transform_section_32to64(const struct section_wrapper_32 *wr32,
 static int macho_transform_symtab_32to64(const struct symtab_32 *symtab32,
                                          struct symtab_64 *symtab64);
 static int macho_transform_nlist_32to64(const struct nlist *ent32, struct nlist_64 *ent64);
-static int macho_transform_dysymtab_32to64(const struct dysymtab_32 *dy32,
-                                           struct dysymtab_64 *dy64);
+static int macho_transform_dysymtab_32to64(const struct dysymtab *dy32,
+                                           struct dysymtab *dy64);
 static int macho_transform_dyld_info_32to64(const struct dyld_info *dl32, struct dyld_info *dl64);
 static int macho_transform_linkedit_32to64(const struct linkedit_data *linkedit32,
                                            struct linkedit_data *linkedit64);
@@ -216,21 +216,17 @@ static int macho_transform_nlist_32to64(const struct nlist *ent32, struct nlist_
    return 0;
 }
 
-static int macho_transform_dysymtab_32to64(const struct dysymtab_32 *dy32,
-                                           struct dysymtab_64 *dy64) {
+static int macho_transform_dysymtab_32to64(const struct dysymtab *dy32, struct dysymtab *dy64) {
    const struct dysymtab_command *cmd32 = &dy32->command;
    struct dysymtab_command *cmd64 = &dy64->command;
    *cmd64 = *cmd32;
 
    if ((dy64->indirectsyms =
-        calloc(cmd64->nindirectsyms, sizeof(dy64->indirectsyms[0]))) == NULL) {
-      perror("calloc");
-      return -1;
-   }
-
-   for (uint32_t i = 0; i < cmd64->nindirectsyms; ++i) {
-      dy64->indirectsyms[i] = dy32->indirectsyms[i];
-   }
+        memdup(dy32->indirectsyms, cmd32->nindirectsyms * sizeof(dy32->indirectsyms[0]))) == NULL)
+      {
+         perror("memdup");
+         return -1;
+      }
 
    return 0;
 }

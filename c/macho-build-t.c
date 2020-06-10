@@ -68,7 +68,7 @@
 
 int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *info);
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info);
-int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info);
+int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info);
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
 
@@ -269,7 +269,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
    
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
    segment->command.vmaddr = info->vmaddr;
-   MACHO_ADDR_T vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
+   // MACHO_ADDR_T vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
    // macho_off_t dataoff = info->dataoff;
    segment->command.fileoff = info->dataoff;
 
@@ -340,6 +340,12 @@ int macho_build_segment_BSS(struct SEGMENT *bss, struct build_info *info) {
 
 
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
+   /* ensure size is multiple of pointer size */
+   size_t strsize_aligned = ALIGN_UP(symtab->command.strsize, sizeof(MACHO_ADDR_T));
+   if ((symtab->strtab = reallocf(symtab->strtab, strsize_aligned)) == NULL) { return -1; }
+   memset(symtab->strtab, 0, strsize_aligned - symtab->command.strsize);
+   symtab->command.strsize = strsize_aligned;
+   
    /* allocate data region */
    symtab->command.symoff = info->dataoff;
    info->dataoff += symtab->command.nsyms * sizeof(symtab->entries[0]);
@@ -353,7 +359,7 @@ int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
    return 0;
 }
 
-int macho_build_dysymtab(struct DYSYMTAB *dysymtab, struct build_info *info) {
+int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info) {
    if (dysymtab->command.ntoc) {
       fprintf(stderr,
               "macho_parse_dysymtab_32: parsing table of contents not supported\n");

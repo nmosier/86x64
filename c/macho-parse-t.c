@@ -14,7 +14,6 @@
 
 # define NLIST nlist
 # define SYMTAB symtab_32
-# define DYSYMTAB dysymtab_32
 # define SEGMENT segment_32
 # define SECTION_WRAPPER section_wrapper_32
 # define LOAD_COMMAND load_command_32
@@ -31,7 +30,6 @@
 
 # define NLIST nlist_64
 # define SYMTAB symtab_64
-# define DYSYMTAB dysymtab_64
 # define SEGMENT segment_64
 # define SECTION_WRAPPER section_wrapper_64
 # define LOAD_COMMAND load_command_64
@@ -46,7 +44,7 @@
 #endif
 
 static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab);
-static int macho_parse_dysymtab(FILE *f, struct DYSYMTAB *dysymtab);
+static int macho_parse_dysymtab(FILE *f, struct dysymtab *dysymtab);
 static int macho_parse_segment(FILE *f, struct SEGMENT *segment);
 int macho_parse_archive(FILE *f, const uint32_t *magic, struct ARCHIVE *archive);
 
@@ -103,7 +101,7 @@ static int macho_parse_symtab(FILE *f, struct SYMTAB *symtab) {
 }
 
 
-static int macho_parse_dysymtab(FILE *f, struct DYSYMTAB *dysymtab) {
+static int macho_parse_dysymtab(FILE *f, struct dysymtab *dysymtab) {
    /* parse dysymtab command */
    if (fread_exact(AFTER(dysymtab->command.cmdsize),
                    STRUCT_REM(dysymtab->command, cmdsize), 1, f) < 0) {
@@ -337,7 +335,6 @@ int macho_parse_archive(FILE *f, const uint32_t *magic, struct ARCHIVE *archive)
 
 #undef NLIST
 #undef SYMTAB
-#undef DYSYMTAB
 #undef SEGMENT
 #undef SECTION_WRAPPER
 #undef LOAD_COMMAND

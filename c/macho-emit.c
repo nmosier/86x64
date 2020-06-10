@@ -13,7 +13,7 @@ static int macho_emit_linkedit_data(FILE *f, const struct linkedit_data *linkedi
 static int macho_emit_thread(FILE *f, const struct thread *thread);
 static int macho_emit_dyld_info(FILE *f, const struct dyld_info *dyld_info);
 static int macho_emit_dylib(FILE *f, const struct dylib_wrapper *dylib);
-static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab_32 *dysymtab);
+static int macho_emit_dysymtab_32(FILE *f, const struct dysymtab *dysymtab);
 static int macho_emit_build_version(FILE *f, const struct build_version *build);
 
 #define MACHO_BITS 32
