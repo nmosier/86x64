@@ -17,6 +17,8 @@
 #define STR(s) #s
 #define XSTR(s) STR(s)
 
+#define ARRLEN(arr) (sizeof(arr) / sizeof(arr[0]))
+
 int fread_exact(void *ptr, size_t size, size_t nitems, FILE *stream);
 int fwrite_exact(const void *ptr, size_t size, size_t nitems, FILE *stream);
 
