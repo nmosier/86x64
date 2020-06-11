@@ -18,6 +18,8 @@
 # define macho_build_dyld_info        macho_build_dyld_info_32
 # define macho_build_segment_BSS      macho_build_segment_BSS_32
 # define macho_build_linkedit_data    macho_build_linkedit_data_32
+# define macho_build_symtab_syms      macho_build_symtab_syms_32
+# define macho_build_symtab_strs      macho_build_symtab_strs_32
 
 # define macho_find_load_command      macho_find_load_command_32
 # define macho_linkedit               macho_linkedit_32
@@ -50,6 +52,8 @@
 # define macho_build_segment_BSS      macho_build_segment_BSS_64
 # define macho_vmsizeof_segment       macho_vmsizeof_segment_64
 # define macho_build_linkedit_data    macho_build_linkedit_data_64
+# define macho_build_symtab_syms      macho_build_symtab_syms_64
+# define macho_build_symtab_strs      macho_build_symtab_strs_64
 
 # define macho_find_load_command      macho_find_load_command_64
 # define macho_linkedit               macho_linkedit_64
@@ -74,6 +78,9 @@ int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info);
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
 static int macho_build_linkedit_data(struct linkedit_data *linkedit, struct build_info *info);
+
+static int macho_build_symtab_syms(struct SYMTAB *symtab, struct build_info *info);
+static int macho_build_symtab_strs(struct SYMTAB *symtab, struct build_info *info);
 
 MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment);
 
@@ -300,12 +307,16 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
       if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
    }
 
+   if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
+      if (macho_build_symtab_syms(&command->symtab, info) < 0) { return -1; }
+   }
+   
    if ((command = macho_find_load_command(LC_DYSYMTAB, archive))) {
       if (macho_build_dysymtab(&command->dysymtab, info) < 0) { return -1; }
    }
 
    if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
-      if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
+      if (macho_build_symtab_strs(&command->symtab, info) < 0) { return -1; }
    }
 
    if ((command = macho_find_load_command(LC_CODE_SIGNATURE, archive))) {
@@ -358,6 +369,7 @@ static int macho_build_linkedit_data(struct linkedit_data *linkedit, struct buil
    return 0;
 }
 
+#if 0
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
    /* ensure size is multiple of pointer size */
    size_t strsize_aligned = ALIGN_UP(symtab->command.strsize, sizeof(MACHO_ADDR_T));
@@ -377,6 +389,24 @@ int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
    
    return 0;
 }
+#else
+static int macho_build_symtab_syms(struct SYMTAB *symtab, struct build_info *info) {
+   symtab->command.symoff = info->dataoff;
+   info->dataoff += symtab->command.nsyms * sizeof(symtab->entries[0]);
+   return 0;
+}
+
+static int macho_build_symtab_strs(struct SYMTAB *symtab, struct build_info *info) {
+   /* ensure size is multiple of pointer size */
+   size_t strsize_aligned = ALIGN_UP(symtab->command.strsize, sizeof(MACHO_ADDR_T));
+   if ((symtab->strtab = reallocf(symtab->strtab, strsize_aligned)) == NULL) { return -1; }
+   memset(symtab->strtab, 0, strsize_aligned - symtab->command.strsize);
+   symtab->command.strsize = strsize_aligned;
+   symtab->command.stroff = info->dataoff;
+   info->dataoff += symtab->command.strsize;
+   return 0;
+}
+#endif
 
 int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info) {
    if (dysymtab->command.ntoc) {
@@ -517,6 +547,8 @@ int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) 
 #undef macho_build_dyld_info
 #undef macho_build_segment_BSS
 #undef macho_build_linkedit_data
+#undef macho_build_symtab_syms
+#undef macho_build_symtab_strs
 
 #undef macho_find_load_command
 #undef macho_linkedit

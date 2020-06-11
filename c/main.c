@@ -16,7 +16,7 @@
 #include "macho-patch.h"
 #include "macho-transform.h"
 
-#define TRANSFORM 0
+#define TRANSFORM 1
 
 int main(int argc, char *argv[]) {
    int retv = 0;
