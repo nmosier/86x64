@@ -17,6 +17,7 @@
 # define macho_build_segment_LINKEDIT macho_build_segment_32_LINKEDIT
 # define macho_build_dyld_info        macho_build_dyld_info_32
 # define macho_build_segment_BSS      macho_build_segment_BSS_32
+# define macho_build_linkedit_data    macho_build_linkedit_data_32
 
 # define macho_find_load_command      macho_find_load_command_32
 # define macho_linkedit               macho_linkedit_32
@@ -48,6 +49,7 @@
 # define macho_build_dyld_info        macho_build_dyld_info_64
 # define macho_build_segment_BSS      macho_build_segment_BSS_64
 # define macho_vmsizeof_segment       macho_vmsizeof_segment_64
+# define macho_build_linkedit_data    macho_build_linkedit_data_64
 
 # define macho_find_load_command      macho_find_load_command_64
 # define macho_linkedit               macho_linkedit_64
@@ -71,6 +73,7 @@ int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info);
 int macho_build_dysymtab(struct dysymtab *dysymtab, struct build_info *info);
 int macho_build_load_command(union LOAD_COMMAND *command, struct build_info *info);
 int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info);
+static int macho_build_linkedit_data(struct linkedit_data *linkedit, struct build_info *info);
 
 MACHO_SIZE_T macho_vmsizeof_segment(const struct SEGMENT *segment);
 
@@ -265,40 +268,51 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
    }
 
    struct ARCHIVE *archive = info->archive;
-   uint32_t ncmds = archive->header.ncmds;
    
    macho_off_t start_offset = ALIGN_DOWN(info->dataoff, PAGESIZE);
    segment->command.vmaddr = info->vmaddr;
-   // MACHO_ADDR_T vmaddr = segment->command.vmaddr + info->dataoff % PAGESIZE;
-   // macho_off_t dataoff = info->dataoff;
    segment->command.fileoff = info->dataoff;
 
-   for (uint32_t i = 0; i < ncmds; ++i) {
-      union LOAD_COMMAND *command = &archive->commands[i];
-      struct linkedit_data *linkedit;
-      if ((linkedit = macho_linkedit(command))) {
-         linkedit->command.dataoff = info->dataoff;
-         info->dataoff += linkedit->command.datasize;
-      } else {
-         switch (command->load.cmd) {
-         case LC_SYMTAB:
-            if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
-            break;
-         
-         case LC_DYLD_INFO_ONLY:
-         case LC_DYLD_INFO:
-            if (macho_build_dyld_info(&command->dyld_info, info) < 0) { return -1; }
-            break;
-            
-         case LC_DYSYMTAB:
-            if (macho_build_dysymtab(&command->dysymtab, info) < 0) { return -1; }
-            break;
+   /* 
+    * LC_DYLD_INFO
+    * [LC_SEGMENT_SPLIT_INFO]
+    * LC_FUNCTION_STARTS
+    * LC_DATA_IN_CODE
+    * [LC_CODE_SIGN_DRS]
+    * LC_SYMTAB
+    * LC_DYSYMTAB
+    * LC_CODE_SIGNATURE
+    */
 
-         default: break;
-         }
-      }
+   union LOAD_COMMAND *command;
+   
+   if ((command = macho_find_load_command(LC_DYLD_INFO, archive)) ||
+       (command = macho_find_load_command(LC_DYLD_INFO_ONLY, archive))
+       ){
+      if (macho_build_dyld_info(&command->dyld_info, info) < 0) { return -1; }
    }
 
+   if ((command = macho_find_load_command(LC_FUNCTION_STARTS, archive))) {
+      if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
+   }
+
+   if ((command = macho_find_load_command(LC_DATA_IN_CODE, archive))) {
+      if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
+   }
+
+   if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
+      if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
+   }
+
+   if ((command = macho_find_load_command(LC_DYSYMTAB, archive))) {
+      if (macho_build_dysymtab(&command->dysymtab, info) < 0) { return -1; }
+   }
+
+   if ((command = macho_find_load_command(LC_CODE_SIGNATURE, archive))) {
+      if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
+   }
+   
+      
    segment->command.filesize = info->dataoff - segment->command.fileoff;
    segment->command.vmsize = MAX(ALIGN_UP(segment->command.filesize, PAGESIZE), PAGESIZE);
    info->vmaddr += segment->command.vmsize;
@@ -338,6 +352,11 @@ int macho_build_segment_BSS(struct SEGMENT *bss, struct build_info *info) {
 }
 #endif
 
+static int macho_build_linkedit_data(struct linkedit_data *linkedit, struct build_info *info) {
+   linkedit->command.dataoff = info->dataoff;
+   info->dataoff += linkedit->command.datasize;
+   return 0;
+}
 
 int macho_build_symtab(struct SYMTAB *symtab, struct build_info *info) {
    /* ensure size is multiple of pointer size */
@@ -497,6 +516,7 @@ int macho_build_dyld_info(struct dyld_info *dyld_info, struct build_info *info) 
 #undef macho_build_segment_LINKEDIT
 #undef macho_build_dyld_info
 #undef macho_build_segment_BSS
+#undef macho_build_linkedit_data
 
 #undef macho_find_load_command
 #undef macho_linkedit
