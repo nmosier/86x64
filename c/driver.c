@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+#define TEST_MAIN 1
+
 typedef uint32_t p32_t;
 
 static void signal_handler(int sig, siginfo_t *info, ucontext_t *uap);
@@ -28,5 +30,16 @@ int main(int argc, char *argv[]) {
 
 
 static void signal_handler(int sig, siginfo_t *info, ucontext_t *uap) {
+   // TODO
+   uap->uc_mcontext->__ss.__rax = (uintptr_t) info;
    
 }
+
+
+#if TEST_MAIN
+int _main(int argc, p32_t argv) {
+   int a = * (argc == -1 ? &argc : (int *) NULL);
+   printf("%d\n", a);
+   return 0;
+}
+#endif
