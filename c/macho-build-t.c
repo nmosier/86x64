@@ -300,12 +300,12 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
       if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
    }
 
-   if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
-      if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
-   }
-
    if ((command = macho_find_load_command(LC_DYSYMTAB, archive))) {
       if (macho_build_dysymtab(&command->dysymtab, info) < 0) { return -1; }
+   }
+
+   if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
+      if (macho_build_symtab(&command->symtab, info) < 0) { return -1; }
    }
 
    if ((command = macho_find_load_command(LC_CODE_SIGNATURE, archive))) {
