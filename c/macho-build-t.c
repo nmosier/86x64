@@ -318,7 +318,7 @@ int macho_build_segment_LINKEDIT(struct SEGMENT *segment, struct build_info *inf
    if ((command = macho_find_load_command(LC_SYMTAB, archive))) {
       if (macho_build_symtab_strs(&command->symtab, info) < 0) { return -1; }
    }
-
+   
    if ((command = macho_find_load_command(LC_CODE_SIGNATURE, archive))) {
       if (macho_build_linkedit_data(&command->linkedit, info) < 0) { return -1; }
    }
