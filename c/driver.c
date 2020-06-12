@@ -20,10 +20,18 @@ struct addr_range {
    p64_t end;
 };
 
+typedef enum {AS_CODE,
+              AS_STACK,
+              AS_SYSTEM,
+              AS_HEAP,
+              AS_COUNT,
+} addr_space_e;
+
 static void signal_handler(int sig, siginfo_t *info, ucontext_t *uap);
 static void init_ranges(void);
 static bool valid_ptr(p64_t ptr);
 static p64_t fix_pointer(p64_t ptr);
+static p64_t fix_pointer_at(p64_t ptr, addr_space_e as);
 static void fix_instruction(void *addr, _STRUCT_X86_THREAD_STATE64 *regs);
 static void init_xed(void);
 
@@ -53,12 +61,12 @@ int main(int argc, char *argv[]) {
    return _main(argc, (p32_t) argv);
 }
 
-static p64_t addr_spaces[] = {0x100000000,    /* code & user dylibs */
-                              0x7ffe00000000, /* stack */
-                              0x7fff00000000, /* system dylibs */
-                              0x0             /* heap (unknown) */
+static p64_t addr_spaces[] = {[AS_CODE]  = 0x100000000,    /* code & user dylibs */
+                              [AS_STACK] = 0x7ffe00000000, /* stack */
+                              [AS_HEAP]  = 0x7fff00000000, /* system dylibs */
+                              [AS_COUNT] = 0x0             /* heap (unknown) */
 };
-#define N_ADDR_SPACES ARRLEN(addr_spaces)
+
 static unsigned int addr_spaces_idx = 0;
 
 static void init_ranges(void) {
@@ -119,11 +127,23 @@ static void fix_instruction(void *addr, _STRUCT_X86_THREAD_STATE64 *regs) {
       *regptr = fix_pointer(*regptr);
       return;
    }
+
+   /* push/pop */
+   switch (xed_decoded_inst_get_iclass(&xedd)) {
+   case XED_ICLASS_PUSH:
+   case XED_ICLASS_POP:
+      regs->__rsp = fix_pointer_at(regs->__rsp, AS_STACK);
+      return;
+
+   default:
+      fprintf(stderr, "fix_instruction: don't know how to fix instruction\n");
+      abort();
+   }
 }
 
 static bool valid_ptr(p64_t ptr) {
    const p64_t ptr_high = (ptr >> 32) << 32;
-   for (unsigned i = 0; i < N_ADDR_SPACES; ++i) {
+   for (unsigned i = 0; i < AS_COUNT; ++i) {
       if (ptr_high == addr_spaces[i]) { return true; }
    }
    return false;
@@ -131,8 +151,12 @@ static bool valid_ptr(p64_t ptr) {
 
 static p64_t fix_pointer(p64_t ptr) {
    p64_t newptr = ((p64_t) (p32_t) ptr) + addr_spaces[addr_spaces_idx];
-   addr_spaces_idx = (addr_spaces_idx + 1) % N_ADDR_SPACES;   
+   addr_spaces_idx = (addr_spaces_idx + 1) % AS_COUNT;
    return newptr;
+}
+
+static p64_t fix_pointer_at(p64_t ptr, addr_space_e as) {
+   return addr_spaces[as] + (p32_t) ptr;
 }
 
 static void signal_handler(int sig, siginfo_t *info, ucontext_t *uap) {
