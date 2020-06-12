@@ -75,7 +75,21 @@ static void init_xed(void) {
    xed_state_init2(&dstate, XED_MACHINE_MODE_LONG_64, XED_ADDRESS_WIDTH_64b);
 }
 
-#define MAXPTRS 4 /* maximum number of pointers in a single instruction */
+static p64_t *get_register_pointer(xed_reg_enum_t reg, _STRUCT_X86_THREAD_STATE64 *regs) {
+   switch (reg) {
+   case XED_REG_RAX: return &regs->__rax;
+   case XED_REG_RBX: return &regs->__rbx;
+   case XED_REG_RCX: return &regs->__rcx;
+   case XED_REG_RDX: return &regs->__rdx;
+   case XED_REG_RDI: return &regs->__rdi;
+   case XED_REG_RSI: return &regs->__rsi;
+   case XED_REG_RSP: return &regs->__rsp;
+   case XED_REG_RBP: return &regs->__rbp;
+   default:
+      fprintf(stderr, "get_register_pointer: unexpected register %d\n", reg);
+      abort();
+   }   
+}
 
 /**
  * Extracts pointers from instruction at code pointer.
@@ -102,36 +116,8 @@ static void fix_instruction(void *addr, _STRUCT_X86_THREAD_STATE64 *regs) {
    for (unsigned i = 0; i < noperands; ++i) {
       const xed_reg_enum_t basereg = xed_decoded_inst_get_base_reg(operands, i);
       if (basereg != XED_REG_INVALID) {
-         switch (basereg) {
-         case XED_REG_RAX:
-            regs->__rax = fix_pointer(regs->__rax);
-            break;
-         case XED_REG_RBX:
-            regs->__rbx = fix_pointer(regs->__rbx);
-            break;
-         case XED_REG_RCX:
-            regs->__rcx = fix_pointer(regs->__rcx);
-            break;
-         case XED_REG_RDX:
-            regs->__rdx = fix_pointer(regs->__rdx);
-            break;
-         case XED_REG_RDI:
-            regs->__rdi = fix_pointer(regs->__rdi);
-            break;
-         case XED_REG_RSI:
-            regs->__rsi = fix_pointer(regs->__rsi);
-            break;
-         case XED_REG_RSP:
-            regs->__rsp = fix_pointer(regs->__rsp);
-            break;
-         case XED_REG_RBP:
-            regs->__rbp = fix_pointer(regs->__rbp);
-            break;
-
-         default:
-            fprintf(stderr, "fix_instruction: unexpected register %d @ inst %p\n", basereg, addr);
-            abort();
-         }
+         p64_t *regptr = get_register_pointer(basereg, regs);
+         *regptr = fix_pointer(*regptr);
       }
    }
 }
