@@ -16,3 +16,7 @@ target_compile_options(macho PRIVATE -pedantic -Wall)
 
 add_executable(uleb-test uleb-test.c util.c)
 add_executable(sleb-test sleb-test.c util.c)
+
+add_executable(driver driver.c)
+target_link_libraries(driver PRIVATE ${xed_LIBRARIES})
+target_include_directories(driver PRIVATE ${xed_INCLUDE_DIRS})

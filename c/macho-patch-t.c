@@ -227,8 +227,8 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
          for (unsigned int i = 0; i < noperands; ++i) {
             xed_reg_enum_t basereg = xed_decoded_inst_get_base_reg(operands, i);
             xed_reg_enum_t indexreg = xed_decoded_inst_get_index_reg(operands, i);
-            if (basereg == (MACHO_BITS == 32 ? XED_REG_EIP : XED_REG_RIP)
-                && indexreg == XED_REG_INVALID &&
+            if (basereg == (MACHO_BITS == 32 ? XED_REG_EIP : XED_REG_RIP) &&
+                indexreg == XED_REG_INVALID &&
                 xed_operand_values_has_memory_displacement(operands)) {
                /* get old address of this instruction */
                macho_addr_t old_inst_addr = (it - start) + section->addr - sectwr->adiff;
