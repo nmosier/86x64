@@ -109,16 +109,15 @@ static void fix_instruction(void *addr, _STRUCT_X86_THREAD_STATE64 *regs) {
       abort();
    }
 
-   unsigned noperands = xed_decoded_inst_noperands(&xedd);
+   // unsigned noperands = xed_decoded_inst_noperands(&xedd);
    xed_operand_values_t *operands = xed_decoded_inst_operands(&xedd);
 
-   /* TODO: This might be using the wrong index. */
-   for (unsigned i = 0; i < noperands; ++i) {
-      const xed_reg_enum_t basereg = xed_decoded_inst_get_base_reg(operands, i);
-      if (basereg != XED_REG_INVALID) {
-         p64_t *regptr = get_register_pointer(basereg, regs);
-         *regptr = fix_pointer(*regptr);
-      }
+   /* memory operands */
+   const xed_reg_enum_t basereg = xed_decoded_inst_get_base_reg(operands, 0);
+   if (basereg != XED_REG_INVALID) {
+      p64_t *regptr = get_register_pointer(basereg, regs);
+      *regptr = fix_pointer(*regptr);
+      return;
    }
 }
 
