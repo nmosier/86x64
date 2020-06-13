@@ -38,4 +38,7 @@ struct segment_64 *macho_index_segment_64(uint32_t index, struct archive_64 *arc
 void *macho_vmaddr_to_ptr_32(uint32_t addr, struct segment_32 *segment);
 void *macho_vmaddr_to_ptr_64(uint64_t addr, struct segment_64 *segment);
 
+struct section_wrapper_32 *macho_vmaddr_to_section_32(uint32_t addr, struct segment_32 *segment);
+struct section_wrapper_64 *macho_vmaddr_to_section_64(uint64_t addr, struct segment_64 *segment);
+
 #endif

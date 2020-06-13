@@ -42,6 +42,9 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
+   /* initialization */
+   xed_tables_init();
+
    /* parse 32-bit Mach-O */
    union macho macho;
    if (macho_parse(f32, &macho) < 0) {

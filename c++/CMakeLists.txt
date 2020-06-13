@@ -8,7 +8,6 @@ add_executable(macho
   macho-build.c
   macho-sizeof.c
   macho-transform.c
-  macho-insert.c
   )
 
 target_link_libraries(macho PRIVATE ${LIEF_LIBRARIES} ${xed_LIBRARIES})
