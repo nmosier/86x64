@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <xed/xed-interface.h>
+#include <xed-interface.h>
 
 #include "macho.h"
 #include "macho-patch.h"

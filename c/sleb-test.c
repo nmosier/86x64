@@ -29,7 +29,6 @@ int main(int argc, char *argv[]) {
 
    /* decode stdin */
    uint8_t buf[MAX_STDIN];
-   uint8_t *buf_end = buf + MAX_STDIN;
    uint8_t *buf_wptr = buf;
    uint8_t *buf_rptr = buf;
    int c;

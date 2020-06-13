@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 #include <mach-o/loader.h>
+#include <xed-interface.h>
 
 #include "macho.h"
 #include "macho-parse.h"
@@ -15,10 +16,9 @@
 #include "macho-build.h"
 #include "macho-patch.h"
 #include "macho-transform.h"
+#include "macho-driver.h"
 
-#define TRANSFORM 1
-
-int main(int argc, char *argv[]) {
+int macho_main(int argc, char *argv[], macho_op op) {
    int retv = 0;
    const char *path32, *path64;
    FILE *f32 = NULL, *f64 = NULL;
@@ -64,35 +64,15 @@ int main(int argc, char *argv[]) {
       goto cleanup;
    }
 
-#if TRANSFORM
-   union macho macho64;
-   macho64.magic = MH_CIGAM_64;
-   if (macho_transform_archive_32to64(&macho.archive.archive_32, &macho64.archive.archive_64) < 0) {
-      return -1;
-   }
-
-   /* rebuild */
-   if (macho_build(&macho64) < 0) {
+   /* apply operation to Mach-O */
+   union macho newmacho;
+   if (op(&macho, &newmacho) < 0) {
       retv = 9;
       goto cleanup;
    }
 
-   /* repatch */
-   if (macho_patch(&macho64) < 0) {
-      retv = 10;
-      goto cleanup;
-   }
-   
-#endif
-
    /* write Mach-O */
-   if (macho_emit(f64,
-#if TRANSFORM
-                  &macho64
-#else
-                  &macho
-#endif
-                  ) < 0) {
+   if (macho_emit(f64, &newmacho) < 0) {
       retv = 6;
       goto cleanup;
    }
