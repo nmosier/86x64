@@ -12,6 +12,9 @@ add_library(macho_objs
   macho-driver.c
   )
 
+include_directories($ENV{HOME}/include)
+link_directories($ENV{HOME}/lib)
+
 target_include_directories(macho_objs PRIVATE ${xed_INCLUDE_DIRS})
 add_compile_options(-pedantic -Wall)
 
@@ -26,6 +29,12 @@ add_executable(macho-noop
   $<TARGET_OBJECTS:macho_objs>
   )
 target_link_libraries(macho-noop PRIVATE ${xed_LIBRARIES})
+
+add_executable(macho-insert
+  macho-insert-main.c
+  $<TARGET_OBJECTS:macho_objs>
+  )
+target_link_libraries(macho-insert PRIVATE ${xed_LIBRARIES} scanopt)
 
 # target_include_directories(macho PRIVATE ${LIEF_INCLUDE_DIRS} ${xed_INCLUDE_DIRS})
 # target_compile_options(macho PRIVATE -pedantic -Wall)

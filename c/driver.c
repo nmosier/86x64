@@ -37,8 +37,8 @@ static void init_xed(void);
 
 int _main(int argc, p32_t argv);
 
-#define N_RANGES
-static struct addr_range addr_ranges[N_RANGES] = {0};
+// #define N_RANGES
+// static struct addr_range addr_ranges[N_RANGES] = {{0}};
 
 int main(int argc, char *argv[]) {
    /* install signal handler */

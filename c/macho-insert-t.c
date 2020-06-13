@@ -57,14 +57,16 @@ static int macho_insert_instruction(const void *instbuf, size_t instlen,
       return -1;
    }
 
-#if 1
    /* iterate through sections */
    for (int i = 0; i < segtext->command.nsects; ++i) {
-      if (macho_insert_instruction_section(instbuf, instlen, vmaddr, &segtext->sections[i]) < 0) {
-         return -1;
+      struct SECTION_WRAPPER *sectwr = &segtext->sections[i];
+      if ((sectwr->section.flags & S_ATTR_PURE_INSTRUCTIONS)) {
+         if (macho_insert_instruction_section(instbuf, instlen,
+                                              vmaddr, &segtext->sections[i]) < 0) {
+            return -1;
+         }
       }
    }
-#endif
    
    /* find containing section */
    struct SECTION_WRAPPER *sectwr;
@@ -82,6 +84,9 @@ static int macho_insert_instruction(const void *instbuf, size_t instlen,
    memmove((char *) sectwr->data + offset + instlen, (char *) sectwr->data + offset,
            sectwr->section.size - offset);
    memcpy((char *) sectwr->data + offset, instbuf, instlen);
+
+   /* update length data */
+   sectwr->section.size += instlen;
 
    return 0;
 }
