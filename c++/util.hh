@@ -1,6 +1,6 @@
 #pragma once
 
-#include "macho.hh"
+#include "macho-fwd.hh"
 
 namespace MachO {
 
@@ -23,5 +23,16 @@ namespace MachO {
     */
    template <Bits bits, typename T32, typename T64>
    using select_type = decltype(select_type_func<bits,T32,T64>());
+
+   class cerror: public std::exception {
+   public:
+      cerror(const char *s);
+      ~cerror();
+
+      virtual const char *what() const throw();
+      
+   private:
+      char *errstr;
+   };
    
 }

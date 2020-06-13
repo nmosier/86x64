@@ -17,3 +17,4 @@ find_package(xed)
 # target_include_directories(readmacho PRIVATE ${LIEF_INCLUDE_DIRS})
 
 add_subdirectory(c)
+add_subdirectory(c++)

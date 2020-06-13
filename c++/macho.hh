@@ -1,19 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <fcntl.h>
 #include <mach-o/loader.h>
 
-namespace MachO {
-
-   enum class Filetype {FAT, ARCHIVE};
-   enum class Bits {M32, M64};
-   enum class Endianness {SAME, DIFF};
-
-   template <Bits bits> class Archive;
-   template <Bits bits> class MachHeader;
-   
-}
-
+#include "macho-fwd.hh"
 #include "util.hh"
 
 namespace MachO {
@@ -23,6 +14,7 @@ namespace MachO {
    template <Bits bits>
    using macho_size_t = macho_addr_t<bits>;
 
+#if 0
    class Image {
    public:
       Image(const char *path, int oflag) {
@@ -84,6 +76,19 @@ namespace MachO {
    private:
       using Header = select_type<bits, struct mach_header, struct mach_header_64>;
       Header header;
+   };
+
+#endif
+
+
+   class MachO {
+   public:
+      MachO(const char *path);
+      ~MachO();
+      
+   private:
+      int fd;
+      void *img;
    };
    
 }
