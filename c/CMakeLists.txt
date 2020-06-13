@@ -21,6 +21,12 @@ add_executable(macho-transform
 )
 target_link_libraries(macho-transform PRIVATE ${xed_LIBRARIES})
 
+add_executable(macho-noop
+  macho-noop-main.c
+  $<TARGET_OBJECTS:macho_objs>
+  )
+target_link_libraries(macho-noop PRIVATE ${xed_LIBRARIES})
+
 # target_include_directories(macho PRIVATE ${LIEF_INCLUDE_DIRS} ${xed_INCLUDE_DIRS})
 # target_compile_options(macho PRIVATE -pedantic -Wall)
 
