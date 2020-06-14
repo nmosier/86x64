@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
 #include <fcntl.h>
 #include <mach-o/loader.h>
 
@@ -24,22 +25,34 @@ namespace MachO {
 
       template <typename T>
       T& at(size_t index) { return * (T *) ((char *) img + index); }
-      
+
+      template <typename T>
+      void insert_at(const T& val, size_t index) {
+         insert_at(&val, 1, index);
+      }
+
+      template <typename T>
+      void insert_at(const T *val, size_t nitems, size_t index) {
+         resize(filesize + sizeof(*val) * nitems);
+         memmove((char *) img + index + sizeof(*val) * nitems, (char *) img + index,
+                 filesize - index);
+         memcpy((char *) img + index, val, sizeof(*val) * nitems);
+      }
+
    private:
       int fd;
       size_t filesize;
       void *img;
+
+      void resize(size_t newsize);
    };
    
    class MachO {
    public:
-      MachO(const char *path);
-      ~MachO();
+      MachO(const char *path): img(path) {}
       
    private:
-      int fd;
-      size_t filesize;
-      void *img;
+      Image img;
    };
    
 }
