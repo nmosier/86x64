@@ -26,13 +26,27 @@ namespace MachO {
 
    class cerror: public std::exception {
    public:
-      cerror(const char *s);
-      ~cerror();
+      cerror(const char *s) { asprintf(&errstr, "%s: %s\n", s, strerror(errno)); }
+      ~cerror() { free(errstr); }
 
-      virtual const char *what() const throw();
+      virtual const char *what() const throw() { return errstr; }
       
    private:
       char *errstr;
    };
-   
+
+   class error: public std::exception {
+   public:
+      template <typename... Args>
+      error(const char *fmt, Args... args) {
+         asprintf(&errstr, fmt, args...);
+      }
+      ~error() { free(errstr); }
+
+      virtual const char *what() const throw() { return errstr; }
+      
+   private:
+      char *errstr;
+   };
+
 }

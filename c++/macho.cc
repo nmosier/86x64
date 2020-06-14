@@ -7,6 +7,9 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#include <mach-o/fat.h>
+#include <mach-o/loader.h>
+
 #include "macho.hh"
 #include "util.hh"
 
@@ -72,4 +75,45 @@ namespace MachO {
 
    }
 
+   void MachO::insert_raw(const void *buf, size_t buflen, size_t offset) {
+      // TODO
+      throw "not complete";
+   }
+
+   void MachO::expand(size_t offset, size_t len) {
+      switch (magic()) {
+      case MH_MAGIC:
+         MachO_<Bits::M32>(img).expand(offset, len);
+         break;
+         
+      case MH_MAGIC_64:
+         MachO_<Bits::M64>(img).expand(offset, len);
+         break;
+
+      case FAT_MAGIC:
+         Fat(img).expand(offset, len);
+         break;
+         
+      case MH_CIGAM:
+      case MH_CIGAM_64:
+      case FAT_CIGAM:
+         throw error("%s: archive is of opposite endianness", __FUNCTION__);
+
+      }
+   }
+
+   template <Bits bits>
+   void MachO_<bits>::expand(size_t offset, size_t len) {
+      const header_t& header = img->at<header_t>(0);
+
+      /* iterate through headers */
+      
+      // TODO
+   }
+
+
+   void Fat::expand(size_t offset, size_t len) {
+      throw error("%s: stub", __FUNCTION__);
+   }
+   
 }

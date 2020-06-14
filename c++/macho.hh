@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
@@ -49,10 +51,47 @@ namespace MachO {
    
    class MachO {
    public:
-      MachO(const char *path): img(path) {}
+      using magic_t = uint32_t;
+      
+      MachO(const char *path): img(std::make_shared<Image>(path)) {}
+
+      void insert_raw(const void *buf, size_t buflen, size_t offset);
+
+      magic_t magic() const { return img->at<magic_t>(0); }
       
    private:
-      Image img;
+      std::shared_ptr<Image> img;
+
+      void expand(size_t offset, size_t len);
+   };
+
+   template <Bits bits>
+   class MachO_ {
+   public:
+      using header_t = select_type<bits, struct mach_header, struct mach_header_64>;
+      
+      MachO_(std::shared_ptr<Image> img): img(img) {}
+
+      
+
+      friend MachO;
+      
+   private:
+      std::shared_ptr<Image> img;
+
+      void expand(size_t offset, size_t len);
+   };
+
+   class Fat {
+   public:
+      Fat(std::shared_ptr<Image> img): img(img) {}
+
+      friend MachO;
+      
+   private:
+      std::shared_ptr<Image> img;
+
+      void expand(size_t offset, size_t len); // TODO
    };
    
 }
