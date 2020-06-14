@@ -56,7 +56,7 @@ namespace MachO {
       close(fd);
    }
 
-   void Image::resize(size_t newsize) {
+   void Image::resize(std::size_t newsize) {
       if (munmap(img, filesize) < 0) {
          img = NULL;
          throw cerror("munmap");
@@ -75,12 +75,12 @@ namespace MachO {
 
    }
 
-   void MachO::insert_raw(const void *buf, size_t buflen, size_t offset) {
+   void MachO::insert_raw(const void *buf, std::size_t buflen, std::size_t offset) {
       // TODO
       throw "not complete";
    }
 
-   void MachO::expand(size_t offset, size_t len) {
+   void MachO::expand(std::size_t offset, std::size_t len) {
       switch (magic()) {
       case MH_MAGIC:
          MachO_<Bits::M32>(img).expand(offset, len);
