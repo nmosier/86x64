@@ -13,6 +13,7 @@
 
 namespace MachO {
 
+#if 0
    template <Bits bits>
    class Types {
    public:
@@ -20,8 +21,10 @@ namespace MachO {
       using size_t = addr_t;
       using mach_header_t = select_type<bits, struct mach_header, struct mach_header_64>;
    };
-
-   using magic_t = uint32_t;
+#endif
+   template <Bits bits> using macho_addr_t = select_type<bits, uint32_t, uint64_t>;
+   template <Bits bits> using macho_size_t = macho_addr_t<bits>;
+   template <Bits bits> using mach_header_t = select_type<bits, mach_header, mach_header_64>;
 
    class Image {
    public:
@@ -47,6 +50,8 @@ namespace MachO {
          memcpy((char *) img + index, val, sizeof(*val) * nitems);
       }
 
+      Image(const Image&) = delete;
+
    private:
       int fd;
       std::size_t filesize;
@@ -61,66 +66,64 @@ namespace MachO {
 
       void insert_raw(const void *buf, std::size_t buflen, std::size_t offset);
 
-      magic_t magic() const { return img->at<magic_t>(0); }
+      uint32_t magic() const { return img->at<uint32_t>(0); }
       
    private:
       std::shared_ptr<Image> img;
+      std::size_t offset;
 
       void expand(std::size_t offset, std::size_t len);
    };
 
    template <Bits bits>
-   class MachO_: public Types<bits> {
+   class MachO_ {
    public:
-      using header_t = select_type<bits, struct mach_header, struct mach_header_64>;
-      
-      MachO_(std::shared_ptr<Image> img): img(img) {}
+      MachHeader<bits> header() { return MachHeader<bits>(img, offset); }
+      std::list<LoadCommand<bits>> load_commands();
 
       friend MachO;
 
-      std::list<LoadCommand<bits>> load_commands() const;
-      
    private:
       std::shared_ptr<Image> img;
+      macho_size_t<bits> offset;
 
-      void expand(size_t offset, size_t len);
+      MachO_(std::shared_ptr<Image> img, macho_size_t<bits> offset): img(img), offset(offset) {}
 
-      // TODO: load commands
+      void expand(macho_size_t<bits> offset, macho_size_t<bits> len);
    };
 
    template <Bits bits>
-   class MachHeader: public Types<bits> {
+   class MachHeader {
    public:
-      const mach_header_t& operator()() const { return header; }
+      const mach_header_t<bits>& operator()() const { return header; }
 
-   private:
-      std::shared_ptr<Image> img;
-      mach_header_t& header;
-
-      MachHeader(std::shared_ptr<Image> img, size_t offset):
-         img(img), header(img->at<mach_header_t>(offset)) {}
-
-      mach_header_t& operator()() { return header; }
-   };
-
-   template <Bits bits>
-   class LoadCommand: public Types<bits> {
-   public:
-      using cmd_t = uint32_t;
-      using cmdsize_t = uint32_t;
-
-      cmd_t cmd() const { return lc.cmd; }
-      cmdsize_t cmdsize() const { return lc.cmdsize; }
+      friend MachO_<bits>;
       
    private:
       std::shared_ptr<Image> img;
-      size_t offset;
+      mach_header_t<bits>& header;
+
+      MachHeader(std::shared_ptr<Image> img, macho_size_t<bits> offset):
+         img(img), header(img->at<mach_header_t<bits>>(offset)) {}
+
+      mach_header_t<bits>& operator()() { return header; }
+   };
+
+   template <Bits bits>
+   class LoadCommand {
+   public:
+      uint32_t cmd() const { return lc.cmd; }
+      uint32_t cmdsize() const { return lc.cmdsize; }
+      
+   private:
+      std::shared_ptr<Image> img;
+      macho_size_t<bits> offset;
       struct load_command& lc;
 
-      LoadCommand(std::shared_ptr<Image> img, size_t offset):
+      LoadCommand(std::shared_ptr<Image> img, macho_size_t<bits> offset):
          img(img), offset(offset), lc(img->at<load_command>(offset)) {}
       
-      void expand(size_t offset, size_t len);
+      void expand(macho_size_t<bits> offset, macho_size_t<bits> len);
    };
    
    class Fat {

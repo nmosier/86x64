@@ -104,11 +104,7 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void MachO_<bits>::expand(size_t offset, size_t len) {
-      const header_t& header = img->at<header_t>(0);
-
-      /* iterate through headers */
-      
+   void MachO_<bits>::expand(macho_size_t<bits> offset, macho_size_t<bits> len) {
       // TODO
    }
 
@@ -120,7 +116,7 @@ namespace MachO {
    }
    
 
-   void Fat::expand(size_t offset, size_t len) {
+   void Fat::expand(std::size_t offset, std::size_t len) {
       throw error("%s: stub", __FUNCTION__);
    }
    

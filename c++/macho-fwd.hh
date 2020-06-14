@@ -9,6 +9,7 @@ namespace MachO {
    class MachO;
    class Fat;
    template <Bits bits> class MachO_;
+   template <Bits bits> class MachHeader;
    template <Bits bits> class LoadCommand;
    
 }
