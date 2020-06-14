@@ -85,13 +85,22 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class LoadCommand {
+   class LoadCommand: public Types<bits> {
    public:
+      using cmd_t = uint32_t;
+      using cmdsize_t = uint32_t;
 
+      cmd_t cmd() const { return lc.cmd; }
+      cmdsize_t cmdsize() const { return lc.cmdsize; }
+      
    private:
       std::shared_ptr<Image> img;
+      size_t offset;
+      struct load_command& lc;
 
-      LoadCommand(std::shared_ptr<Image> img, size_t offset);
+      LoadCommand(std::shared_ptr<Image> img, size_t offset):
+         img(img), offset(offset), lc(img->at<load_command>(offset)) {}
+      
       void expand(size_t offset, size_t len);
    };
    
