@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 
 #include <fcntl.h>
 #include <string.h>
@@ -111,6 +112,13 @@ namespace MachO {
       // TODO
    }
 
+   template <Bits bits>
+   std::list<LoadCommand<bits>> MachO_<bits>::load_commands() const {
+      std::list<LoadCommand<bits>> cmds;
+
+      // TODO
+   }
+   
 
    void Fat::expand(size_t offset, size_t len) {
       throw error("%s: stub", __FUNCTION__);

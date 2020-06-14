@@ -6,8 +6,10 @@ namespace MachO {
    enum class Bits {M32, M64};
    enum class Endianness {SAME, DIFF};
 
-   template <Bits bits> class Archive;
-   template <Bits bits> class MachHeader;
+   class MachO;
+   class Fat;
+   template <Bits bits> class MachO_;
+   template <Bits bits> class LoadCommand;
    
 }
 
