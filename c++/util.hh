@@ -49,4 +49,30 @@ namespace MachO {
       char *errstr;
    };
 
+
+
+   template <typename T>
+   constexpr T div_up(T a, T b) {
+      static_assert(std::is_integral<T>::value);
+      static_assert(std::is_unsigned<T>::value);
+      return (a + b - 1) / b;
+   }
+
+   template <typename T>
+   constexpr T div_down(T a, T b) {
+      static_assert(std::is_integral<T>::value);
+      static_assert(std::is_unsigned<T>::value);
+      return a / b;
+   }
+
+   template <typename T>
+   constexpr T align_up(T a, T b) {
+      return div_up(a, b) * b;
+   }
+
+   template <typename T>
+   constexpr T align_down(T a, T b) {
+      return div_down(a, b) * b;
+   }
+
 }

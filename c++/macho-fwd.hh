@@ -13,6 +13,14 @@ namespace MachO {
    template <Bits bits> class LoadCommand;
    template <Bits bits> class Segment;
    template <Bits bits> class Section;
+   template <Bits bits> class DyldInfo;
+   template <Bits bits> class Symtab;
+   template <Bits bits> class Nlist;
+   template <Bits bits> class Dysymtab;
+   template <Bits bits> class DylinkerCommand;
+   template <Bits bits> class UUID;
+   template <Bits bits> class BuildVersion;
+   template <Bits bits> class BuildToolVersion;
    
 }
 
