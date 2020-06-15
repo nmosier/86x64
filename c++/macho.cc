@@ -157,6 +157,17 @@ namespace MachO {
 
       case LC_SOURCE_VERSION:
          return SourceVersion<bits>::Parse(img, offset);
+
+      case LC_MAIN:
+         return EntryPoint<bits>::Parse(img, offset);
+
+      case LC_LOAD_DYLIB:
+         return DylibCommand<bits>::Parse(img, offset);
+
+      case LC_FUNCTION_STARTS:
+      case LC_DATA_IN_CODE:
+      case LC_CODE_SIGNATURE:
+         return LinkeditData<bits>::Parse(img, offset);
          
       default:
          throw error("load command 0x%x not supported", lc.cmd);
@@ -297,6 +308,33 @@ namespace MachO {
       return sizeof(build_version) + BuildToolVersion<bits>::size() * tools.size();
    }
 
-      
+   template <Bits bits>
+   EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset):
+      entry_point(img.at<entry_point_command>(offset)) {}
 
+   template <Bits bits>
+   DylibCommand<bits>::DylibCommand(const Image& img, std::size_t offset):
+      dylib_cmd(img.at<dylib_command>(offset)) {
+      const std::size_t stroff = dylib_cmd.dylib.name.offset;
+      if (stroff > dylib_cmd.cmdsize) {
+         throw error("dynamic library name starts past end of dylib command");
+      }
+      const std::size_t strrem = dylib_cmd.cmdsize - stroff;
+      const std::size_t len = strnlen(&img.at<char>(offset + stroff), strrem);
+      name = std::string(&img.at<char>(offset + stroff), &img.at<char>(offset + stroff + len));
+   }
+
+   template <Bits bits>
+   std::size_t DylibCommand<bits>::size() const {
+      return align_up(sizeof(dylib_cmd) + name.size() + 1, sizeof(macho_addr_t<bits>));
+   }
+
+   template <Bits bits>
+   LinkeditData<bits>::LinkeditData(const Image& img, std::size_t offset):
+      linkedit(img.at<linkedit_data_command>(offset)) {
+      function_starts = std::vector<uint8_t>(&img.at<uint8_t>(linkedit.dataoff),
+                                             &img.at<uint8_t>(linkedit.dataoff +
+                                                              linkedit.datasize));
+   }
+   
 }

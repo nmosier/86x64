@@ -269,7 +269,50 @@ namespace MachO {
          source_version(img.at<source_version_command>(offset)) {}
    };
 
-    
+   template <Bits bits>
+   class EntryPoint: public LoadCommand<bits> {
+   public:
+      entry_point_command entry_point;
+      // TODO: needs to point to entry point instruction
+      
+      virtual std::size_t size() const override { return sizeof(entry_point); }
+      
+      template <typename... Args>
+      static EntryPoint<bits> *Parse(Args&&... args) { return new EntryPoint(args...); }
+      
+   private:
+      EntryPoint(const Image& img, std::size_t offset);
+   };
+
+   template <Bits bits>
+   class DylibCommand: public LoadCommand<bits> {
+   public:
+      dylib_command dylib_cmd;
+      std::string name;
+
+      virtual std::size_t size() const override;
+
+      template <typename... Args>
+      static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }
+      
+   private:
+      DylibCommand(const Image& img, std::size_t offset);
+   };
+
+   template <Bits bits>
+   class LinkeditData: public LoadCommand<bits> {
+   public:
+      linkedit_data_command linkedit;
+      std::vector<uint8_t> function_starts; // TODO: parse completely
+
+      virtual std::size_t size() const override { return sizeof(linkedit); }
+      
+      template <typename... Args>
+      static LinkeditData<bits> *Parse(Args&&... args) { return new LinkeditData(args...); }
+      
+   private:
+      LinkeditData(const Image& img, std::size_t offset);
+   };
 
 }
 
