@@ -45,6 +45,89 @@ struct section_wrapper_64 {
    int64_t odiff; /*!< Difference in offset during build (erased by next build) */
 };
 
+struct instruction_section_32;
+struct instruction_section_64;
+
+struct instruction_32 {
+   uint8_t *instbuf;
+   size_t instlen;
+   struct instruction_section_32 *section;
+   uint32_t offset;
+};
+
+struct instruction_64 {
+   uint8_t *instbuf;
+   size_t instlen;
+   struct instruction_section_64 *section;
+   uint64_t offset;
+};
+
+struct instruction_section_32 {
+   struct section section;
+   struct instruction_32 *instructions;
+   size_t ninstructions;
+};
+
+struct instruction_section_64 {
+   struct section_64 section;
+   struct instruction_64 *instructions;
+   size_t ninstructions;
+};
+
+struct pointer_section_32;
+struct pointer_section_64;
+
+struct pointer_32 {
+   uint32_t pointer;
+   struct pointer_section_32 *section; /* containing section */
+   uint32_t offset;                    /* offset within section */
+};
+
+struct pointer_64 {
+   uint64_t pointer;
+   struct pointer_section_64 *section; /* containing section */
+   uint64_t offset;                    /* offset within section */
+};
+
+struct pointer_section_32 {
+   struct section section;
+   struct pointer_32 *pointers; // TODO
+   size_t npointers;
+};
+
+struct pointer_section_64 {
+   struct section_64 section;
+   struct pointer_64 *pointers; // TODO
+   size_t npointers;
+};
+
+struct data_section_32;
+struct data_section_64;
+
+struct byte_32 {
+   char data;
+   struct data_section_32 *section; /* containing section */
+   uint32_t offset;                 /* offset within section */
+};
+
+struct byte_64 {
+   char data;
+   struct data_section_64 *section; /* containing section */
+   uint64_t offset;                 /* offset within section */
+};
+
+struct data_section_32 {
+   struct section section;
+   struct byte_32 *bytes; // TODO
+   size_t nbytes;
+};
+
+struct data_section_64 {
+   struct section_64 section;
+   struct byte_64 *bytes; // TODO
+   size_t nbytes;
+};
+
 struct segment_32 {
    struct segment_command command;
    struct section_wrapper_32 *sections;

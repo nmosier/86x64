@@ -21,14 +21,11 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, usage, argv[0]);
       return 1;
    }
-   
-   MachO::Image img(argv[1]);
 
-   img.insert_at('X', 0);
-   img.insert_at('X', 2);
-   img.insert_at('X', 4);
-   img.insert_at('X', 6);
+   MachO::Image img (argv[1]);
    
+   MachO::MachO *macho = MachO::MachO::Parse(img);
+
    return 0;
 }
 
@@ -76,48 +73,124 @@ namespace MachO {
 
    }
 
-   void MachO::insert_raw(const void *buf, std::size_t buflen, std::size_t offset) {
-      // TODO
-      throw "not complete";
-   }
 
-   void MachO::expand(std::size_t offset, std::size_t len) {
-      switch (magic()) {
-      case MH_MAGIC:
-         MachO_<Bits::M32>(img).expand(offset, len);
-         break;
-         
-      case MH_MAGIC_64:
-         MachO_<Bits::M64>(img).expand(offset, len);
-         break;
-
-      case FAT_MAGIC:
-         Fat(img).expand(offset, len);
-         break;
+   MachO *MachO::Parse(const Image& img) {
+      switch (img.at<uint32_t>(0)) {
+      case MH_MAGIC:    return Archive<Bits::M32>::Parse(img);
+      case MH_MAGIC_64: return Archive<Bits::M64>::Parse(img);
          
       case MH_CIGAM:
       case MH_CIGAM_64:
+      case FAT_MAGIC:
       case FAT_CIGAM:
-         throw error("%s: archive is of opposite endianness", __FUNCTION__);
+      case FAT_MAGIC_64:
+      case FAT_CIGAM_64:
+      default:
+         throw error("opposite endianness unsupported");
+      }
 
+      return NULL;
+   }
+
+   template <Bits bits>
+   Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
+      Archive<bits> *archive = new Archive<bits>();
+      archive->header = img.at<mach_header_t>(offset);
+
+      offset += sizeof(archive->header);
+      for (int i = 0; i < archive->header.ncmds; ++i) {
+         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset);
+         archive->load_commands.push_back(cmd);
+         offset += cmd->size();
+      }
+
+      return archive;
+   }
+
+   template <Bits bits>
+   Archive<bits>::~Archive() {
+      for (LoadCommand<bits> *lc : load_commands) {
+         delete lc;
       }
    }
 
    template <Bits bits>
-   void MachO_<bits>::expand(macho_size_t<bits> offset, macho_size_t<bits> len) {
+   LoadCommand<bits> *LoadCommand<bits>::Parse(const Image& img, std::size_t offset) {
+      load_command lc = img.at<load_command>(offset);
+
+      switch (lc.cmd) {
+      case LC_SEGMENT:
+         if constexpr (bits == Bits::M32) {
+               return Segment<Bits::M32>::Parse(img, offset);
+            } else {
+            throw("32-bit segment command in 64-bit binary");
+         }
+         
+      case LC_SEGMENT_64:
+         if constexpr (bits == Bits::M64) {
+               return Segment<Bits::M64>::Parse(img, offset);
+            } else {
+            throw("64-bit segment command in 32-bit binary");
+         }
+
+      case LC_DYLD_INFO:
+      case LC_DYLD_INFO_ONLY:
+         return DyldInfo<bits>::Parse(img, offset);
+         
+      default:
+         throw error("load command 0x%x not supported", lc.cmd);
+      }
+      
       // TODO
    }
 
    template <Bits bits>
-   std::list<LoadCommand<bits>> MachO_<bits>::load_commands() const {
-      std::list<LoadCommand<bits>> cmds;
+   Segment<bits> *Segment<bits>::Parse(const Image& img, std::size_t offset) {
+      Segment<bits> *segment = new Segment<bits>();
+      segment->segment_command = img.at<segment_command_t>(offset);
 
-      // TODO
+      offset += sizeof(segment_command_t);
+      for (int i = 0; i < segment->segment_command.nsects; ++i) {
+         Section<bits> *section = Section<bits>::Parse(img, offset);
+         segment->sections.push_back(section);
+         offset += section->size();
+      }
+      
+      return segment;
    }
-   
 
-   void Fat::expand(std::size_t offset, std::size_t len) {
-      throw error("%s: stub", __FUNCTION__);
+   template <Bits bits>
+   Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset) {
+      Section<bits> *sect = new Section<bits>();
+      sect->sect = img.at<section_t>(offset);
+      sect->data = std::vector<char>(&img.at<char>(sect->sect.offset),
+                                     &img.at<char>(sect->sect.offset + sect->sect.size));
+      return sect;
    }
+
+   template <Bits bits>
+   Segment<bits>::~Segment() {
+      for (Section<bits> *ptr : sections) {
+         delete ptr;
+      }
+   }
+
+   template <Bits bits>
+   DyldInfo<bits> *DyldInfo<bits>::Parse(const Image& img, std::size_t offset) {
+      DyldInfo<bits> *dyld = new DyldInfo<bits>;
+      dyld->dyld_info = img.at<dyld_info_command>(offset);
+      dyld->rebase = std::vector<uint8_t>(img.at<uint8_t>(dyld->dyld_info.rebase_off),
+                                          dyld->dyld_info.rebase_size);
+      dyld->bind = std::vector<uint8_t>(img.at<uint8_t>(dyld->dyld_info.bind_off),
+                                        dyld->dyld_info.bind_size);
+      dyld->weak_bind = std::vector<uint8_t>(img.at<uint8_t>(dyld->dyld_info.weak_bind_off),
+                                             dyld->dyld_info.weak_bind_size);
+      dyld->lazy_bind = std::vector<uint8_t>(img.at<uint8_t>(dyld->dyld_info.lazy_bind_off),
+                                             dyld->dyld_info.lazy_bind_size);
+      dyld->export_info = std::vector<uint8_t>(img.at<uint8_t>(dyld->dyld_info.export_off),
+                                               dyld->dyld_info.export_size);
+      return dyld;
+   }
+
    
 }

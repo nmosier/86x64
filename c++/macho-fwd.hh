@@ -8,9 +8,11 @@ namespace MachO {
 
    class MachO;
    class Fat;
-   template <Bits bits> class MachO_;
+   template <Bits bits> class Archive;
    template <Bits bits> class MachHeader;
    template <Bits bits> class LoadCommand;
+   template <Bits bits> class Segment;
+   template <Bits bits> class Section;
    
 }
 
