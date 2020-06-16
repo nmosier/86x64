@@ -1,5 +1,10 @@
 #pragma once
 
+#include <exception>
+#include <sys/errno.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "macho-fwd.hh"
 
 namespace MachO {
