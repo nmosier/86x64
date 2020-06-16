@@ -25,6 +25,8 @@ namespace MachO {
       Image(const char *path);
       ~Image();
 
+      std::size_t size() const { return filesize; }
+
       template <typename T>
       const T& at(std::size_t index) const { return * (const T *) ((const char *) img + index); }
 
@@ -394,6 +396,23 @@ namespace MachO {
       
    private:
       LinkeditData(const Image& img, std::size_t offset);
+   };
+
+   template <Bits bits>
+   class Instruction {
+   public:
+      static const xed_state_t dstate;
+      
+      std::vector<uint8_t> instbuf;
+      xed_decoded_inst_t xedd;
+      
+      std::size_t size() const { return instbuf.size(); }
+      
+      template <typename... Args>
+      static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
+      
+   private:
+      Instruction(const Image& img, std::size_t offset);
    };
 
 }

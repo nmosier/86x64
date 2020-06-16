@@ -13,6 +13,8 @@
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 
+#include <xed-interface.h>
+
 #include "macho.hh"
 #include "util.hh"
 
@@ -361,5 +363,27 @@ namespace MachO {
       pointers = std::vector<pointer_t>(&img.at<pointer_t>(this->sect.offset),
                                         &img.at<pointer_t>(this->sect.offset + this->sect.size));
    }
-   
+
+   template <Bits bits>
+   const xed_state_t Instruction<bits>::dstate =
+      {select_value(bits, XED_MACHINE_MODE_LEGACY_32, XED_MACHINE_MODE_LONG_64),
+       select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_64b)
+      };
+
+   template <Bits bits>
+   Instruction<bits>::Instruction(const Image& img, std::size_t offset) {
+      xed_decoded_inst_zero_set_mode(&xedd, &dstate);
+      xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
+
+      xed_error_enum_t err;
+      if ((err = xed_decode(&xedd, &img.at<uint8_t>(offset),
+                            img.size() - offset)) != XED_ERROR_NONE) {
+         throw error("%s: offset 0x%x: xed_decode: %s", __FUNCTION__, offset,
+                     xed_error_enum_t2str(err));
+      }
+
+      instbuf = std::vector<uint8_t>(&img.at<uint8_t>(offset),
+                                     &img.at<uint8_t>(offset + xed_decoded_inst_get_length(&xedd)));
+   }
+
 }

@@ -24,6 +24,11 @@ namespace MachO {
    template <Bits bits, typename T32, typename T64>
    using select_type = decltype(select_type_func<bits,T32,T64>());
 
+   template <typename T>
+   constexpr T select_value(Bits bits, T v32, T v64) {
+      return bits == Bits::M32 ? v32 : v64;
+   }
+
    class cerror: public std::exception {
    public:
       cerror(const char *s) { asprintf(&errstr, "%s: %s\n", s, strerror(errno)); }
