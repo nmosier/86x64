@@ -29,6 +29,8 @@ int main(int argc, char *argv[]) {
    }
 
    MachO::Image img (argv[1]);
+
+   xed_tables_init();
    
    MachO::MachO *macho = MachO::MachO::Parse(img);
    (void) macho;
@@ -169,9 +171,11 @@ namespace MachO {
          return DylibCommand<bits>::Parse(img, offset);
 
       case LC_FUNCTION_STARTS:
-      case LC_DATA_IN_CODE:
       case LC_CODE_SIGNATURE:
          return LinkeditData<bits>::Parse(img, offset);
+
+      case LC_DATA_IN_CODE:
+         throw error("%s: data in code not yet supported", __FUNCTION__);
          
       default:
          throw error("load command 0x%x not supported", lc.cmd);
@@ -191,17 +195,6 @@ namespace MachO {
          offset += section->size();
       }
    }
-
-#if 0
-   template <Bits bits>
-   Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset) {
-      Section<bits> *sect = new Section<bits>();
-      sect->sect = img.at<section_t>(offset);
-      sect->data = std::vector<char>(&img.at<char>(sect->sect.offset),
-                                     &img.at<char>(sect->sect.offset + sect->sect.size));
-      return sect;
-   }
-#endif
 
    template <Bits bits>
    Segment<bits>::~Segment() {
@@ -333,11 +326,18 @@ namespace MachO {
    }
 
    template <Bits bits>
-   LinkeditData<bits>::LinkeditData(const Image& img, std::size_t offset):
-      linkedit(img.at<linkedit_data_command>(offset)) {
-      function_starts = std::vector<uint8_t>(&img.at<uint8_t>(linkedit.dataoff),
-                                             &img.at<uint8_t>(linkedit.dataoff +
-                                                              linkedit.datasize));
+   LinkeditData<bits> *LinkeditData<bits>::Parse(const Image& img, std::size_t offset) {
+      const linkedit_data_command& linkedit = img.at<linkedit_data_command>(offset);
+      switch (linkedit.cmd) {
+      case LC_DATA_IN_CODE:
+         return DataInCode<bits>::Parse(img, offset);
+
+      case LC_FUNCTION_STARTS:
+         return FunctionStarts<bits>::Parse(img, offset);
+         
+      default:
+         throw error("%s: unknown linkedit command type 0x%x", __FUNCTION__, linkedit.cmd);
+      }
    }
 
    template <Bits bits>
@@ -354,15 +354,15 @@ namespace MachO {
          return TextSection<bits>::Parse(img, offset);
       } else if ((flags & S_ATTR_SOME_INSTRUCTIONS)) {
          throw error("segments with only 'some' instructions not supported");
-      } else if ((flags & (S_NON_LAZY_SYMBOL_POINTERS | S_LAZY_SYMBOL_POINTERS))) {
+      } else if (flags == S_NON_LAZY_SYMBOL_POINTERS || flags == S_LAZY_SYMBOL_POINTERS) {
          return SymbolPointerSection<bits>::Parse(img, offset);
-      } else if ((flags & (S_REGULAR | S_CSTRING_LITERALS))) {
+      } else if (flags == S_REGULAR || flags == S_CSTRING_LITERALS) {
          return DataSection<bits>::Parse(img, offset);
       } else if ((flags & S_ZEROFILL)) {
          throw error("zerofill segments not supported yet");
       }
 
-      throw error("bad section flags (offset 0x%zx)", offset);
+      throw error("bad section flags (section %s)", sect.sectname);
    }
 
    template <Bits bits>
@@ -375,7 +375,7 @@ namespace MachO {
    template <Bits bits>
    const xed_state_t Instruction<bits>::dstate =
       {select_value(bits, XED_MACHINE_MODE_LEGACY_32, XED_MACHINE_MODE_LONG_64),
-       select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_64b)
+       select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_32b)
       };
 
    template <Bits bits>
@@ -385,7 +385,8 @@ namespace MachO {
 
       xed_error_enum_t err;
       if ((err = xed_decode(&xedd, &img.at<uint8_t>(offset),
-                            img.size() - offset)) != XED_ERROR_NONE) {
+                            img.size() - offset
+           )) != XED_ERROR_NONE) {
          throw error("%s: offset 0x%x: xed_decode: %s", __FUNCTION__, offset,
                      xed_error_enum_t2str(err));
       }
@@ -400,12 +401,22 @@ namespace MachO {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
       for (std::size_t it = begin; it < end; ) {
-         Instruction<bits> *ptr = Instruction<bits>::Parse(img, it);
-         instructions.push_back(ptr);
-         it += ptr->size();
+            Instruction<bits> *ptr = Instruction<bits>::Parse(img, it);
+            instructions.push_back(ptr);
+            it += ptr->size();
       }
    }
 
-         
+   template <Bits bits>
+   DataInCode<bits>::DataInCode(const Image& img, std::size_t offset):
+      LinkeditData<bits>(img, offset)
+   {
+      const std::size_t databegin = this->linkedit.dataoff;
+      const std::size_t dataend = databegin + this->linkedit.datasize;
+      for (std::size_t datait = databegin; datait < dataend;
+           datait += DataInCodeEntry<bits>::size()) {
+         dices.push_back(DataInCodeEntry<bits>::Parse(img, datait));
+      }
+   }
    
 }
