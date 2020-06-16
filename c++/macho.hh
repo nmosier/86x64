@@ -80,6 +80,7 @@ namespace MachO {
    template <Bits bits>
    class LoadCommand {
    public:
+      virtual uint32_t cmd() const = 0;
       virtual std::size_t size() const = 0;
 
       static LoadCommand<bits> *Parse(const Image& img, std::size_t offset);
@@ -97,7 +98,8 @@ namespace MachO {
 
       segment_command_t segment_command;
       Sections sections;
-      
+
+      virtual uint32_t cmd() const override { return segment_command.cmd; }
       virtual std::size_t size() const override;
 
       template <typename... Args>
@@ -196,7 +198,8 @@ namespace MachO {
       std::vector<uint8_t> lazy_bind;
       std::vector<uint8_t> export_info;
 
-      virtual std::size_t size() const { return sizeof(dyld_info); }
+      virtual uint32_t cmd() const override { return dyld_info.cmd; }
+      virtual std::size_t size() const override { return sizeof(dyld_info); }
 
       static DyldInfo<bits> *Parse(const Image& img, std::size_t offset);
       
@@ -214,8 +217,8 @@ namespace MachO {
       Nlists syms;
       Strings strs;
       
-
-      virtual std::size_t size() const { return sizeof(symtab); }
+      virtual uint32_t cmd() const override { return symtab.cmd; }
+      virtual std::size_t size() const override { return sizeof(symtab); }
 
       template <typename... Args>
       static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
@@ -247,7 +250,8 @@ namespace MachO {
    public:
       dysymtab_command dysymtab;
       std::vector<uint32_t> indirectsyms;
-      
+
+      virtual uint32_t cmd() const override { return dysymtab.cmd; }      
       virtual std::size_t size() const override { return sizeof(dysymtab_command); }
 
       template <typename... Args>
@@ -263,6 +267,7 @@ namespace MachO {
       dylinker_command dylinker;
       std::string name;
 
+      virtual uint32_t cmd() const override { return dylinker.cmd; }      
       virtual std::size_t size() const override;
 
       template <typename... Args>
@@ -277,6 +282,7 @@ namespace MachO {
    public:
       uuid_command uuid;
 
+      virtual uint32_t cmd() const override { return uuid.cmd; }
       virtual std::size_t size() const override { return sizeof(uuid_command); }
 
       template <typename... Args>
@@ -291,7 +297,8 @@ namespace MachO {
    public:
       build_version_command build_version;
       std::vector<BuildToolVersion<bits> *> tools;
-      
+
+      virtual uint32_t cmd() const override { return build_version.cmd; }      
       virtual std::size_t size() const override;
 
       template <typename... Args>
@@ -321,6 +328,7 @@ namespace MachO {
    public:
       source_version_command source_version;
 
+      virtual uint32_t cmd() const override { return source_version.cmd; }      
       virtual std::size_t size() const override { return sizeof(source_version); }
       
       template <typename... Args>
@@ -338,7 +346,8 @@ namespace MachO {
    public:
       entry_point_command entry_point;
       // TODO: needs to point to entry point instruction
-      
+
+      virtual uint32_t cmd() const override { return entry_point.cmd; }            
       virtual std::size_t size() const override { return sizeof(entry_point); }
       
       template <typename... Args>
@@ -354,6 +363,7 @@ namespace MachO {
       dylib_command dylib_cmd;
       std::string name;
 
+      virtual uint32_t cmd() const override { return dylib_cmd.cmd; }            
       virtual std::size_t size() const override;
 
       template <typename... Args>
@@ -368,6 +378,7 @@ namespace MachO {
    public:
       linkedit_data_command linkedit;
 
+      virtual uint32_t cmd() const override { return linkedit.cmd; }            
       virtual std::size_t size() const override { return sizeof(linkedit); }
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset);
