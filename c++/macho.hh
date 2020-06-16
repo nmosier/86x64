@@ -96,15 +96,38 @@ namespace MachO {
       segment_command_t segment_command;
       Sections sections;
       
-      virtual std::size_t size() const override { return segment_command.cmdsize; } // TODO
+      virtual std::size_t size() const override;
 
-      static Segment<bits> *Parse(const Image& img, std::size_t offset);
+      template <typename... Args>
+      static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
 
       virtual ~Segment() override;
       
-   private:
-      Segment() {}
+   protected:
+      Segment(const Image& img, std::size_t offset);
    };
+
+#if 0
+   template <Bits bits>
+   class TEXTSegment: public Segment<bits> {
+   public:
+
+      template <typename... Args>
+      static TEXTSegment<bits> *Parse(Args&&... args) { return new TEXTSegment(args...); }
+      
+   private:
+      TEXTSegment(const Image& img, std::size_t offset);
+   };
+
+   template <Bits bits>
+   class BSSSegment: public Segment<bits> {
+   public:
+      template <typename... Args>
+      static BSSSegment<bits> *Parse(Args&&... args) { return new BSSSegment(args...); }
+   private:
+      BSSSegment(const Image& img, std::size_t offset);
+   };
+#endif
 
    template <Bits bits>
    class Section {
@@ -114,12 +137,71 @@ namespace MachO {
       section_t sect;
       std::vector<char> data;
 
-      std::size_t size() const { return sizeof(section_t); }
+      static std::size_t size() { return sizeof(section_t); }
       
       static Section<bits> *Parse(const Image& img, std::size_t offset);
       
    private:
       Section() {}
+   };
+
+   template <Bits bits>
+   class Section_ {
+   public:
+      using section_t = select_type<bits, section, section_64>;
+
+      section_t sect;
+
+      static std::size_t size() { return sizeof(section_t); }
+
+      static Section_<bits> *Parse(const Image& img, std::size_t offset);
+      
+   protected:
+      Section_(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
+   };
+
+   template <Bits bits>
+   class TextSection: public Section_<bits> {
+   public:
+      using Instructions = std::vector<Instruction<bits> *>;
+
+      Instructions instructions;
+
+      template <typename... Args>
+      static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
+      
+   private:
+      TextSection(const Image& img, std::size_t offset);
+   }; // TODO: need to disassemble into instructions. But also functions, right? Nah, not yet. Patience.
+
+   template <Bits bits>
+   class DataSection: public Section_<bits> {
+   public:
+      std::vector<uint8_t> data;
+
+      template <typename... Args>
+      static DataSection<bits> *Parse(Args&&... args) { return new DataSection(args...); }
+      
+   private:
+      DataSection(const Image& img, std::size_t offset):
+         Section_<bits>(img, offset), data(&img.at<uint8_t>(this->sect.offset),
+                                           &img.at<uint8_t>(this->sect.offset + this->sect.size))
+      {}
+   };
+
+   template <Bits bits>
+   class SymbolPointerSection: public Section_<bits> {
+   public:
+      using pointer_t = select_type<bits, uint32_t, uint64_t>;
+
+      std::vector<pointer_t> pointers;
+
+      template <typename... Args>
+      static SymbolPointerSection<bits> *Parse(Args&&... args)
+      { return new SymbolPointerSection(args...); }
+      
+   private:
+      SymbolPointerSection(const Image& img, std::size_t offset);
    };
 
    template <Bits bits>

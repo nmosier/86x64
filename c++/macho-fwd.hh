@@ -21,6 +21,7 @@ namespace MachO {
    template <Bits bits> class UUID;
    template <Bits bits> class BuildVersion;
    template <Bits bits> class BuildToolVersion;
+   template <Bits bits> class Instruction;
    
 }
 

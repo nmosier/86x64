@@ -177,18 +177,15 @@ namespace MachO {
    }
 
    template <Bits bits>
-   Segment<bits> *Segment<bits>::Parse(const Image& img, std::size_t offset) {
-      Segment<bits> *segment = new Segment<bits>();
-      segment->segment_command = img.at<segment_command_t>(offset);
+   Segment<bits>::Segment(const Image& img, std::size_t offset) {
+      segment_command = img.at<segment_command_t>(offset);
 
       offset += sizeof(segment_command_t);
-      for (int i = 0; i < segment->segment_command.nsects; ++i) {
+      for (int i = 0; i < segment_command.nsects; ++i) {
          Section<bits> *section = Section<bits>::Parse(img, offset);
-         segment->sections.push_back(section);
+         sections.push_back(section);
          offset += section->size();
       }
-      
-      return segment;
    }
 
    template <Bits bits>
@@ -335,6 +332,34 @@ namespace MachO {
       function_starts = std::vector<uint8_t>(&img.at<uint8_t>(linkedit.dataoff),
                                              &img.at<uint8_t>(linkedit.dataoff +
                                                               linkedit.datasize));
+   }
+
+   template <Bits bits>
+   std::size_t Segment<bits>::size() const {
+      return sizeof(segment_command) + sections.size() * Section<bits>::size();
+   }
+
+   template <Bits bits>
+   Section_<bits> *Section_<bits>::Parse(const Image& img, std::size_t offset) {
+      section_t sect = img.at<section_t>(offset);
+      uint32_t flags = sect.flags;
+      
+      if ((flags & S_ATTR_PURE_INSTRUCTIONS)) {
+         return TextSection<bits>::Parse(img, offset);
+      } else if ((flags & S_ATTR_SOME_INSTRUCTIONS)) {
+         throw error("segments with only 'some' instructions not supported");
+      }
+
+      // TODO
+      throw error("%s: stub", __FUNCTION__);
+      
+   }
+
+   template <Bits bits>
+   SymbolPointerSection<bits>::SymbolPointerSection(const Image& img, std::size_t offset):
+      Section_<bits>(img, offset) {
+      pointers = std::vector<pointer_t>(&img.at<pointer_t>(this->sect.offset),
+                                        &img.at<pointer_t>(this->sect.offset + this->sect.size));
    }
    
 }
