@@ -25,6 +25,7 @@ namespace MachO {
    template <Bits bits> class Instruction;
    template <Bits bits> class DataInCode;
    template <Bits bits> class DataInCodeEntry;
+   template <Bits bits> class SectionBlob;
    
 }
 

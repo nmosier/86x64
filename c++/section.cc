@@ -53,30 +53,11 @@ namespace MachO {
    }
 
    template <Bits bits>
-   TextSection<bits>::TextSection(const Image& img, std::size_t offset): Section<bits>(img, offset)
-   {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin; it < end; ) {
-            Instruction<bits> *ptr = Instruction<bits>::Parse(img, it);
-            instructions.push_back(ptr);
-            it += ptr->size();
-      }
-   }
-
-   template <Bits bits>
    void TextSection<bits>::Parse2(const Image& img, Archive<bits>&& archive) {
       /* construct instruction vector */
       throw error("%s: stub", __FUNCTION__);
    }
 
-   template <Bits bits>
-   TextSection<bits>::~TextSection() {
-      for (Instruction<bits> *ptr : instructions) {
-         delete ptr;
-      }
-   }
-   
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

@@ -32,17 +32,15 @@ namespace MachO {
    template <Bits bits>
    class TextSection: public Section<bits> {
    public:
-      using Instructions = std::vector<Instruction<bits> *>;
-
-      Instructions instructions;
-
-      virtual ~TextSection();
+      using SectionBlobs = std::vector<SectionBlob<bits> *>;
+      
+      SectionBlobs blobs;
       
       template <typename... Args>
       static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
       
    private:
-      TextSection(const Image& img, std::size_t offset);
+      TextSection(const Image& img, std::size_t offset): Section<bits>(img, offset) {}
       virtual void Parse2(const Image& img, Archive<bits>&& archive);
    };
 
