@@ -418,5 +418,23 @@ namespace MachO {
          dices.push_back(DataInCodeEntry<bits>::Parse(img, datait));
       }
    }
-   
+
+   template <Bits bits>
+   void Segment<bits>::Parse2(const Image& img, Archive<bits>&& archive) {
+      // TODO
+      throw error("%s: stub", __FUNCTION__);
+   };
+
+   template <Bits bits>
+   void TextSection<bits>::Parse2(const Image& img, Archive<bits>&& archive) {
+      /* construct instruction vector */
+      throw error("%s: stub", __FUNCTION__);
+   }
+
+   template <Bits bits>
+   TextSection<bits>::~TextSection() {
+      for (Instruction<bits> *ptr : instructions) {
+         delete ptr;
+      }
+   }
 }
