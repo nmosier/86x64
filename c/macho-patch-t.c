@@ -236,7 +236,7 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
                /* get memory displacement */
                xed_int64_t old_memdisp = xed_decoded_inst_get_memory_displacement(operands, i);
 
-               /* compute old target address */
+               /* compute old target address */ 
                MACHO_ADDR_T old_target_addr = old_inst_addr + xed_decoded_inst_get_length(&xedd) +
                   old_memdisp;
                

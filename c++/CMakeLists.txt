@@ -1,7 +1,7 @@
 add_executable(macho
   macho.cc
   util.cc
-  )
+)
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})
 target_include_directories(macho PRIVATE ${xed_INCLUDE_DIRS})

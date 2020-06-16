@@ -111,27 +111,6 @@ namespace MachO {
 
 #if 0
    template <Bits bits>
-   class TEXTSegment: public Segment<bits> {
-   public:
-
-      template <typename... Args>
-      static TEXTSegment<bits> *Parse(Args&&... args) { return new TEXTSegment(args...); }
-      
-   private:
-      TEXTSegment(const Image& img, std::size_t offset);
-   };
-
-   template <Bits bits>
-   class BSSSegment: public Segment<bits> {
-   public:
-      template <typename... Args>
-      static BSSSegment<bits> *Parse(Args&&... args) { return new BSSSegment(args...); }
-   private:
-      BSSSegment(const Image& img, std::size_t offset);
-   };
-#endif
-
-   template <Bits bits>
    class Section {
    public:
       using section_t = select_type<bits, section, section_64>;
@@ -146,9 +125,10 @@ namespace MachO {
    private:
       Section() {}
    };
+#endif
 
    template <Bits bits>
-   class Section_ {
+   class Section {
    public:
       using section_t = select_type<bits, section, section_64>;
 
@@ -156,14 +136,14 @@ namespace MachO {
 
       static std::size_t size() { return sizeof(section_t); }
 
-      static Section_<bits> *Parse(const Image& img, std::size_t offset);
+      static Section<bits> *Parse(const Image& img, std::size_t offset);
       
    protected:
-      Section_(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
+      Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
    };
 
    template <Bits bits>
-   class TextSection: public Section_<bits> {
+   class TextSection: public Section<bits> {
    public:
       using Instructions = std::vector<Instruction<bits> *>;
 
@@ -177,7 +157,7 @@ namespace MachO {
    }; // TODO: need to disassemble into instructions. But also functions, right? Nah, not yet. Patience.
 
    template <Bits bits>
-   class DataSection: public Section_<bits> {
+   class DataSection: public Section<bits> {
    public:
       std::vector<uint8_t> data;
 
@@ -186,13 +166,13 @@ namespace MachO {
       
    private:
       DataSection(const Image& img, std::size_t offset):
-         Section_<bits>(img, offset), data(&img.at<uint8_t>(this->sect.offset),
+         Section<bits>(img, offset), data(&img.at<uint8_t>(this->sect.offset),
                                            &img.at<uint8_t>(this->sect.offset + this->sect.size))
       {}
    };
 
    template <Bits bits>
-   class SymbolPointerSection: public Section_<bits> {
+   class SymbolPointerSection: public Section<bits> {
    public:
       using pointer_t = select_type<bits, uint32_t, uint64_t>;
 

@@ -13,7 +13,9 @@
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 
+extern "C" {
 #include <xed-interface.h>
+}
 
 #include "macho.hh"
 #include "util.hh"
@@ -190,6 +192,7 @@ namespace MachO {
       }
    }
 
+#if 0
    template <Bits bits>
    Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset) {
       Section<bits> *sect = new Section<bits>();
@@ -198,6 +201,7 @@ namespace MachO {
                                      &img.at<char>(sect->sect.offset + sect->sect.size));
       return sect;
    }
+#endif
 
    template <Bits bits>
    Segment<bits>::~Segment() {
@@ -342,7 +346,7 @@ namespace MachO {
    }
 
    template <Bits bits>
-   Section_<bits> *Section_<bits>::Parse(const Image& img, std::size_t offset) {
+   Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset) {
       section_t sect = img.at<section_t>(offset);
       uint32_t flags = sect.flags;
       
@@ -350,16 +354,20 @@ namespace MachO {
          return TextSection<bits>::Parse(img, offset);
       } else if ((flags & S_ATTR_SOME_INSTRUCTIONS)) {
          throw error("segments with only 'some' instructions not supported");
+      } else if ((flags & (S_NON_LAZY_SYMBOL_POINTERS | S_LAZY_SYMBOL_POINTERS))) {
+         return SymbolPointerSection<bits>::Parse(img, offset);
+      } else if ((flags & (S_REGULAR | S_CSTRING_LITERALS))) {
+         return DataSection<bits>::Parse(img, offset);
+      } else if ((flags & S_ZEROFILL)) {
+         throw error("zerofill segments not supported yet");
       }
 
-      // TODO
-      throw error("%s: stub", __FUNCTION__);
-      
+      throw error("bad section flags (offset 0x%zx)", offset);
    }
 
    template <Bits bits>
    SymbolPointerSection<bits>::SymbolPointerSection(const Image& img, std::size_t offset):
-      Section_<bits>(img, offset) {
+      Section<bits>(img, offset) {
       pointers = std::vector<pointer_t>(&img.at<pointer_t>(this->sect.offset),
                                         &img.at<pointer_t>(this->sect.offset + this->sect.size));
    }
@@ -386,4 +394,18 @@ namespace MachO {
                                      &img.at<uint8_t>(offset + xed_decoded_inst_get_length(&xedd)));
    }
 
+   template <Bits bits>
+   TextSection<bits>::TextSection(const Image& img, std::size_t offset): Section<bits>(img, offset)
+   {
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      for (std::size_t it = begin; it < end; ) {
+         Instruction<bits> *ptr = Instruction<bits>::Parse(img, it);
+         instructions.push_back(ptr);
+         it += ptr->size();
+      }
+   }
+
+         
+   
 }
