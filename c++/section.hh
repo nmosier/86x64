@@ -47,21 +47,29 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class Function {
-      
-   };
-
-   template <Bits bits>
-   class TextBlob {
+   class SectionBlob {
    public:
-      static TextBlob<bits> *Parse(const Image& img, std::size_t offset, Archive<bits>&& archive);
-      
+      static SectionBlob<bits> *Parse(const Image& img, std::size_t offset,
+                                      Archive<bits>&& archive);
    protected:
-      TextBlob() {}
+      SectionBlob() {}
    };
 
    template <Bits bits>
-   class Instruction {
+   class DataBlob: public SectionBlob<bits> {
+   public:
+      std::vector<uint8_t> data;
+
+      template <typename... Args>
+      static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
+
+   private:
+      DataBlob(const Image& img, std::size_t offset, std::size_t size):
+         data(&img.at<uint8_t>(offset), &img.at<uint8_t>(offset + size)) {}
+   };
+   
+   template <Bits bits>
+   class Instruction: public SectionBlob<bits> {
    public:
       static const xed_state_t dstate;
       

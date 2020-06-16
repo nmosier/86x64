@@ -288,17 +288,19 @@ namespace MachO {
    template <Bits bits>
    class DataInCode: public LinkeditData<bits> {
    public:
-      using DataInCodeEntries = std::vector<DataInCodeEntry<bits> *>;
-
-      DataInCodeEntries dices;
+      std::vector<data_in_code_entry> dices;
 
       template <typename... Args>
       static DataInCode<bits> *Parse(Args&&... args) { return new DataInCode<bits>(args...); }
       
    private:
-      DataInCode(const Image& img, std::size_t offset);
+      DataInCode(const Image& img, std::size_t offset):
+         LinkeditData<bits>(img, offset),
+         dices(&img.at<data_in_code_entry>(this->linkedit.dataoff),
+               &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
    };
 
+#if 0
    template <Bits bits>
    class DataInCodeEntry {
    public:
@@ -313,6 +315,7 @@ namespace MachO {
       DataInCodeEntry(const Image& img, std::size_t offset):
          dice(img.at<data_in_code_entry>(offset)) {}
    };
+#endif
 
    template <Bits bits>
    class FunctionStarts: public LinkeditData<bits> {

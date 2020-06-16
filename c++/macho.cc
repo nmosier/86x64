@@ -346,19 +346,6 @@ namespace MachO {
       return sizeof(segment_command) + sections.size() * Section<bits>::size();
    }
 
-
-   template <Bits bits>
-   DataInCode<bits>::DataInCode(const Image& img, std::size_t offset):
-      LinkeditData<bits>(img, offset)
-   {
-      const std::size_t databegin = this->linkedit.dataoff;
-      const std::size_t dataend = databegin + this->linkedit.datasize;
-      for (std::size_t datait = databegin; datait < dataend;
-           datait += DataInCodeEntry<bits>::size()) {
-         dices.push_back(DataInCodeEntry<bits>::Parse(img, datait));
-      }
-   }
-
    template <Bits bits>
    void Segment<bits>::Parse2(const Image& img, Archive<bits>&& archive) {
       // TODO
