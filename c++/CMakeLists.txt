@@ -1,6 +1,7 @@
 add_executable(macho
   macho.cc
   section.cc
+  linkedit.cc
   util.cc
 )
 

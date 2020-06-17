@@ -18,6 +18,7 @@ extern "C" {
 }
 
 #include "macho.hh"
+#include "linkedit.hh"
 #include "section.hh"
 #include "util.hh"
 
@@ -323,24 +324,6 @@ namespace MachO {
    template <Bits bits>
    std::size_t DylibCommand<bits>::size() const {
       return align_up(sizeof(dylib_cmd) + name.size() + 1, sizeof(macho_addr_t<bits>));
-   }
-
-   template <Bits bits>
-   LinkeditData<bits> *LinkeditData<bits>::Parse(const Image& img, std::size_t offset) {
-      const linkedit_data_command& linkedit = img.at<linkedit_data_command>(offset);
-      switch (linkedit.cmd) {
-      case LC_DATA_IN_CODE:
-         return DataInCode<bits>::Parse(img, offset);
-
-      case LC_FUNCTION_STARTS:
-         return FunctionStarts<bits>::Parse(img, offset);
-
-      case LC_CODE_SIGNATURE:
-         return CodeSignature<bits>::Parse(img, offset);
-         
-      default:
-         throw error("%s: unknown linkedit command type 0x%x", __FUNCTION__, linkedit.cmd);
-      }
    }
 
    template <Bits bits>
