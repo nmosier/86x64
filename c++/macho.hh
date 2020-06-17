@@ -300,23 +300,6 @@ namespace MachO {
                &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
    };
 
-#if 0
-   template <Bits bits>
-   class DataInCodeEntry {
-   public:
-      data_in_code_entry dice;
-
-      static std::size_t size() { return sizeof(dice); }
-
-      template <typename... Args>
-      static DataInCodeEntry<bits> *Parse(Args&&... args) { return new DataInCodeEntry(args...); }
-      
-   private:
-      DataInCodeEntry(const Image& img, std::size_t offset):
-         dice(img.at<data_in_code_entry>(offset)) {}
-   };
-#endif
-
    template <Bits bits>
    class FunctionStarts: public LinkeditData<bits> {
    public:
@@ -334,6 +317,21 @@ namespace MachO {
          function_starts(&img.at<pointer_t>(this->linkedit.dataoff),
                          &img.at<pointer_t>(this->linkedit.dataoff + this->linkedit.datasize))
       {}
+   };
+
+   template <Bits bits>
+   class CodeSignature: public LinkeditData<bits> {
+   public:
+      std::vector<uint8_t> cs;
+
+      template <typename... Args>
+      static CodeSignature<bits> *Parse(Args&&... args) { return new CodeSignature(args...); }
+      
+   private:
+      CodeSignature(const Image& img, std::size_t offset):
+         LinkeditData<bits>(img, offset),
+         cs(&img.at<uint8_t>(this->linkedit.dataoff),
+            &img.at<uint8_t>(this->linkedit.dataoff + this->linkedit.datasize)) {}
    };
 
 }

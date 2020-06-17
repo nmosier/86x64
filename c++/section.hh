@@ -1,4 +1,5 @@
 #include <vector>
+#include <list>
 
 extern "C" {
 #include <xed-interface.h>
@@ -32,9 +33,9 @@ namespace MachO {
    template <Bits bits>
    class TextSection: public Section<bits> {
    public:
-      using Instructions = std::vector<Instruction<bits> *>;
+      using Content = std::list<SectionBlob<bits> *>;
 
-      Instructions instructions;
+      Content content;
 
       virtual ~TextSection();
       
@@ -44,6 +45,15 @@ namespace MachO {
    private:
       TextSection(const Image& img, std::size_t offset);
       virtual void Parse2(const Image& img, Archive<bits>&& archive);
+   };
+
+   template <Bits bits>
+   class ZerofillSection: public Section<bits> {
+   public:
+      template <typename... Args>
+      static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
+   private:
+      ZerofillSection(const Image& img, std::size_t offset): Section<bits>(img, offset) {}
    };
 
    template <Bits bits>

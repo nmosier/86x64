@@ -171,12 +171,11 @@ namespace MachO {
       case LC_LOAD_DYLIB:
          return DylibCommand<bits>::Parse(img, offset);
 
+      case LC_DATA_IN_CODE:
+         fprintf(stderr, "warning: %s: data in code not yet supported\n", __FUNCTION__);
       case LC_FUNCTION_STARTS:
       case LC_CODE_SIGNATURE:
          return LinkeditData<bits>::Parse(img, offset);
-
-      case LC_DATA_IN_CODE:
-         throw error("%s: data in code not yet supported", __FUNCTION__);
          
       default:
          throw error("load command 0x%x not supported", lc.cmd);
@@ -335,6 +334,9 @@ namespace MachO {
 
       case LC_FUNCTION_STARTS:
          return FunctionStarts<bits>::Parse(img, offset);
+
+      case LC_CODE_SIGNATURE:
+         return CodeSignature<bits>::Parse(img, offset);
          
       default:
          throw error("%s: unknown linkedit command type 0x%x", __FUNCTION__, linkedit.cmd);

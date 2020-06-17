@@ -16,7 +16,7 @@ namespace MachO {
       } else if (flags == S_REGULAR || flags == S_CSTRING_LITERALS) {
          return DataSection<bits>::Parse(img, offset);
       } else if ((flags & S_ZEROFILL)) {
-         throw error("zerofill segments not supported yet");
+         return ZerofillSection<bits>::Parse(img, offset);
       }
 
       throw error("bad section flags (section %s)", sect.sectname);
@@ -57,10 +57,25 @@ namespace MachO {
    {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
+      std::size_t data = begin;
       for (std::size_t it = begin; it < end; ) {
+         try {
             Instruction<bits> *ptr = Instruction<bits>::Parse(img, it);
-            instructions.push_back(ptr);
+            
+            if (data != it) {
+               content.push_back(DataBlob<bits>::Parse(img, data, it - data));
+            }
+            
+            content.push_back(ptr);
             it += ptr->size();
+            data = it;
+         } catch (...) {
+            ++it;
+         }
+      }
+
+      if (data != end) {
+         content.push_back(DataBlob<bits>::Parse(img, data, end - data));
       }
    }
 
@@ -72,7 +87,7 @@ namespace MachO {
 
    template <Bits bits>
    TextSection<bits>::~TextSection() {
-      for (Instruction<bits> *ptr : instructions) {
+      for (SectionBlob<bits> *ptr : content) {
          delete ptr;
       }
    }
