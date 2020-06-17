@@ -1,8 +1,11 @@
 add_executable(macho
   macho.cc
-  section.cc
+  segment.cc
   linkedit.cc
+  lc.cc
+  dyldinfo.cc
   util.cc
+  image.cc
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})

@@ -1,6 +1,25 @@
-#include "section.hh"
+#include "segment.hh"
 
 namespace MachO {
+
+   template <Bits bits>
+   Segment<bits>::Segment(const Image& img, std::size_t offset) {
+      segment_command = img.at<segment_command_t>(offset);
+
+      offset += sizeof(segment_command_t);
+      for (int i = 0; i < segment_command.nsects; ++i) {
+         Section<bits> *section = Section<bits>::Parse(img, offset);
+         sections.push_back(section);
+         offset += section->size();
+      }
+   }
+
+   template <Bits bits>
+   Segment<bits>::~Segment() {
+      for (Section<bits> *ptr : sections) {
+         delete ptr;
+      }
+   }   
 
    template <Bits bits>
    Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset) {
@@ -91,8 +110,19 @@ namespace MachO {
          delete ptr;
       }
    }
+
+   template <Bits bits>
+   std::size_t Segment<bits>::size() const {
+      return sizeof(segment_command) + sections.size() * Section<bits>::size();
+   }
+
+   template <Bits bits>
+   void Segment<bits>::Parse2(const Image& img, Archive<bits>&& archive) {
+      // TODO
+      throw error("%s: stub", __FUNCTION__);
+   };   
    
-   template class Section<Bits::M32>;
-   template class Section<Bits::M64>;
+   template class Segment<Bits::M32>;
+   template class Segment<Bits::M64>;
    
 }

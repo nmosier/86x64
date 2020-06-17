@@ -5,6 +5,7 @@
 #include "macho-fwd.hh"
 #include "image.hh"
 #include "util.hh"
+#include "lc.hh"
 
 namespace MachO {
 

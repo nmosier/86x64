@@ -8,10 +8,31 @@ extern "C" {
 #include <mach-o/loader.h>
 
 #include "image.hh"
-#include "macho-fwd.hh"
 #include "util.hh"
+#include "lc.hh"
 
 namespace MachO {
+   template <Bits bits>
+   class Segment: public LoadCommand<bits> {
+   public:
+      using segment_command_t = select_type<bits, segment_command, segment_command_64>;
+      using Sections = std::vector<Section<bits> *>;
+
+      segment_command_t segment_command;
+      Sections sections;
+
+      virtual uint32_t cmd() const override { return segment_command.cmd; }
+      virtual std::size_t size() const override;
+
+      template <typename... Args>
+      static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
+
+      virtual ~Segment() override;
+      
+   protected:
+      Segment(const Image& img, std::size_t offset);
+      virtual void Parse2(const Image& img, Archive<bits>&& archive) override;
+   };   
 
    template <Bits bits>
    class Section {
