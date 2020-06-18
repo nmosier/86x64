@@ -90,13 +90,8 @@ namespace MachO {
                                                                                         i);
                   const std::size_t targetaddr = refaddr + memdisp;
 
-                  /* look up target address */
-                  const auto target_it = env.addr_map.find(targetaddr);
-                  if (target_it == env.addr_map.end()) {
-                     env.todo_map[targetaddr].push_back(&this->memdisp);
-                  } else {
-                     this->memdisp = target_it->second;
-                  }
+                  /* resolve pointer */
+                  env.resolve(targetaddr, &this->memdisp);
                }
          }
       }
@@ -106,13 +101,8 @@ namespace MachO {
          const ssize_t brdisp = xed_decoded_inst_get_branch_displacement(operands);
          const size_t targetaddr = refaddr + brdisp;
 
-         /* look up target address */
-         const auto target_it = env.addr_map.find(targetaddr);
-         if (target_it == env.addr_map.end()) {
-            env.todo_map[targetaddr].push_back(&this->brdisp);
-         } else {
-            this->brdisp = target_it->second;
-         }
+         /* resolve */
+         env.resolve(targetaddr, &this->brdisp);
       }
 
    }
@@ -151,19 +141,7 @@ namespace MachO {
 
    template <Bits bits>
    SectionBlob<bits>::SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env) {
-      /* add self to address map */
-      if (env.addr_map.find(vmaddr) != env.addr_map.end()) {
-         throw std::logic_error("two section blobs share same virtual address");
-      }
-      env.addr_map.insert({vmaddr, this});
-      
-      /* Resolve pending pointers to this blob */
-      auto todo_it = env.todo_map.find(vmaddr);
-      if (todo_it != env.todo_map.end()) {
-         for (const SectionBlob<bits> **pointer : todo_it->second) {
-            *pointer = this;
-         }
-      }
+      env.add(vmaddr, this);
    }
 
    template <Bits bits>
