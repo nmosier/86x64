@@ -1,6 +1,7 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <optional>
 
 extern "C" {
 #include <xed-interface.h>
@@ -14,6 +15,8 @@ extern "C" {
 #include "parse.hh"
 
 namespace MachO {
+
+   template <Bits bits> class ZeroBlob;
    
    template <Bits bits>
    class Segment: public LoadCommand<bits> {
@@ -68,10 +71,12 @@ namespace MachO {
       TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
-   // TODO: Not yet complete
    template <Bits bits>
    class ZerofillSection: public Section<bits> {
    public:
+      using Content = std::vector<ZeroBlob<bits> *>;
+      Content content;
+      
       template <typename... Args>
       static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
    private:
@@ -90,23 +95,31 @@ namespace MachO {
    template <Bits bits>
    class DataBlob: public SectionBlob<bits> {
    public:
-      std::vector<uint8_t> data;
+      uint8_t data;
       
       template <typename... Args>
       static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
       
    private:
-      // FIXME: this currently doesn't populate table with all possibilities
-      DataBlob(const Image& img, std::size_t offset, std::size_t size, std::size_t vmaddr,
-               ParseEnv<bits>& env):
-         SectionBlob<bits>(vmaddr, env), data(&img.at<uint8_t>(offset),
-                                              &img.at<uint8_t>(offset + size)) {}
+      DataBlob(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env):
+         SectionBlob<bits>(vmaddr, env), data(img.at<uint8_t>(offset)) {}
+   };
+
+   template <Bits bits>
+   class ZeroBlob: public SectionBlob<bits> {
+   public:
+      template <typename... Args>
+      static ZeroBlob<bits> *Parse(Args&&... args) { return new ZeroBlob(args...); }
+   private:
+      ZeroBlob(std::size_t vmaddr, ParseEnv<bits>& env): SectionBlob<bits>(vmaddr, env) {}
    };
    
    template <Bits bits>
    class DataSection: public Section<bits> {
    public:
-      std::vector<uint8_t> data;
+      using Content = std::vector<DataBlob<bits> *>;
+      
+      Content content;
       
       template <typename... Args>
       static DataSection<bits> *Parse(Args&&... args) { return new DataSection(args...); }
@@ -127,8 +140,27 @@ namespace MachO {
       
    private:
       SymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-   };   
+   };
 
+   template <Bits bits>
+   class SymbolPointer: public SectionBlob<bits> {
+   public:
+   protected:
+      SymbolPointer(std::size_t vmaddr, ParseEnv<bits>& env): SectionBlob<bits>() {}
+   };
+
+   template <Bits bits>
+   class LazySymbolPointer: public SymbolPointer<bits> {
+   public:
+      Instruction<bits> *pointee; /*!< initial pointee */
+      
+      template <typename... Args>
+      static LazySymbolPointer<bits> *Parse(Args&&... args) { return new SymbolPointer(args...); }
+      
+   private:
+      LazySymbolPointer(const Image& img, std::size_t offset, std::size_t vmaddr,
+                        ParseEnv<bits>& env);
+   };
 
    template <Bits bits>
    class Instruction: public SectionBlob<bits> {

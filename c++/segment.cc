@@ -123,28 +123,17 @@ namespace MachO {
    {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
-      std::size_t data = begin;
       for (std::size_t it = begin; it < end; ) {
          try {
             const std::size_t vmaddr = this->sect.addr + (it - begin);
             Instruction<bits> *ptr = Instruction<bits>::Parse(img, it, vmaddr, env);
-            
-            if (data != it) {
-               content.push_back(DataBlob<bits>::Parse(img, data, it - data,
-                                                       this->sect.addr + (data - begin), env));
-            }
-            
             content.push_back(ptr);
             it += ptr->size();
-            data = it;
          } catch (...) {
+            content.push_back(DataBlob<bits>::Parse(img, it, this->sect.addr + (it - begin),
+                                                    env));
             ++it;
          }
-      }
-
-      if (data != end) {
-         content.push_back(DataBlob<bits>::Parse(img, data, end - data,
-                                                 this->sect.addr + (data - begin), env));
       }
    }
 
@@ -177,6 +166,36 @@ namespace MachO {
       }
    }
 
+   template <Bits bits>
+   DataSection<bits>::DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      Section<bits>(img, offset)
+   {
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end; ++it, ++vmaddr) {
+         content.push_back(DataBlob<bits>::Parse(img, offset, vmaddr, env));
+      }
+   }
+
+   // OPTIMIZE
+   template <Bits bits>
+   ZerofillSection<bits>::ZerofillSection(const Image& img, std::size_t offset,
+                                          ParseEnv<bits>& env): Section<bits>(img, offset) {
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end; ++it, ++vmaddr) {
+         content.push_back(ZeroBlob<bits>::Parse(vmaddr, env));
+      }
+   }
+
+   template <Bits bits>
+   LazySymbolPointer<bits>::LazySymbolPointer(const Image& img, std::size_t offset,
+                                              std::size_t vmaddr, ParseEnv<bits>& env):
+      SymbolPointer<bits>(vmaddr, env) {
+      // STUB
+      throw error("%s: stub", __FUNCTION__);
+   }
+      
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 
