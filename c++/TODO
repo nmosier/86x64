@@ -1,0 +1,4 @@
+[ ] Parse segments completely
+[ ] Parse sections completely
+[ ] Parse dyld_info completely
+[ ] Parse data in code

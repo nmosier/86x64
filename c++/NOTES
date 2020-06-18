@@ -1,0 +1,56 @@
+Keep in file format -- don't parse
+Instead, construct a map of offset dependencies.
+
+Data structures:
+- Map of offset dependencies: file offset -> "pointers"
+- Index of all offsets (as pointers)
+
+Tasks:
+Inserting a load command:
+          (1) Find all offset records above expanded address; add to them.
+          (2) For all pairs in map, adjust pointers. If the first and second of the pair lie on the same
+
+
+Inserting an instruction:
+          Same as inserting an
+
+
+nah, just update everything every time!
+
+
+
+The first step involves only modifications in-place, so references and pointers remain valid.
+The second step involves inserting raw bytes into the binary, but this occurs at the top level so no reference or pointer invalidation occurs.
+
+
+----
+
+Pass 2 of parsing -- can't entirely be done in one pass.
+
+
+---
+
+Data in code -- how to represent? Or just ignore at this point?
+Hmm... parsing instructions causes difficulties.
+
+How to address? Parsing queue?
+
+Perhaps prioritize some commands over others. E.g. prioritize LC_DATA_IN_CODE, LC_FUNCTION_STARTS, LC_MAIN, etc. over LC_SEGMENTs.
+
+Dependency Graph
+(x <- y) means that x depends on y
+
+LC_MAIN <- LC_SEGMENT
+LC_SEGMENT <- LC_DATA_IN_CODE
+LC_FUNCTION_STARTS <- LC_SEGMENT
+
+
+----
+
+Pass 1: Construct multimap of load command IDs to offsets.
+Pass 2:
+
+----
+
+Halo's binary doesn't use LC_DATA_IN_CODE, yet does have data in code. So proceed with guessing
+which instructions are correct and skipping invalid ones (treating them as data blobs).
