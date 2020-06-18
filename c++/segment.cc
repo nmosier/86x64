@@ -110,32 +110,15 @@ namespace MachO {
    }
 
    template <Bits bits>
-   TextSection<bits>::TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      Section<bits>(img, offset)
-   {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin; it < end; ) {
-         try {
-            const std::size_t vmaddr = this->sect.addr + (it - begin);
-            Instruction<bits> *ptr = Instruction<bits>::Parse(img, it, vmaddr, env);
-            content.push_back(ptr);
-            it += ptr->size();
-         } catch (...) {
-            content.push_back(DataBlob<bits>::Parse(img, it, this->sect.addr + (it - begin),
-                                                    env));
-            ++it;
-         }
+   SectionBlob<bits> *TextSection<bits>::BlobParser(const Image& img, std::size_t offset,
+                                                    std::size_t vmaddr, ParseEnv<bits>& env) {
+      try {
+         return Instruction<bits>::Parse(img, offset, vmaddr, env);
+      } catch (...) {
+         return DataBlob<bits>::Parse(img, offset, vmaddr, env);
       }
    }
 
-   template <Bits bits>
-   TextSection<bits>::~TextSection() {
-      for (SectionBlob<bits> *ptr : content) {
-         delete ptr;
-      }
-   }
-   
    template <Bits bits>
    std::size_t Segment<bits>::size() const {
       return sizeof(segment_command) + sections.size() * Section<bits>::size();
@@ -144,28 +127,6 @@ namespace MachO {
    template <Bits bits>
    SectionBlob<bits>::SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env) {
       env.add(vmaddr, this);
-   }
-
-   template <Bits bits>
-   DataSection<bits>::DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      Section<bits>(img, offset)
-   {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end; ++it, ++vmaddr) {
-         content.push_back(DataBlob<bits>::Parse(img, offset, vmaddr, env));
-      }
-   }
-
-   // OPTIMIZE
-   template <Bits bits>
-   ZerofillSection<bits>::ZerofillSection(const Image& img, std::size_t offset,
-                                          ParseEnv<bits>& env): Section<bits>(img, offset) {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end; ++it, ++vmaddr) {
-         content.push_back(ZeroBlob<bits>::Parse(vmaddr, env));
-      }
    }
 
    template <Bits bits>
@@ -179,35 +140,6 @@ namespace MachO {
       env.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
    }
 
-   template <Bits bits>
-   LazySymbolPointerSection<bits>::LazySymbolPointerSection(const Image& img, std::size_t offset,
-                                                            ParseEnv<bits>& env):
-      SymbolPointerSection<bits>(img, offset)
-   {
-      using ptr_t = select_type<bits, uint32_t, uint64_t>;
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end;
-           it += sizeof(ptr_t), vmaddr += sizeof(ptr_t)) {
-         content.push_back(LazySymbolPointer<bits>::Parse(img, it, vmaddr, env));
-      }
-   }
-
-   template <Bits bits>
-   NonLazySymbolPointerSection<bits>::NonLazySymbolPointerSection(const Image& img,
-                                                                  std::size_t offset,
-                                                                  ParseEnv<bits>& env):
-      SymbolPointerSection<bits>(img, offset)
-   {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
-      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end;
-           it += NonLazySymbolPointer<bits>::Size(), vmaddr += NonLazySymbolPointer<bits>::Size())
-         {
-            content.push_back(NonLazySymbolPointer<bits>::Parse(vmaddr, env));
-         }
-   }
-
    template <Bits bits, class Elem>
    SectionT<bits, Elem>::~SectionT() {
       for (Elem *elem : content) {
@@ -216,19 +148,20 @@ namespace MachO {
    }
 
    template <Bits bits, class Elem>
-   SectionT<bits, Elem>::SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+   SectionT<bits, Elem>::SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                  Parser parser): Section<bits>(img, offset) {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
       std::size_t it = begin;
       std::size_t vmaddr = this->sect.addr;
       while (it != end) {
-         Elem *elem = Elem::Parse(img, it, vmaddr, env);
+         Elem *elem = parser(img, it, vmaddr, env);
          content.push_back(elem);
          it += elem->size();
          vmaddr += elem->size();
       }
    }
-      
+   
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 

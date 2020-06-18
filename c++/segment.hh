@@ -65,35 +65,35 @@ namespace MachO {
       ~SectionT();
       
    protected:
-      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      typedef Elem *(*Parser)(const Image&, std::size_t, std::size_t, ParseEnv<bits>&);
+      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
+      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT(img, offset, env, [](const Image& img, std::size_t offset, std::size_t vmaddr,
+                                       ParseEnv<bits>& env) {
+                                       return Elem::Parse(img, offset, vmaddr, env);
+                                    }) {}
    };
 
    template <Bits bits>
-   class TextSection: public Section<bits> {
+   class TextSection: public SectionT<bits, SectionBlob<bits>> {
    public:
-      using Content = std::list<SectionBlob<bits> *>;
-
-      Content content;
-
-      virtual ~TextSection();
-      
       template <typename... Args>
       static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
-      
    private:
-      TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      static SectionBlob<bits> *BlobParser(const Image& img, std::size_t offset, std::size_t vmaddr,
+                                           ParseEnv<bits>& env);
+      TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT<bits, SectionBlob<bits>>(img, offset, env, BlobParser) {}
    };
 
    template <Bits bits>
-   class ZerofillSection: public Section<bits> {
+   class ZerofillSection: public SectionT<bits, ZeroBlob<bits>> {
    public:
-      using Content = std::vector<ZeroBlob<bits> *>;
-      Content content;
-      
       template <typename... Args>
       static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
    private:
-      ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT<bits, ZeroBlob<bits>>(img, offset, env) {}
    };
 
    template <Bits bits>
@@ -125,44 +125,39 @@ namespace MachO {
    class ZeroBlob: public SectionBlob<bits> {
    public:
       virtual std::size_t size() const override { return 1; }
-      template <typename... Args>
-      static ZeroBlob<bits> *Parse(Args&&... args) { return new ZeroBlob(args...); }
-   private:
-      ZeroBlob(std::size_t vmaddr, ParseEnv<bits>& env): SectionBlob<bits>(vmaddr, env) {}
-   };
-   
-   template <Bits bits>
-   class DataSection: public Section<bits> {
-   public:
-      using Content = std::vector<DataBlob<bits> *>;
-      
-      Content content;
-      
-      template <typename... Args>
-      static DataSection<bits> *Parse(Args&&... args) { return new DataSection(args...); }
-   private:
-      DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-   };
-   
-   template <Bits bits>
-   class SymbolPointerSection: public Section<bits> {
-   public:
-   protected:
-      SymbolPointerSection(const Image& img, std::size_t offset): Section<bits>(img, offset) {}
-   };
 
-   template <Bits bits>
-   class LazySymbolPointerSection: public SymbolPointerSection<bits> {
-   public:
-      using Content = std::vector<LazySymbolPointer<bits> *>;
-      Content content;
+      template <typename... Args>
+      static ZeroBlob<bits> *Parse(Args&&... args) {
+         return new ZeroBlob(std::forward<Args>(args)...);
+      }
       
+   private:
+      ZeroBlob(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env):
+         SectionBlob<bits>(vmaddr, env) {}
+   };
+   
+   template <Bits bits>
+   class DataSection: public SectionT<bits, DataBlob<bits>> {
+   public:
+      template <typename... Args>
+      static DataSection<bits> *Parse(Args&&... args) {
+         return new DataSection(std::forward<Args>(args)...);
+      }
+   private:
+      DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT<bits, DataBlob<bits>>(img, offset, env) {}
+   };
+   
+   template <Bits bits>
+   class LazySymbolPointerSection: public SectionT<bits, LazySymbolPointer<bits>> {
+   public:
       template <typename... Args>
       static LazySymbolPointerSection<bits> *Parse(Args&&... args) {
          return new LazySymbolPointerSection<bits>(args...);
       }
    private:
-      LazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      LazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT<bits, LazySymbolPointer<bits>>(img, offset, env) {}
    };
 
    template <Bits bits>
@@ -182,7 +177,7 @@ namespace MachO {
    class LazySymbolPointer: public SymbolPointer<bits> {
    public:
       const Instruction<bits> *pointee; /*!< initial pointee */
-      
+
       template <typename... Args>
       static LazySymbolPointer<bits> *Parse(Args&&... args) {
          return new LazySymbolPointer(args...);
@@ -201,23 +196,21 @@ namespace MachO {
          return new NonLazySymbolPointer(args...);
       }
    private:
-      template <typename... Args>
-      NonLazySymbolPointer(Args&&... args): SymbolPointer<bits>(args...) {}
+      NonLazySymbolPointer(const Image& img, std::size_t offset, std::size_t vmaddr,
+                           ParseEnv<bits>& env): SymbolPointer<bits>(vmaddr, env) {}
    };
 
    template <Bits bits>
-   class NonLazySymbolPointerSection: public SymbolPointerSection<bits> {
+   class NonLazySymbolPointerSection: public SectionT<bits, NonLazySymbolPointer<bits>> {
    public:
-      using Content = std::vector<NonLazySymbolPointer<bits> *>;
-      Content content;
-
       template <typename... Args>
       static NonLazySymbolPointerSection<bits> *Parse(Args&&... args) {
          return new NonLazySymbolPointerSection(args...);
       }
       
    private:
-      NonLazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      NonLazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         SectionT<bits, NonLazySymbolPointer<bits>>(img, offset, env) {}
    };
 
    template <Bits bits>
