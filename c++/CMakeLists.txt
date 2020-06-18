@@ -6,6 +6,7 @@ add_executable(macho
   dyldinfo.cc
   util.cc
   image.cc
+  parse.cc
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})

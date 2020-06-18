@@ -30,8 +30,10 @@ namespace MachO {
          return TextSection<bits>::Parse(img, offset, env);
       } else if ((flags & S_ATTR_SOME_INSTRUCTIONS)) {
          throw error("segments with only 'some' instructions not supported");
-      } else if (flags == S_NON_LAZY_SYMBOL_POINTERS || flags == S_LAZY_SYMBOL_POINTERS) {
-         return SymbolPointerSection<bits>::Parse(img, offset, env);
+      } else if (flags == S_LAZY_SYMBOL_POINTERS) {
+         return LazySymbolPointerSection<bits>::Parse(img, offset, env);
+      } else if (flags == S_NON_LAZY_SYMBOL_POINTERS) {
+         return NonLazySymbolPointerSection<bits>::Parse(img, offset, env);
       } else if (flags == S_REGULAR || flags == S_CSTRING_LITERALS) {
          return DataSection<bits>::Parse(img, offset, env);
       } else if ((flags & S_ZEROFILL)) {
@@ -169,9 +171,41 @@ namespace MachO {
    template <Bits bits>
    LazySymbolPointer<bits>::LazySymbolPointer(const Image& img, std::size_t offset,
                                               std::size_t vmaddr, ParseEnv<bits>& env):
-      SymbolPointer<bits>(vmaddr, env) {
-      // STUB
-      throw error("%s: stub", __FUNCTION__);
+      SymbolPointer<bits>(vmaddr, env)
+   {
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+      
+      std::size_t targetaddr = img.at<ptr_t>(offset);
+      env.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
+   }
+
+   template <Bits bits>
+   LazySymbolPointerSection<bits>::LazySymbolPointerSection(const Image& img, std::size_t offset,
+                                                            ParseEnv<bits>& env):
+      SymbolPointerSection<bits>(img, offset)
+   {
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end;
+           it += sizeof(ptr_t), vmaddr += sizeof(ptr_t)) {
+         content.push_back(LazySymbolPointer<bits>::Parse(img, it, vmaddr, env));
+      }
+   }
+
+   template <Bits bits>
+   NonLazySymbolPointerSection<bits>::NonLazySymbolPointerSection(const Image& img,
+                                                                  std::size_t offset,
+                                                                  ParseEnv<bits>& env):
+      SymbolPointerSection<bits>(img, offset)
+   {
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      for (std::size_t it = begin, vmaddr = this->sect.addr; it != end;
+           it += NonLazySymbolPointer<bits>::size(), vmaddr += NonLazySymbolPointer<bits>::size())
+         {
+            content.push_back(NonLazySymbolPointer<bits>::Parse(vmaddr, env));
+         }
    }
       
    template class Segment<Bits::M32>;

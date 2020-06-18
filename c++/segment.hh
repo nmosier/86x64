@@ -17,6 +17,7 @@ extern "C" {
 namespace MachO {
 
    template <Bits bits> class ZeroBlob;
+   template <Bits bist> class LazySymbolPointer;
    
    template <Bits bits>
    class Segment: public LoadCommand<bits> {
@@ -130,36 +131,74 @@ namespace MachO {
    template <Bits bits>
    class SymbolPointerSection: public Section<bits> {
    public:
-      using pointer_t = select_type<bits, uint32_t, uint64_t>;
+   protected:
+      SymbolPointerSection(const Image& img, std::size_t offset): Section<bits>(img, offset) {}
+   };
 
-      std::vector<pointer_t> pointers;
-
-      template <typename... Args>
-      static SymbolPointerSection<bits> *Parse(Args&&... args)
-      { return new SymbolPointerSection(args...); }
+   template <Bits bits>
+   class LazySymbolPointerSection: public SymbolPointerSection<bits> {
+   public:
+      using Content = std::vector<LazySymbolPointer<bits> *>;
+      Content content;
       
+      template <typename... Args>
+      static LazySymbolPointerSection<bits> *Parse(Args&&... args) {
+         return new LazySymbolPointerSection<bits>(args...);
+      }
    private:
-      SymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      LazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
    class SymbolPointer: public SectionBlob<bits> {
    public:
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+      static std::size_t size() { return sizeof(ptr_t); }
    protected:
-      SymbolPointer(std::size_t vmaddr, ParseEnv<bits>& env): SectionBlob<bits>() {}
+      template <typename... Args>
+      SymbolPointer(Args&&... args): SectionBlob<bits>(args...) {}
    };
 
    template <Bits bits>
    class LazySymbolPointer: public SymbolPointer<bits> {
    public:
-      Instruction<bits> *pointee; /*!< initial pointee */
+      const Instruction<bits> *pointee; /*!< initial pointee */
       
       template <typename... Args>
-      static LazySymbolPointer<bits> *Parse(Args&&... args) { return new SymbolPointer(args...); }
+      static LazySymbolPointer<bits> *Parse(Args&&... args) {
+         return new LazySymbolPointer(args...);
+      }
       
    private:
       LazySymbolPointer(const Image& img, std::size_t offset, std::size_t vmaddr,
                         ParseEnv<bits>& env);
+   };
+
+   template <Bits bits>
+   class NonLazySymbolPointer: public SymbolPointer<bits> {
+   public:
+      template <typename... Args>
+      static NonLazySymbolPointer<bits> *Parse(Args&&... args) {
+         return new NonLazySymbolPointer(args...);
+      }
+   private:
+      template <typename... Args>
+      NonLazySymbolPointer(Args&&... args): SymbolPointer<bits>(args...) {}
+   };
+
+   template <Bits bits>
+   class NonLazySymbolPointerSection: public SymbolPointerSection<bits> {
+   public:
+      using Content = std::vector<NonLazySymbolPointer<bits> *>;
+      Content content;
+
+      template <typename... Args>
+      static NonLazySymbolPointerSection<bits> *Parse(Args&&... args) {
+         return new NonLazySymbolPointerSection(args...);
+      }
+      
+   private:
+      NonLazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
    template <Bits bits>

@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <list>
 
+#include "macho-fwd.hh"
+
 namespace MachO {
    
    template <Bits bits> class SectionBlob;
