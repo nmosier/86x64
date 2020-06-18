@@ -177,7 +177,6 @@ namespace MachO {
       }
    }
 
-   
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 
