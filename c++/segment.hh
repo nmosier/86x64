@@ -1,5 +1,6 @@
 #include <vector>
 #include <list>
+#include <unordered_map>
 
 extern "C" {
 #include <xed-interface.h>
@@ -10,8 +11,10 @@ extern "C" {
 #include "image.hh"
 #include "util.hh"
 #include "lc.hh"
+#include "parse.hh"
 
 namespace MachO {
+   
    template <Bits bits>
    class Segment: public LoadCommand<bits> {
    public:
@@ -30,8 +33,7 @@ namespace MachO {
       virtual ~Segment() override;
       
    protected:
-      Segment(const Image& img, std::size_t offset);
-      virtual void Parse2(const Image& img, Archive<bits>&& archive) override;
+      Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };   
 
    template <Bits bits>
@@ -44,11 +46,10 @@ namespace MachO {
       virtual ~Section() {}
       
       static std::size_t size() { return sizeof(section_t); }
-      static Section<bits> *Parse(const Image& img, std::size_t offset);
+      static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
-      virtual void Parse2(const Image& img, Archive<bits>&& archive) {}
    };
 
    template <Bits bits>
@@ -64,73 +65,55 @@ namespace MachO {
       static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
       
    private:
-      TextSection(const Image& img, std::size_t offset);
-      virtual void Parse2(const Image& img, Archive<bits>&& archive);
+      TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
+   // TODO: Not yet complete
    template <Bits bits>
    class ZerofillSection: public Section<bits> {
    public:
       template <typename... Args>
       static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
    private:
-      ZerofillSection(const Image& img, std::size_t offset): Section<bits>(img, offset) {}
+      ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
    class SectionBlob {
    public:
-      static SectionBlob<bits> *Parse(const Image& img, std::size_t offset,
-                                      Archive<bits>&& archive);
+      static SectionBlob<bits> *Parse(const Image& img, std::size_t offset, std::size_t vmaddr,
+                                      ParseEnv<bits>& env);
    protected:
-      SectionBlob() {}
+      SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
    class DataBlob: public SectionBlob<bits> {
    public:
       std::vector<uint8_t> data;
-
+      
       template <typename... Args>
       static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
-
+      
    private:
-      DataBlob(const Image& img, std::size_t offset, std::size_t size):
-         data(&img.at<uint8_t>(offset), &img.at<uint8_t>(offset + size)) {}
+      // FIXME: this currently doesn't populate table with all possibilities
+      DataBlob(const Image& img, std::size_t offset, std::size_t size, std::size_t vmaddr,
+               ParseEnv<bits>& env):
+         SectionBlob<bits>(vmaddr, env), data(&img.at<uint8_t>(offset),
+                                              &img.at<uint8_t>(offset + size)) {}
    };
    
-   template <Bits bits>
-   class Instruction: public SectionBlob<bits> {
-   public:
-      static const xed_state_t dstate;
-      
-      std::vector<uint8_t> instbuf;
-      xed_decoded_inst_t xedd;
-      
-      std::size_t size() const { return instbuf.size(); }
-      
-      template <typename... Args>
-      static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
-      
-   private:
-      Instruction(const Image& img, std::size_t offset);
-   };   
-
    template <Bits bits>
    class DataSection: public Section<bits> {
    public:
       std::vector<uint8_t> data;
-
+      
       template <typename... Args>
       static DataSection<bits> *Parse(Args&&... args) { return new DataSection(args...); }
-      
    private:
-      DataSection(const Image& img, std::size_t offset):
-         Section<bits>(img, offset), data(&img.at<uint8_t>(this->sect.offset),
-                                           &img.at<uint8_t>(this->sect.offset + this->sect.size))
-      {}      
+      DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
-
+   
    template <Bits bits>
    class SymbolPointerSection: public Section<bits> {
    public:
@@ -143,7 +126,28 @@ namespace MachO {
       { return new SymbolPointerSection(args...); }
       
    private:
-      SymbolPointerSection(const Image& img, std::size_t offset);
+      SymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };   
-   
+
+
+   template <Bits bits>
+   class Instruction: public SectionBlob<bits> {
+   public:
+      static const xed_state_t dstate;
+      
+      std::vector<uint8_t> instbuf;
+      xed_decoded_inst_t xedd;
+      const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
+      const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
+      
+      std::size_t size() const { return instbuf.size(); }
+
+      template <typename... Args>
+      static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
+      
+   private:
+      Instruction(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env);
+   };
+
+
 };

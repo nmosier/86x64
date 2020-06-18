@@ -27,6 +27,7 @@ namespace MachO {
    template <Bits bits> class SectionBlob;
    template <Bits bits> class LinkeditData;
    template <Bits bits> class LoadCommand;
-   
+   template <Bits bits> class SectionBlob;
+
 }
 

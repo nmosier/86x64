@@ -8,8 +8,10 @@
 
 #include "util.hh"
 #include "image.hh"
+#include "parse.hh"
 
 namespace MachO {
+
 
    template <Bits bits>
    class LoadCommand {
@@ -17,7 +19,7 @@ namespace MachO {
       virtual uint32_t cmd() const = 0;
       virtual std::size_t size() const = 0;
 
-      static LoadCommand<bits> *Parse(const Image& img, std::size_t offset);
+      static LoadCommand<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual ~LoadCommand() {}
       
    protected:

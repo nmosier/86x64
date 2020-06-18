@@ -64,11 +64,12 @@ namespace MachO {
    template <Bits bits>
    Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
       Archive<bits> *archive = new Archive<bits>();
+      ParseEnv<bits> env;
       archive->header = img.at<mach_header_t>(offset);
 
       offset += sizeof(archive->header);
       for (int i = 0; i < archive->header.ncmds; ++i) {
-         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset);
+         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset, env);
          archive->load_commands.push_back(cmd);
          offset += cmd->size();
       }
@@ -82,8 +83,5 @@ namespace MachO {
          delete lc;
       }
    }
-
-
-
 
 }

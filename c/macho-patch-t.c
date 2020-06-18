@@ -181,8 +181,7 @@ int macho_patch_TEXT(struct SEGMENT *text, const struct ARCHIVE *archive) {
          xed_decoded_inst_t xedd;
          xed_state_t dstate;
          xed_error_enum_t err;
-
-         // xed_tables_init();
+         
          xed_state_zero(&dstate);
 #if MACHO_BITS == 32
          dstate.mmode = XED_MACHINE_MODE_LEGACY_32;

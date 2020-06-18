@@ -11,20 +11,22 @@
 namespace MachO {
 
    template <Bits bits>
-   LoadCommand<bits> *LoadCommand<bits>::Parse(const Image& img, std::size_t offset) {
+   LoadCommand<bits> *LoadCommand<bits>::Parse(const Image& img, std::size_t offset,
+                                               ParseEnv<bits>& env)
+   {
       load_command lc = img.at<load_command>(offset);
 
       switch (lc.cmd) {
       case LC_SEGMENT:
          if constexpr (bits == Bits::M32) {
-               return Segment<Bits::M32>::Parse(img, offset);
+               return Segment<Bits::M32>::Parse(img, offset, env);
             } else {
             throw("32-bit segment command in 64-bit binary");
          }
          
       case LC_SEGMENT_64:
          if constexpr (bits == Bits::M64) {
-               return Segment<Bits::M64>::Parse(img, offset);
+               return Segment<Bits::M64>::Parse(img, offset, env);
             } else {
             throw("64-bit segment command in 32-bit binary");
          }
