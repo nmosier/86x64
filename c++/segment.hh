@@ -56,6 +56,18 @@ namespace MachO {
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
    };
 
+   template <Bits bits, class Elem>
+   class SectionT: public Section<bits> {
+   public:
+      using Content = std::list<Elem *>;
+      Content content;
+
+      ~SectionT();
+      
+   protected:
+      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+   };
+
    template <Bits bits>
    class TextSection: public Section<bits> {
    public:
@@ -87,6 +99,9 @@ namespace MachO {
    template <Bits bits>
    class SectionBlob {
    public:
+      virtual std::size_t size() const = 0;
+      virtual ~SectionBlob() {}
+
       static SectionBlob<bits> *Parse(const Image& img, std::size_t offset, std::size_t vmaddr,
                                       ParseEnv<bits>& env);
    protected:
@@ -97,7 +112,7 @@ namespace MachO {
    class DataBlob: public SectionBlob<bits> {
    public:
       uint8_t data;
-      
+      virtual std::size_t size() const override { return 1; }
       template <typename... Args>
       static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
       
@@ -109,6 +124,7 @@ namespace MachO {
    template <Bits bits>
    class ZeroBlob: public SectionBlob<bits> {
    public:
+      virtual std::size_t size() const override { return 1; }
       template <typename... Args>
       static ZeroBlob<bits> *Parse(Args&&... args) { return new ZeroBlob(args...); }
    private:
@@ -153,7 +169,10 @@ namespace MachO {
    class SymbolPointer: public SectionBlob<bits> {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
-      static std::size_t size() { return sizeof(ptr_t); }
+      
+      static std::size_t Size() { return sizeof(ptr_t); }
+      virtual std::size_t size() const override { return sizeof(ptr_t); }
+      
    protected:
       template <typename... Args>
       SymbolPointer(Args&&... args): SectionBlob<bits>(args...) {}
@@ -211,7 +230,7 @@ namespace MachO {
       const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
       const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
       
-      std::size_t size() const { return instbuf.size(); }
+      virtual std::size_t size() const override { return instbuf.size(); }
 
       template <typename... Args>
       static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }

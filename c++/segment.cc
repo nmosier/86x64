@@ -202,10 +202,31 @@ namespace MachO {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
       for (std::size_t it = begin, vmaddr = this->sect.addr; it != end;
-           it += NonLazySymbolPointer<bits>::size(), vmaddr += NonLazySymbolPointer<bits>::size())
+           it += NonLazySymbolPointer<bits>::Size(), vmaddr += NonLazySymbolPointer<bits>::Size())
          {
             content.push_back(NonLazySymbolPointer<bits>::Parse(vmaddr, env));
          }
+   }
+
+   template <Bits bits, class Elem>
+   SectionT<bits, Elem>::~SectionT() {
+      for (Elem *elem : content) {
+         delete elem;
+      }
+   }
+
+   template <Bits bits, class Elem>
+   SectionT<bits, Elem>::SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+      const std::size_t begin = this->sect.offset;
+      const std::size_t end = begin + this->sect.size;
+      std::size_t it = begin;
+      std::size_t vmaddr = this->sect.addr;
+      while (it != end) {
+         Elem *elem = Elem::Parse(img, it, vmaddr, env);
+         content.push_back(elem);
+         it += elem->size();
+         vmaddr += elem->size();
+      }
    }
       
    template class Segment<Bits::M32>;
