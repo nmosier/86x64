@@ -107,7 +107,6 @@ namespace MachO {
       return vmaddr;
    }
 
-#if 0
    template <Bits bits>
    BindInfo<bits>::BindInfo(const Image& img, std::size_t offset, std::size_t size,
                             ParseEnv<bits>& env) {
@@ -117,7 +116,12 @@ namespace MachO {
       std::size_t vmaddr = 0;
       uint8_t type = 0;
       std::vector<DylibCommand<bits> *> dylibs =
-         env.archive.subclass<DylibCommand<bits>, LC_LOAD_DYLIB>();
+         env.archive.template subclass<DylibCommand<bits>, LC_LOAD_DYLIB>();
+      DylibCommand<bits> *load_dylib = nullptr;
+      const char *sym = nullptr;
+      uint8_t flags = 0;
+      std::size_t addend = 0;
+      Segment<bits> *segment = nullptr;
                
       while (it != end) {
          const uint8_t byte = img.at<uint8_t>(it);
@@ -126,21 +130,108 @@ namespace MachO {
 
          ++it;
 
-         std::size_t uleb, uleb2;
+         ssize_t uleb, uleb2;
 
          switch (opcode) {
          case BIND_OPCODE_DONE:
             return;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
-            dylibs.at(imm);
-            
+            load_dylib = dylibs.at(imm);
+            break;
+
+         case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            load_dylib = dylibs.at(uleb);
+            break;
+
+         case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+            throw error("%s: BIND_OPCODE_SET_DYLIB_SPECIAL_IMM not supported", __FUNCTION__);
+
+         case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+            flags = imm;
+            sym = &img.at<char>(it);
+            it += strnlen(sym, end - it);
+            break;
+
+         case BIND_OPCODE_SET_TYPE_IMM:
+            type = imm;
+            break;
+
+         case BIND_OPCODE_SET_ADDEND_SLEB:
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, addend);
+            break;
+
+         case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
+            vmaddr += env.archive.segment(imm)->segment_command.vmaddr;
+            break;
+
+         case BIND_OPCODE_ADD_ADDR_ULEB:
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            vmaddr += uleb;
+            break;
+
+         case BIND_OPCODE_DO_BIND:
+            do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            break;
+
+         case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+            vmaddr = do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            vmaddr += uleb;
+            break;
+
+         case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
+            vmaddr = do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            vmaddr += imm * sizeof(ptr_t);
+            break;
+
+         case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
+            vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, load_dylib, sym, flags, uleb2);
+            break;
+
+         case BIND_OPCODE_THREADED:
+            throw error("%s: BIND_OPCODE_THREADED not supported", __FUNCTION__);
+
+         default:
+            throw error("%s: invalid bind opcode %d", __FUNCTION__, opcode);
          }
       }
-   }
-#endif
       
+         
+   }
+      
+   template <Bits bits>
+   std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
+                                       ssize_t addend, DylibCommand<bits> *dylib, const char *sym,
+                                       uint8_t flags) {
+      bindees.push_back(BindInfo<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+      return vmaddr + sizeof(ptr_t);
+   }
 
+   template <Bits bits>
+   std::size_t BindInfo<bits>::do_bind_times(std::size_t count, std::size_t vmaddr,
+                                             ParseEnv<bits>& env, uint8_t type, ssize_t addend,
+                                             DylibCommand<bits> *dylib, const char *sym,
+                                             uint8_t flags, std::size_t skipping) {
+      for (std::size_t i = 0; i < count; ++i) {
+         vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
+         vmaddr += skipping;
+      }
+      return vmaddr;
+   }
+
+   template <Bits bits>
+   BindNode<bits>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
+                            DylibCommand<bits> *dylib, const char *sym, uint8_t flags):
+      type(type), addend(addend), dylib(dylib), sym(sym), flags(flags), blob(nullptr)
+   {
+      env.resolve(vmaddr, &blob);
+   }
+   
    
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;

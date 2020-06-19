@@ -52,17 +52,43 @@ namespace MachO {
    };
 
    template <Bits bits>
+   class BindNode {
+   public:
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+
+      uint8_t type;
+      ssize_t addend;
+      DylibCommand<bits> *dylib;
+      const SectionBlob<bits> *blob;
+      const char *sym;
+      uint8_t flags;
+
+      template <typename... Args>
+      static BindNode<bits> *Parse(Args&&... args) { return new BindNode(args...); }
+      
+   private:
+      BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
+               DylibCommand<bits> *dylib, const char *sym, uint8_t flags);
+   };
+
+   template <Bits bits>
    class BindInfo {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
-      std::list<const SectionBlob<bits> *> bindees;
+      std::list<BindNode<bits>> bindees;
 
       template <typename... Args>
       static BindInfo<bits> *Parse(Args&&... args) { return new BindInfo(args...); }
       
    private:
       BindInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
+
+      std::size_t do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
+                          DylibCommand<bits> *dylib, const char *sym, uint8_t flags);
+      std::size_t do_bind_times(std::size_t count, std::size_t vmaddr, ParseEnv<bits>& env,
+                                uint8_t type, ssize_t addend, DylibCommand<bits> *dylib,
+                                const char *sym, uint8_t flags, std::size_t skipping = 0);
    };
    
 }
