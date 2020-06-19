@@ -39,7 +39,8 @@ namespace MachO {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
-      std::list<const LazySymbolPointer<bits> *> rebasees;
+      // std::list<const LazySymbolPointer<bits> *> rebasees;
+      std::list<const SectionBlob<bits> *> rebasees;
       
       template <typename... Args>
       static RebaseInfo<bits> *Parse(Args&&... args) { return new RebaseInfo(args...); }

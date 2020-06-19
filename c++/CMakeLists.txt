@@ -7,6 +7,7 @@ add_executable(macho
   util.cc
   image.cc
   parse.cc
+  leb.c
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})
