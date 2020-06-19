@@ -8,11 +8,9 @@ namespace MachO {
    template <Bits bits>
    DyldInfo<bits>::DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       dyld_info(img.at<dyld_info_command>(offset)),
-      rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env))
+      rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env)),
+      bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env))
    {
-      bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.bind_off),
-                                  &img.at<uint8_t>(dyld_info.bind_off +
-                                                   dyld_info.bind_size));
       weak_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.weak_bind_off),
                                        &img.at<uint8_t>(dyld_info.weak_bind_off +
                                                         dyld_info.weak_bind_size));
@@ -116,12 +114,11 @@ namespace MachO {
       std::size_t vmaddr = 0;
       uint8_t type = 0;
       std::vector<DylibCommand<bits> *> dylibs =
-         env.archive.template subclass<DylibCommand<bits>, LC_LOAD_DYLIB>();
+         env.archive.template subcommands<DylibCommand<bits>, LC_LOAD_DYLIB>();
       DylibCommand<bits> *load_dylib = nullptr;
       const char *sym = nullptr;
       uint8_t flags = 0;
       std::size_t addend = 0;
-      Segment<bits> *segment = nullptr;
                
       while (it != end) {
          const uint8_t byte = img.at<uint8_t>(it);
@@ -208,7 +205,8 @@ namespace MachO {
    std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
                                        ssize_t addend, DylibCommand<bits> *dylib, const char *sym,
                                        uint8_t flags) {
-      bindees.push_back(BindInfo<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+      fprintf(stderr, "%s: binding at 0x%zx\n", __FUNCTION__, vmaddr);
+      bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
       return vmaddr + sizeof(ptr_t);
    }
 
