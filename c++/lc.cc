@@ -33,7 +33,7 @@ namespace MachO {
 
       case LC_DYLD_INFO:
       case LC_DYLD_INFO_ONLY:
-         return DyldInfo<bits>::Parse(img, offset);
+         return DyldInfo<bits>::Parse(img, offset, env);
 
       case LC_SYMTAB:
          return Symtab<bits>::Parse(img, offset);

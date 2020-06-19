@@ -15,12 +15,12 @@ namespace MachO {
       using AddrMap = std::unordered_map<std::size_t, const SectionBlob<bits> *>;
       using TodoMap = std::unordered_map<std::size_t, std::list<const SectionBlob<bits> **>>;
 
-      const Archive<bits>& archive;
+      Archive<bits>& archive;
       
       void add(std::size_t vmaddr, const SectionBlob<bits> *pointee);
       void resolve(std::size_t vmaddr, const SectionBlob<bits> **pointer);
 
-      ParseEnv(const Archive<bits>& archive): archive(archive) {}
+      ParseEnv(Archive<bits>& archive): archive(archive) {}
       
    private:
       AddrMap addr_map;

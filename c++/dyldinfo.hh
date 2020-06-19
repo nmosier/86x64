@@ -7,6 +7,7 @@
 #include "macho-fwd.hh"
 #include "lc.hh"
 #include "segment.hh"
+#include "parse.hh"
 
 namespace MachO {
 
@@ -17,7 +18,7 @@ namespace MachO {
    public:
       dyld_info_command dyld_info;
 
-      RebaseInfo<bits> rebase;
+      RebaseInfo<bits> *rebase;
       std::vector<uint8_t> bind;
       std::vector<uint8_t> weak_bind;
       std::vector<uint8_t> lazy_bind;
@@ -26,10 +27,11 @@ namespace MachO {
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
 
-      static DyldInfo<bits> *Parse(const Image& img, std::size_t offset);
+      template <typename... Args>
+      static DyldInfo<bits> *Parse(Args&&... args) { return new DyldInfo(args...); }
       
    private:
-      DyldInfo() {}
+      DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
@@ -37,7 +39,7 @@ namespace MachO {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
-      std::list<LazySymbolPointer<bits> *> rebasees;
+      std::list<const LazySymbolPointer<bits> *> rebasees;
       
       template <typename... Args>
       static RebaseInfo<bits> *Parse(Args&&... args) { return new RebaseInfo(args...); }
