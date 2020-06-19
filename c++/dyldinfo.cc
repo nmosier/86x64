@@ -30,14 +30,14 @@ namespace MachO {
       const std::size_t begin = offset;
       const std::size_t end = begin + size;
       std::size_t it = begin;
+      uint8_t type = 0;
+      std::size_t vmaddr = 0;
       while (it != end) {
          const uint8_t byte = img.at<uint8_t>(it);
          const uint8_t opcode = byte & REBASE_OPCODE_MASK;
          const uint8_t imm = byte & REBASE_IMMEDIATE_MASK;
          ++it;
-         
-         uint8_t type = 0;
-         std::size_t vmaddr = 0;
+
          std::size_t uleb, uleb2;
          
          switch (opcode) {
@@ -106,6 +106,40 @@ namespace MachO {
       }
       return vmaddr;
    }
+
+#if 0
+   template <Bits bits>
+   BindInfo<bits>::BindInfo(const Image& img, std::size_t offset, std::size_t size,
+                            ParseEnv<bits>& env) {
+      const std::size_t begin = offset;
+      const std::size_t end = begin + size;
+      std::size_t it = begin;
+      std::size_t vmaddr = 0;
+      uint8_t type = 0;
+      std::vector<DylibCommand<bits> *> dylibs =
+         env.archive.subclass<DylibCommand<bits>, LC_LOAD_DYLIB>();
+               
+      while (it != end) {
+         const uint8_t byte = img.at<uint8_t>(it);
+         const uint8_t opcode = byte & BIND_OPCODE_MASK;
+         const uint8_t imm = byte & BIND_IMMEDIATE_MASK;
+
+         ++it;
+
+         std::size_t uleb, uleb2;
+
+         switch (opcode) {
+         case BIND_OPCODE_DONE:
+            return;
+
+         case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+            dylibs.at(imm);
+            
+         }
+      }
+   }
+#endif
+      
 
    
    template class DyldInfo<Bits::M32>;

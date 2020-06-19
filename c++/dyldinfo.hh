@@ -50,5 +50,19 @@ namespace MachO {
       std::size_t do_rebase_times(std::size_t count, std::size_t vmaddr, ParseEnv<bits>& env,
                                   std::size_t skipping = 0);
    };
+
+   template <Bits bits>
+   class BindInfo {
+   public:
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+
+      std::list<const SectionBlob<bits> *> bindees;
+
+      template <typename... Args>
+      static BindInfo<bits> *Parse(Args&&... args) { return new BindInfo(args...); }
+      
+   private:
+      BindInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
+   };
    
 }

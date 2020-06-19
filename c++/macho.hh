@@ -33,13 +33,13 @@ namespace MachO {
       virtual uint32_t magic() const override { return header.magic; }
       virtual uint32_t& magic() override { return header.magic; }
 
-      template <class Subclass>
+      template <class Subclass, int64_t cmdval = -1>
       std::vector<Subclass *> subcommands() const {
          static_assert(std::is_base_of<LoadCommand<bits>, Subclass>());
          std::vector<Subclass *> cmds;
          for (LoadCommand<bits> *lc : load_commands) {
             Subclass *cmd = dynamic_cast<Subclass *>(lc);
-            if (cmd) {
+            if (cmd && (cmdval == -1 || cmdval == cmd->cmd())) {
                cmds.push_back(cmd);
             }
          }
@@ -49,7 +49,7 @@ namespace MachO {
       std::vector<Segment<bits> *> segments() { return subcommands<Segment<bits>>(); }
       Segment<bits> *segment(std::size_t index) { return segments().at(index); }
       Segment<bits> *segment(const std::string& name);
-      
+
       static Archive<bits> *Parse(const Image& img, std::size_t offset = 0);
       virtual ~Archive() override;
 

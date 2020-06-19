@@ -54,3 +54,9 @@ Pass 2:
 
 Halo's binary doesn't use LC_DATA_IN_CODE, yet does have data in code. So proceed with guessing
 which instructions are correct and skipping invalid ones (treating them as data blobs).
+
+---
+
+Idea -- don't even record rebase/bind information separately; record the information inside the section blobs themselves.
+ - Advantage: easy to regenerate at emit time without bookkeeping during editing.
+ - Disadvantage: Can't print out rebase information easily.
