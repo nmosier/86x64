@@ -1,7 +1,10 @@
+#pragma once
+
 #include <vector>
 #include <list>
 #include <unordered_map>
 #include <optional>
+#include <string>
 
 extern "C" {
 #include <xed-interface.h>
@@ -30,6 +33,10 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return segment_command.cmd; }
       virtual std::size_t size() const override;
+      std::string name() const;
+      std::size_t vmaddr() const { return segment_command.vmaddr; }
+
+      Section<bits> *section(const std::string& name);
 
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
@@ -46,6 +53,8 @@ namespace MachO {
       using section_t = select_type<bits, section, section_64>;
 
       section_t sect;
+
+      std::string name() const;
 
       virtual ~Section() {}
       

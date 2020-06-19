@@ -161,6 +161,27 @@ namespace MachO {
          vmaddr += elem->size();
       }
    }
+
+   template <Bits bits>
+   std::string Section<bits>::name() const {
+      return std::string(sect.sectname, strnlen(sect.sectname, sizeof(sect.sectname)));
+   }
+
+   template <Bits bits>
+   Section<bits> *Segment<bits>::section(const std::string& name) {
+      for (Section<bits> *section : sections) {
+         if (section->name() == name) {
+            return section;
+         }
+      }
+      return nullptr;
+   }
+
+   template <Bits bits>
+   std::string Segment<bits>::name() const {
+      return std::string(segment_command.segname, strnlen(segment_command.segname,
+                                                          sizeof(segment_command.segname)));
+   }
    
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;

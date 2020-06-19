@@ -64,7 +64,7 @@ namespace MachO {
    template <Bits bits>
    Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
       Archive<bits> *archive = new Archive<bits>();
-      ParseEnv<bits> env;
+      ParseEnv<bits> env(*archive);
       archive->header = img.at<mach_header_t>(offset);
 
       offset += sizeof(archive->header);
@@ -82,6 +82,16 @@ namespace MachO {
       for (LoadCommand<bits> *lc : load_commands) {
          delete lc;
       }
+   }
+
+   template <Bits bits>
+   Segment<bits> *Archive<bits>::segment(const std::string& name) {
+      for (Segment<bits> *seg : segments()) {
+         if (name == seg->name()) {
+            return seg;
+         }
+      }
+      return nullptr;
    }
 
 }
