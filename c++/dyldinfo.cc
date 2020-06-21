@@ -241,7 +241,7 @@ namespace MachO {
       type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr)
    {
       env.vmaddr_resolver.resolve(vmaddr, &blob);
-      env.resolve(dylib, &this->dylib);
+      env.dylib_resolver.resolve(dylib, &this->dylib);
    }
    
    

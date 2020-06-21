@@ -28,7 +28,6 @@ namespace MachO {
          todo_map[vmaddr].push_back(pointer);
       }
    }
-#endif
 
    template <Bits bits>
    void ParseEnv<bits>::add(const DylibCommand<bits> *dylib) {
@@ -51,6 +50,7 @@ namespace MachO {
          *dylib = it->second;
       }
    }
+#endif
 
 
    template class ParseEnv<Bits::M32>;

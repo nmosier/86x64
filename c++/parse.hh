@@ -37,7 +37,7 @@ namespace MachO {
          if (!todo.empty()) {
             fprintf(stderr, "%s: pending unresolved pointers after parsing\n", __FUNCTION__);
             for (auto pair : todo) {
-               fprintf(stderr, "0x%zx\n", pair.first);
+               fprintf(stderr, "key 0x%zx\n", pair.first);
             }
             abort();
          }
@@ -46,6 +46,21 @@ namespace MachO {
    private:
       FoundMap found;
       TodoMap todo;
+   };
+
+   template <Bits bits>
+   class DylibResolver {
+   public:
+
+      void add(const DylibCommand<bits> *pointee) { resolver.add(++id, pointee); }
+      template <typename... Args>
+      void resolve(Args&&... args) { return resolver.resolve(args...); }
+      
+      DylibResolver(): id(0) {}
+      
+   private:
+      Resolver<DylibCommand<bits>> resolver;
+      unsigned id;
    };
    
    
@@ -57,27 +72,14 @@ namespace MachO {
       using Dylibs = std::unordered_map<std::size_t, const DylibCommand<bits> *>;
       using TodoDylibs = std::unordered_map<std::size_t, std::list<const DylibCommand<bits> **>>;
 
-#if 0
-      using AddrMap = std::unordered_map<std::size_t, const SectionBlob<bits> *>;
-      using TodoMap = std::unordered_map<std::size_t, std::list<const SectionBlob<bits> **>>;
-
-
-      void add(std::size_t vmaddr, const SectionBlob<bits> *pointee);
-      void resolve(std::size_t vmaddr, const SectionBlob<bits> **pointer);
-#else
       Resolver<SectionBlob<bits>> vmaddr_resolver;
       Resolver<SectionBlob<bits>> offset_resolver;
-#endif
+      DylibResolver<bits> dylib_resolver;
 
-      void add(const DylibCommand<bits> *dylib);
-      void resolve(std::size_t index, const DylibCommand<bits> **dylib);
-
-      ParseEnv(Archive<bits>& archive): archive(archive), dylib_id(0) {}
+      ParseEnv(Archive<bits>& archive): archive(archive) {}
       
    private:
-      std::size_t dylib_id;
-      Dylibs dylibs;
-      TodoDylibs todo_dylibs;
+      
    };
    
 }

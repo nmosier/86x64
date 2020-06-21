@@ -125,7 +125,7 @@ namespace MachO {
       name = std::string(&img.at<char>(offset + stroff), &img.at<char>(offset + stroff + len));
 
       if (dylib_cmd.cmd == LC_LOAD_DYLIB) {
-         env.add(this);
+         env.dylib_resolver.add(this);
       }
    }
 
