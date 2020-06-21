@@ -15,7 +15,7 @@ size_t uleb128_decode(const void *buf, size_t buflen, uintmax_t *n) {
 
       uint8_t byte = *it++;
 
-      acc += (byte & ULEB128_DATAMASK) << bits;
+      acc += ((uintmax_t) (byte & ULEB128_DATAMASK)) << bits;
 
       if (!(byte & ULEB128_CTRLMASK)) {
          break;
@@ -76,7 +76,7 @@ size_t sleb128_decode(const void *buf, size_t buflen, intmax_t *n) {
       uint8_t byte = *(it++);
 
       uacc |= (byte & SLEB128_DATAMASK) << bits;
-      sacc &= (-1 << (bits + 7)) | ((byte & SLEB128_DATAMASK) << bits) | ((1 << bits) - 1);
+      sacc &= (-1 << (bits + 7)) | (((intmax_t) (byte & SLEB128_DATAMASK)) << bits) | ((1 << bits) - 1);
       
       signbit = (byte & SLEB128_SIGNBIT);
 

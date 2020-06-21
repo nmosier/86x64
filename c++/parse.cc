@@ -28,6 +28,28 @@ namespace MachO {
       }
    }
 
+   template <Bits bits>
+   void ParseEnv<bits>::add(const DylibCommand<bits> *dylib) {
+      dylibs.insert({++dylib_id, dylib});
+      auto todo_it = todo_dylibs.find(dylib_id);
+      if (todo_it != todo_dylibs.end()) {
+         for (const DylibCommand<bits> **ptr : todo_it->second) {
+            *ptr = dylib;
+         }
+         todo_dylibs.erase(todo_it);
+      }
+   }
+
+   template <Bits bits>
+   void ParseEnv<bits>::resolve(std::size_t index, const DylibCommand<bits> **dylib) {
+      auto it = dylibs.find(index);
+      if (it == dylibs.end()) {
+         todo_dylibs[index].push_back(dylib);
+      } else {
+         *dylib = it->second;
+      }
+   }
+
 
    template class ParseEnv<Bits::M32>;
    template class ParseEnv<Bits::M64>;

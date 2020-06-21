@@ -57,7 +57,7 @@ namespace MachO {
          return EntryPoint<bits>::Parse(img, offset);
 
       case LC_LOAD_DYLIB:
-         return DylibCommand<bits>::Parse(img, offset);
+         return DylibCommand<bits>::Parse(img, offset, env);
 
       case LC_DATA_IN_CODE:
          fprintf(stderr, "warning: %s: data in code not yet supported\n", __FUNCTION__);
@@ -156,8 +156,9 @@ namespace MachO {
       entry_point(img.at<entry_point_command>(offset)) {}
 
    template <Bits bits>
-   DylibCommand<bits>::DylibCommand(const Image& img, std::size_t offset):
-      dylib_cmd(img.at<dylib_command>(offset)) {
+   DylibCommand<bits>::DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      dylib_cmd(img.at<dylib_command>(offset))
+   {
       const std::size_t stroff = dylib_cmd.dylib.name.offset;
       if (stroff > dylib_cmd.cmdsize) {
          throw error("dynamic library name starts past end of dylib command");
@@ -165,6 +166,10 @@ namespace MachO {
       const std::size_t strrem = dylib_cmd.cmdsize - stroff;
       const std::size_t len = strnlen(&img.at<char>(offset + stroff), strrem);
       name = std::string(&img.at<char>(offset + stroff), &img.at<char>(offset + stroff + len));
+
+      if (dylib_cmd.cmd == LC_LOAD_DYLIB) {
+         env.add(this);
+      }
    }
 
    template <Bits bits>

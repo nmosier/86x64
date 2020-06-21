@@ -59,7 +59,7 @@ namespace MachO {
 
       uint8_t type;
       ssize_t addend;
-      DylibCommand<bits> *dylib;
+      const DylibCommand<bits> *dylib;
       const char *sym;
       uint8_t flags;
       const SectionBlob<bits> *blob;
@@ -69,7 +69,7 @@ namespace MachO {
       
    private:
       BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-               DylibCommand<bits> *dylib, const char *sym, uint8_t flags);
+               std::size_t dylib, const char *sym, uint8_t flags);
    };
 
    template <Bits bits>
@@ -86,10 +86,10 @@ namespace MachO {
       BindInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
       
       std::size_t do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                          DylibCommand<bits> *dylib, const char *sym, uint8_t flags);
+                          std::size_t dylib, const char *sym, uint8_t flags);
       std::size_t do_bind_times(std::size_t count, std::size_t vmaddr, ParseEnv<bits>& env,
-                                uint8_t type, ssize_t addend, DylibCommand<bits> *dylib,
-                                const char *sym, uint8_t flags, std::size_t skipping = 0);
+                                uint8_t type, ssize_t addend, std::size_t dylib, const char *sym,
+                                uint8_t flags, ptr_t skipping = 0);
    };
    
 }

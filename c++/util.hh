@@ -85,4 +85,9 @@ namespace MachO {
       return div_down(a, b) * b;
    }
 
+#define str(s) #s
+#define xstr(s) str(s)
+   
+#define case_log(label) case label: fprintf(stderr, xstr(label)  "\n");
+
 }

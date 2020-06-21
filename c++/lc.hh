@@ -190,7 +190,7 @@ namespace MachO {
       static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }
       
    private:
-      DylibCommand(const Image& img, std::size_t offset);
+      DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };   
    
 }

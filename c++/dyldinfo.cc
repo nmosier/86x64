@@ -113,9 +113,7 @@ namespace MachO {
       std::size_t it = begin;
       std::size_t vmaddr = 0;
       uint8_t type = 0;
-      std::vector<DylibCommand<bits> *> dylibs =
-         env.archive.template subcommands<DylibCommand<bits>, LC_LOAD_DYLIB>();
-      DylibCommand<bits> *load_dylib = nullptr;
+      std::size_t dylib = 0;
       const char *sym = nullptr;
       uint8_t flags = 0;
       std::size_t addend = 0;
@@ -127,67 +125,82 @@ namespace MachO {
 
          ++it;
 
-         ssize_t uleb, uleb2;
+         std::size_t uleb, uleb2;
 
          switch (opcode) {
          case BIND_OPCODE_DONE:
+            fprintf(stderr, "BIND_OPCODE_DONE\n");
             return;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
-            load_dylib = dylibs.at(imm);
+            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_ORDINAL_IMM\n");
+            dylib = imm;
             break;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB\n");
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            load_dylib = dylibs.at(uleb);
+            dylib = imm;
             break;
 
          case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_SPECIAL_IMM\n");
             throw error("%s: BIND_OPCODE_SET_DYLIB_SPECIAL_IMM not supported", __FUNCTION__);
 
          case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+            fprintf(stderr, "BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM\n");
             flags = imm;
             sym = &img.at<char>(it);
-            it += strnlen(sym, end - it);
+            it += strnlen(sym, end - it) + 1;
             break;
 
          case BIND_OPCODE_SET_TYPE_IMM:
+            fprintf(stderr, "BIND_OPCODE_SET_TYPE_IMM\n");
             type = imm;
             break;
 
          case BIND_OPCODE_SET_ADDEND_SLEB:
+            fprintf(stderr, "BIND_OPCODE_SET_ADDEND_SLEB\n");
             it += leb128_decode(&img.at<uint8_t>(it), end - it, addend);
             break;
 
          case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+            fprintf(stderr, "BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB\n");
             it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->segment_command.vmaddr;
             break;
 
          case BIND_OPCODE_ADD_ADDR_ULEB:
+            fprintf(stderr, "BIND_OPCODE_ADD_ADDR_ULEB\n");
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            vmaddr += uleb;
+            fprintf(stderr, "uleb=%zx\n", uleb);
+            vmaddr += (ptr_t) uleb;
             break;
 
          case BIND_OPCODE_DO_BIND:
-            do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            fprintf(stderr, "BIND_OPCODE_DO_BINDn");
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
-            vmaddr = do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            fprintf(stderr, "BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB\n");
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            vmaddr += uleb;
+            vmaddr += (ptr_t) uleb;
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
-            vmaddr = do_bind(vmaddr, env, type, addend, load_dylib, sym, flags);
+            fprintf(stderr, "BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED\n");
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             vmaddr += imm * sizeof(ptr_t);
             break;
 
          case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+            fprintf(stderr, "BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB\n");
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
-            vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, load_dylib, sym, flags, uleb2);
+            vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, dylib, sym, flags,
+                                   (ptr_t) uleb2);
             break;
 
          case BIND_OPCODE_THREADED:
@@ -203,7 +216,7 @@ namespace MachO {
       
    template <Bits bits>
    std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
-                                       ssize_t addend, DylibCommand<bits> *dylib, const char *sym,
+                                       ssize_t addend, std::size_t dylib, const char *sym,
                                        uint8_t flags) {
       fprintf(stderr, "%s: binding at 0x%zx\n", __FUNCTION__, vmaddr);
       bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
@@ -213,8 +226,8 @@ namespace MachO {
    template <Bits bits>
    std::size_t BindInfo<bits>::do_bind_times(std::size_t count, std::size_t vmaddr,
                                              ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                                             DylibCommand<bits> *dylib, const char *sym,
-                                             uint8_t flags, std::size_t skipping) {
+                                             std::size_t dylib, const char *sym, uint8_t flags,
+                                             ptr_t skipping) {
       for (std::size_t i = 0; i < count; ++i) {
          vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
          vmaddr += skipping;
@@ -224,10 +237,11 @@ namespace MachO {
 
    template <Bits bits>
    BindNode<bits>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                            DylibCommand<bits> *dylib, const char *sym, uint8_t flags):
-      type(type), addend(addend), dylib(dylib), sym(sym), flags(flags), blob(nullptr)
+                            std::size_t dylib, const char *sym, uint8_t flags):
+      type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr)
    {
       env.resolve(vmaddr, &blob);
+      env.resolve(dylib, &this->dylib);
    }
    
    
