@@ -22,6 +22,7 @@ extern "C" {
 #include "linkedit.hh"
 #include "segment.hh"
 #include "util.hh"
+#include "build.hh"
 
 int main(int argc, char *argv[]) {
    const char *usage = "usage: %s path\n";
@@ -92,6 +93,27 @@ namespace MachO {
          }
       }
       return nullptr;
+   }
+
+   template <Bits bits>
+   void Archive<bits>::Build() {
+      BuildEnv<bits>& env(*this);
+            
+      /* count number of load commands */
+      header.ncmds = load_commands.size();
+
+      /* compute size of commands */
+      header.sizeofcmds = 0;
+      for (LoadCommand<bits> *lc : load_commands) {
+         header.sizeofcmds += lc->size();
+      }
+
+      env.allocate(header.sizeofcmds);
+      
+      /* build each command */
+      for (LoadCommand<bits> *lc : load_commands) {
+         lc->build(env);
+      }
    }
 
 }

@@ -8,6 +8,8 @@ add_executable(macho
   image.cc
   parse.cc
   leb.c
+  build.cc
+  symtab.cc
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})

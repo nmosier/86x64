@@ -7,11 +7,13 @@
 
 namespace MachO {
 
+   template <Bits bits> class String;
+
    template <Bits bits>
    class Symtab: public LoadCommand<bits> {
    public:
       using Nlists = std::vector<Nlist<bits> *>;
-      using Strings = std::vector<std::string *>;
+      using Strings = std::vector<String<bits> *>;
       
       symtab_command symtab;
       Nlists syms;
@@ -37,15 +39,32 @@ namespace MachO {
       static std::size_t size() { return sizeof(nlist_t); }
 
       nlist_t nlist;
-      std::string *string;
+      String<bits> *string;
       
       template <typename... Args>
       static Nlist<bits> *Parse(Args&&... args) { return new Nlist(args...); }
-      void Build(BuildEnv<bits>& env);
+      void Build();
       
    private:
       Nlist(const Image& img, std::size_t offset,
-            const std::unordered_map<std::size_t, std::string *>& off2str);
+            const std::unordered_map<std::size_t, String<bits> *>& off2str);
+   };
+
+   template <Bits bits>
+   class String {
+   public:
+      std::string str;
+      std::size_t offset; /*!< offset inside string table */
+
+      std::size_t size() const { return str.size() + 1; }
+
+      template <typename... Args>
+      static String<bits> *Parse(Args&&... args) { return new String(args...); }
+
+      void Build(BuildEnv<bits>& env);
+      
+   private:
+      String(const Image& img, std::size_t offset, std::size_t maxlen);
    };
 
    template <Bits bits>

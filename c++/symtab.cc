@@ -8,21 +8,15 @@ namespace MachO {
       /* construct strings */
       const std::size_t strbegin = symtab.stroff;
       const std::size_t strend = strbegin + symtab.strsize;
-      std::unordered_map<std::size_t, std::string *> off2str = {{0, nullptr}};
+      std::unordered_map<std::size_t, String<bits> *> off2str = {{0, nullptr}};
       for (std::size_t strit = strbegin + strnlen(&img.at<char>(strbegin), strend - strbegin) + 1;
            strit < strend; ) {
          const std::size_t strrem = strend - strit;
-         std::size_t len = strnlen(&img.at<char>(strit), strrem);
-         if (len == strrem) {
-            throw error("string '%*s...' runs past end of string table",
-                           strrem, &img.at<char>(strit));
-         } else if (len > 0) {
-            std::string *s = new std::string(&img.at<char>(strit));
-            strs.push_back(s);
-            off2str[strit - strbegin] = s;
-            strit += len;
-         }
-         ++strit; /* skip null byte */
+
+         String<bits> *str = String<bits>::Parse(img, strit, strrem);
+         strs.push_back(str);
+         off2str[strit - strbegin] = str;
+         strit += str->size(); // NOTE: includes null byte
       }
 
       /* construct symbols */
@@ -34,7 +28,7 @@ namespace MachO {
 
    template <Bits bits>
    Nlist<bits>::Nlist(const Image& img, std::size_t offset,
-                      const std::unordered_map<std::size_t, std::string *>& off2str) {
+                      const std::unordered_map<std::size_t, String<bits> *>& off2str) {
       nlist = img.at<nlist_t>(offset);
       if (off2str.find(nlist.n_un.n_strx) == off2str.end()) {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
@@ -56,17 +50,39 @@ namespace MachO {
       symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
       
       symtab.strsize = 0;
-      for (const std::string *str : strs) {
+      for (const String<bits> *str : strs) {
          symtab.strsize += str->size();
       }
       symtab.stroff = env.allocate(symtab.strsize);
 
+      /* create build environment for string table */
+      BuildEnv<bits> strtab_env(env.archive);
+      for (String<bits> *str : strs) {
+         str->Build(strtab_env);
+      }
+
+      /* build nlists */
       for (Nlist<bits> *sym : syms) {
-         (void) sym;
-         // TODO
+         sym->Build();
       }
    }
-   
+
+   template <Bits bits>
+   String<bits>::String(const Image& img, std::size_t offset, std::size_t maxlen) {
+      std::size_t slen = strnlen(&img.at<char>(offset), maxlen);
+      str = std::string(&img.at<char>(offset), slen);
+   }
+
+   template <Bits bits>
+   void String<bits>::Build(BuildEnv<bits>& env) {
+      offset = env.allocate(size());
+   }
+
+   template <Bits bits>
+   void Nlist<bits>::Build() {
+      nlist.n_un.n_strx = string->offset;
+   }
+
    template class Symtab<Bits::M32>;
    template class Symtab<Bits::M64>;
    

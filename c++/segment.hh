@@ -113,6 +113,8 @@ namespace MachO {
 
       static SectionBlob<bits> *Parse(const Image& img, std::size_t offset, std::size_t vmaddr,
                                       ParseEnv<bits>& env);
+      
+      
    protected:
       SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env);
    };
