@@ -93,7 +93,7 @@ namespace MachO {
                   const std::size_t targetaddr = refaddr + memdisp;
 
                   /* resolve pointer */
-                  env.resolve(targetaddr, &this->memdisp);
+                  env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
                }
          }
       }
@@ -104,9 +104,8 @@ namespace MachO {
          const size_t targetaddr = refaddr + brdisp;
 
          /* resolve */
-         env.resolve(targetaddr, &this->brdisp);
+         env.vmaddr_resolver.resolve(targetaddr, &this->brdisp);
       }
-
    }
 
    template <Bits bits>
@@ -126,7 +125,8 @@ namespace MachO {
 
    template <Bits bits>
    SectionBlob<bits>::SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env) {
-      env.add(vmaddr, this);
+      env.vmaddr_resolver.add(vmaddr, this);
+#warning need to also pass offset
    }
 
    template <Bits bits>
@@ -137,7 +137,7 @@ namespace MachO {
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
       
       std::size_t targetaddr = img.at<ptr_t>(offset);
-      env.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
+      env.vmaddr_resolver.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
    }
 
    template <Bits bits, class Elem>

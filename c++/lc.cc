@@ -55,7 +55,7 @@ namespace MachO {
          return SourceVersion<bits>::Parse(img, offset);
 
       case LC_MAIN:
-         return EntryPoint<bits>::Parse(img, offset);
+         return EntryPoint<bits>::Parse(img, offset, env);
 
       case LC_LOAD_DYLIB:
          return DylibCommand<bits>::Parse(img, offset, env);
@@ -107,8 +107,10 @@ namespace MachO {
    }
 
    template <Bits bits>
-   EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset):
-      entry_point(img.at<entry_point_command>(offset)) {}
+   EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      entry_point(img.at<entry_point_command>(offset)) {
+#warning
+   }
 
    template <Bits bits>
    DylibCommand<bits>::DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env):
@@ -131,6 +133,23 @@ namespace MachO {
    std::size_t DylibCommand<bits>::size() const {
       return align_up(sizeof(dylib_cmd) + name.size() + 1, sizeof(macho_addr_t<bits>));
    }
+
+   template <Bits bits>
+   void DylinkerCommand<bits>::Build(BuildEnv<bits>& env) {
+      dylinker.name.offset = sizeof(dylinker);
+   }
+
+   template <Bits bits>
+   void BuildVersion<bits>::Build(BuildEnv<bits>& env) {
+      build_version.ntools = tools.size();
+   }
+
+   template <Bits bits>
+   void EntryPoint<bits>::Build(BuildEnv<bits>& env) {
+      // TODO
+#warning
+   }
+   
 
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;

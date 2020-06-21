@@ -42,6 +42,8 @@ namespace MachO {
 
       template <typename... Args>
       static DylinkerCommand<bits> *Parse(Args&&... args) { return new DylinkerCommand(args...); }
+
+      virtual void Build(BuildEnv<bits>& env) override;
       
    private:
       DylinkerCommand(const Image& img, std::size_t offset);
@@ -57,6 +59,7 @@ namespace MachO {
 
       template <typename... Args>
       static UUID<bits> *Parse(Args&&... args) { return new UUID(args...); }
+      virtual void Build(BuildEnv<bits>& env) override {}
       
    private:
       UUID(const Image& img, std::size_t offset): uuid(img.at<uuid_command>(offset)) {}
@@ -70,6 +73,7 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return build_version.cmd; }      
       virtual std::size_t size() const override;
+      virtual void Build(BuildEnv<bits>& env) override;
 
       template <typename... Args>
       static BuildVersion<bits> *Parse(Args&&... args) { return new BuildVersion(args...); }
@@ -100,6 +104,7 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return source_version.cmd; }      
       virtual std::size_t size() const override { return sizeof(source_version); }
+      virtual void Build(BuildEnv<bits>& env) override {}
       
       template <typename... Args>
       static SourceVersion<bits> *Parse(Args&&... args) {
@@ -115,15 +120,17 @@ namespace MachO {
    class EntryPoint: public LoadCommand<bits> {
    public:
       entry_point_command entry_point;
+      SectionBlob<bits> *entry;
 
       virtual uint32_t cmd() const override { return entry_point.cmd; }            
       virtual std::size_t size() const override { return sizeof(entry_point); }
+      virtual void Build(BuildEnv<bits>& env) override;
       
       template <typename... Args>
       static EntryPoint<bits> *Parse(Args&&... args) { return new EntryPoint(args...); }
       
    private:
-      EntryPoint(const Image& img, std::size_t offset);
+      EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env);
    };
 
    template <Bits bits>

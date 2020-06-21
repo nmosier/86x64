@@ -91,7 +91,7 @@ namespace MachO {
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env) {
       rebasees.push_back(nullptr);
-      env.resolve(vmaddr, &rebasees.back());
+      env.vmaddr_resolver.resolve(vmaddr, &rebasees.back());
       return vmaddr + sizeof(ptr_t);
    }
 
@@ -240,7 +240,7 @@ namespace MachO {
                             std::size_t dylib, const char *sym, uint8_t flags):
       type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr)
    {
-      env.resolve(vmaddr, &blob);
+      env.vmaddr_resolver.resolve(vmaddr, &blob);
       env.resolve(dylib, &this->dylib);
    }
    

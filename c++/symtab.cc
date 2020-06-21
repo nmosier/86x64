@@ -83,6 +83,13 @@ namespace MachO {
       nlist.n_un.n_strx = string->offset;
    }
 
+   template <Bits bits>
+   void Dysymtab<bits>::Build(BuildEnv<bits>& env) {
+      dysymtab.indirectsymoff = env.allocate(sizeof(typename decltype(indirectsyms)::value_type) *
+                                             indirectsyms.size());
+      dysymtab.nindirectsyms = indirectsyms.size();
+   }
+
    template class Symtab<Bits::M32>;
    template class Symtab<Bits::M64>;
    

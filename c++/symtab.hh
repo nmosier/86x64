@@ -78,6 +78,7 @@ namespace MachO {
 
       template <typename... Args>
       static Dysymtab<bits> *Parse(Args&&... args) { return new Dysymtab(args...); }
+      virtual void Build(BuildEnv<bits>& env) override;
       
    private:
       Dysymtab(const Image& img, std::size_t offset);

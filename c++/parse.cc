@@ -2,6 +2,7 @@
 
 namespace MachO {
 
+#if 0
    template <Bits bits>
    void ParseEnv<bits>::add(std::size_t vmaddr, const SectionBlob<bits> *pointee) {
       /* check for any unresolved pointers in todo map */
@@ -27,6 +28,7 @@ namespace MachO {
          todo_map[vmaddr].push_back(pointer);
       }
    }
+#endif
 
    template <Bits bits>
    void ParseEnv<bits>::add(const DylibCommand<bits> *dylib) {
