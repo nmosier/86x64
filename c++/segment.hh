@@ -48,7 +48,7 @@ namespace MachO {
       
    protected:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-   };   
+   };
 
    template <Bits bits>
    class Section {
@@ -58,11 +58,15 @@ namespace MachO {
       section_t sect;
 
       std::string name() const;
+      Location loc() const { return Location(sect.offset, sect.addr); }
+      void loc(const Location& loc) { sect.offset = loc.offset; sect.addr = loc.vmaddr; }
 
       virtual ~Section() {}
       
       static std::size_t size() { return sizeof(section_t); }
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      void Build(BuildEnv<bits>& env);
+      virtual std::size_t content_size() const = 0;
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
@@ -75,6 +79,7 @@ namespace MachO {
       Content content;
 
       ~SectionT();
+      virtual std::size_t content_size() const override;
       
    protected:
       typedef Elem *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
@@ -115,6 +120,7 @@ namespace MachO {
       
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}
+      void Build(BuildEnv<bits>& env);
 
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env);

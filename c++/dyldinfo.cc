@@ -246,12 +246,30 @@ namespace MachO {
 
    template <Bits bits>
    void DyldInfo<bits>::Build(BuildEnv<bits>& env) {
-#warning TODO
+      dyld_info.rebase_size = rebase->size();
+      dyld_info.rebase_off = env.allocate(dyld_info.rebase_size);
+
+      dyld_info.bind_size = bind->size();
+      dyld_info.bind_off = env.allocate(dyld_info.bind_size);
+
+      dyld_info.weak_bind_size = weak_bind.size();
+      dyld_info.weak_bind_off = env.allocate(dyld_info.weak_bind_size);
+
+      dyld_info.lazy_bind_size = lazy_bind.size();
+      dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
+
+      dyld_info.export_size = export_info.size();
+      dyld_info.export_off = env.allocate(dyld_info.export_size);
    }
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::size() const {
-#warning TODO
+      std::size_t size = 0;
+      for (const RebaseNode<bits> *node : rebasees) {
+         size += node->size();
+      }
+      size += 1; /* REBASE_OPCODE_DONE */
+      return size;
    }
 
    template <Bits bits>

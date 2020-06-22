@@ -192,9 +192,10 @@ namespace MachO {
    template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
       id = env.template counter<decltype(this)>();
+      segment_command.nsects = sections.size();
+      
 #warning INCOMPLETE
 #if 0
-      segment_command.nsects = sections.size();
 
       assert(env.loc().offset % PAGESIZE == env.loc().vmaddr % PAGESIZE);
       segment_command.fileoff = align_down(env.loc().offset, PAGESIZE);
@@ -213,6 +214,29 @@ namespace MachO {
 
       env.newsegment();
 #endif
+   }
+
+   template <Bits bits>
+   void SectionBlob<bits>::Build(BuildEnv<bits>& env) {
+      env.allocate(size(), loc);
+   }
+
+   template <Bits bits>
+   void Section<bits>::Build(BuildEnv<bits>& env) {
+      sect.size = content_size();
+
+      Location tmploc;
+      env.allocate(content_size(), tmploc);
+      loc(tmploc);
+   }
+
+   template <Bits bits, class Elem>
+   std::size_t SectionT<bits, Elem>::content_size() const {
+      std::size_t size = 0;
+      for (const Elem *elem : content) {
+         size += elem->size();
+      }
+      return size;
    }
    
    template class Segment<Bits::M32>;
