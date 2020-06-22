@@ -285,8 +285,19 @@ namespace MachO {
    {
       env.vmaddr_resolver.resolve(vmaddr, &blob);
    }
+
+   template <Bits bits>
+   std::size_t RebaseNode<bits>::size() const {
+      /* 1   REBASE_OPCODE_SET_TYPE_IMM
+       * 1+a REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+       * 1   REBASE_OPCODE_DO_REBASE_IMM_TIMES
+       * 3+a total
+       */
+      assert(blob->segment->id < 16);
+      return 3 + leb128_size(blob->loc.offset - blob->segment->loc().offset);
+   }
    
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
-   
+
 }

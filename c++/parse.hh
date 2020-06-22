@@ -49,22 +49,21 @@ namespace MachO {
       TodoMap todo;
    };
 
-   template <Bits bits>
-   class DylibResolver {
+   template <typename T>
+   class CountResolver {
    public:
 
-      void add(const DylibCommand<bits> *pointee) { resolver.add(++id, pointee); }
+      void add(const T *pointee) { resolver.add(++id, pointee); }
       template <typename... Args>
       void resolve(Args&&... args) { return resolver.resolve(args...); }
       
-      DylibResolver(): id(0) {}
+      CountResolver(): id(0) {}
       
    private:
-      Resolver<DylibCommand<bits>> resolver;
+      Resolver<T> resolver;
       unsigned id;
    };
-   
-   
+
    template <Bits bits>
    class ParseEnv {
    public:
@@ -72,7 +71,8 @@ namespace MachO {
 
       Resolver<SectionBlob<bits>> vmaddr_resolver;
       Resolver<SectionBlob<bits>> offset_resolver;
-      DylibResolver<bits> dylib_resolver;
+      CountResolver<DylibCommand<bits>> dylib_resolver;
+      CountResolver<Segment<bits>> segment_resolver;
       Segment<bits> *current_segment;
 
       ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}

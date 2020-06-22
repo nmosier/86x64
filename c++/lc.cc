@@ -152,7 +152,8 @@ namespace MachO {
    template <Bits bits>
    void DylibCommand<bits>::Build(BuildEnv<bits>& env) {
       dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
-      id = env.register_dylib();
+      id = env.template counter<decltype(this)>();
+      // id = env.register_dylib();
    }
 
    template class LoadCommand<Bits::M32>;

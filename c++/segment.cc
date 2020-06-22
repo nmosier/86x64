@@ -191,6 +191,7 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
+      id = env.template counter<decltype(this)>();
 #warning INCOMPLETE
 #if 0
       segment_command.nsects = sections.size();

@@ -28,15 +28,25 @@ namespace MachO {
       
       void newsegment();
 
+      template <typename T>
+      unsigned counter() const {
+         static unsigned count = 0;
+         return ++count;
+      }
+         
+#if 0
       unsigned register_dylib() { return ++dylib_counter; }
+#endif
       
       const Location& loc() const { return loc_; }
       
-      BuildEnv(Archive<bits>& archive): archive(archive), dylib_counter(0) {}
+      BuildEnv(Archive<bits>& archive): archive(archive) {}
       
    private:
       Location loc_;
+#if 0
       unsigned dylib_counter;
+#endif
    };
    
 }

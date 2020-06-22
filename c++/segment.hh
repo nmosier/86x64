@@ -30,6 +30,7 @@ namespace MachO {
 
       segment_command_t segment_command;
       Sections sections;
+      unsigned id; /*!< assigned during build time */
 
       virtual uint32_t cmd() const override { return segment_command.cmd; }
       virtual std::size_t size() const override;
