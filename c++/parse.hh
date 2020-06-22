@@ -73,8 +73,9 @@ namespace MachO {
       Resolver<SectionBlob<bits>> vmaddr_resolver;
       Resolver<SectionBlob<bits>> offset_resolver;
       DylibResolver<bits> dylib_resolver;
+      Segment<bits> *current_segment;
 
-      ParseEnv(Archive<bits>& archive): archive(archive) {}
+      ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}
       
    private:
       

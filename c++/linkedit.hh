@@ -16,6 +16,7 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return linkedit.cmd; }            
       virtual std::size_t size() const override { return sizeof(linkedit); }
+      virtual void Build(BuildEnv<bits>& env) override;
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset);
       

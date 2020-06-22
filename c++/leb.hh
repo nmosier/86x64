@@ -25,3 +25,13 @@ size_t leb128_decode(const void *buf, size_t buflen, T& n) {
 
    return count;
 }
+
+template <typename T>
+size_t leb128_size(T n) {
+   static_assert(std::is_integral<T>());
+   if constexpr (std::is_unsigned<T>()) {
+         return uleb128_encode(nullptr, std::numeric_limits<size_t>::max(), n);
+      } else {
+      return sleb128_encode(nullptr, std::numeric_limits<size_t>::max(), n);
+   }
+}

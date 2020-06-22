@@ -35,6 +35,8 @@ size_t uleb128_decode(const void *buf, size_t buflen, uintmax_t *n);
  */
 size_t uleb128_encode(void *buf, size_t buflen, uintmax_t n);
 
+
+
 /**
  * Decode a signed LEB128 value from buffer.
  * @param buf input buffer

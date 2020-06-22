@@ -35,6 +35,8 @@ namespace MachO {
       virtual std::size_t size() const override;
       std::string name() const;
       std::size_t vmaddr() const { return segment_command.vmaddr; }
+      virtual void Build(BuildEnv<bits>& env) override;
+      Location loc() const { return Location(segment_command.fileoff, segment_command.vmaddr); }
 
       Section<bits> *section(const std::string& name);
 
@@ -107,6 +109,7 @@ namespace MachO {
    template <Bits bits>
    class SectionBlob {
    public:
+      Segment<bits> *segment; /*!< containing segment */
       Location loc; /*!< Post-build location */
       
       virtual std::size_t size() const = 0;

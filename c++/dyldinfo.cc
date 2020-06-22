@@ -61,24 +61,24 @@ namespace MachO {
             break;
 
          case REBASE_OPCODE_DO_REBASE_IMM_TIMES:
-            vmaddr = do_rebase_times(imm, vmaddr, env);
+            vmaddr = do_rebase_times(imm, vmaddr, env, type);
             break;
             
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            vmaddr = do_rebase_times(imm, vmaddr, env);
+            vmaddr = do_rebase_times(imm, vmaddr, env, type);
             break;
 
          case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            vmaddr = do_rebase(vmaddr, env);
+            vmaddr = do_rebase(vmaddr, env, type);
             vmaddr += uleb;
             break;
             
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
-            vmaddr = do_rebase_times(uleb, vmaddr, env, uleb2);
+            vmaddr = do_rebase_times(uleb, vmaddr, env, type, uleb2);
             break;
             
          default:
@@ -89,17 +89,17 @@ namespace MachO {
    }
 
    template <Bits bits>
-   std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env) {
-      rebasees.push_back(nullptr);
-      env.vmaddr_resolver.resolve(vmaddr, &rebasees.back());
+   std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
+      rebasees.push_back(RebaseNode<bits>::Parse(vmaddr, env, type));
       return vmaddr + sizeof(ptr_t);
    }
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase_times(std::size_t count, std::size_t vmaddr,
-                                                 ParseEnv<bits>& env, std::size_t skipping) {
+                                                 ParseEnv<bits>& env, uint8_t type,
+                                                 std::size_t skipping) {
       for (std::size_t i = 0; i < count; ++i) {
-         do_rebase(vmaddr, env);
+         do_rebase(vmaddr, env, type);
          vmaddr += sizeof(ptr_t) + skipping;
       }
       return vmaddr;
@@ -243,7 +243,48 @@ namespace MachO {
       env.vmaddr_resolver.resolve(vmaddr, &blob);
       env.dylib_resolver.resolve(dylib, &this->dylib);
    }
-   
+
+   template <Bits bits>
+   void DyldInfo<bits>::Build(BuildEnv<bits>& env) {
+#warning TODO
+   }
+
+   template <Bits bits>
+   std::size_t RebaseInfo<bits>::size() const {
+#warning TODO
+   }
+
+   template <Bits bits>
+   std::size_t BindInfo<bits>::size() const {
+      std::size_t size = 0;
+      for (const BindNode<bits> *node : bindees) {
+         size += node->size();
+      }
+      size += 1; /* BIND_OPCODE_DONE */
+      return size;
+   }
+
+   template <Bits bits>
+   std::size_t BindNode<bits>::size() const {
+      /* 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
+       * 1   BIND_OPCODE_SET_TYPE_IMM
+       * 1+a   [BIND_OPCODE_SET_ADDEND_SLEB]
+       * 1+b BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+       * 1+c BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+       * 1   BIND_OPCODE_DO_BIND
+       * 6+a+b+c total
+       */
+      assert(dylib->id < 16);
+      return 6 + leb128_size(addend) + leb128_size(blob->loc.offset - blob->segment->loc().offset)
+         + sym.size() + 1;
+   }
+
+   template <Bits bits>
+   RebaseNode<bits>::RebaseNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type):
+      type(type), blob(nullptr)
+   {
+      env.vmaddr_resolver.resolve(vmaddr, &blob);
+   }
    
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;

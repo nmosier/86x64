@@ -21,6 +21,11 @@ namespace MachO {
       }
    }
    
+   template <Bits bits>
+   void LinkeditData<bits>::Build(BuildEnv<bits>& env) {
+#warning TODO
+   }
+   
    template class LinkeditData<Bits::M32>;
    template class LinkeditData<Bits::M64>;
 

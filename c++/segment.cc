@@ -6,12 +6,16 @@ namespace MachO {
    Segment<bits>::Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
       segment_command = img.at<segment_command_t>(offset);
 
+      env.current_segment = this;
+      
       offset += sizeof(segment_command_t);
       for (int i = 0; i < segment_command.nsects; ++i) {
          Section<bits> *section = Section<bits>::Parse(img, offset, env);
          sections.push_back(section);
          offset += section->size();
       }
+      
+      env.current_segment = nullptr;
    }
 
    template <Bits bits>
@@ -123,7 +127,10 @@ namespace MachO {
    }
 
    template <Bits bits>
-   SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env) {
+   SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env):
+      segment(env.current_segment)
+   {
+      assert(segment);
       env.vmaddr_resolver.add(loc.vmaddr, this);
       env.offset_resolver.add(loc.offset, this);
    }
@@ -180,6 +187,31 @@ namespace MachO {
    std::string Segment<bits>::name() const {
       return std::string(segment_command.segname, strnlen(segment_command.segname,
                                                           sizeof(segment_command.segname)));
+   }
+
+   template <Bits bits>
+   void Segment<bits>::Build(BuildEnv<bits>& env) {
+#warning INCOMPLETE
+#if 0
+      segment_command.nsects = sections.size();
+
+      assert(env.loc().offset % PAGESIZE == env.loc().vmaddr % PAGESIZE);
+      segment_command.fileoff = align_down(env.loc().offset, PAGESIZE);
+      segment_command.vmaddr = align_down(env.loc().vmaddr, PAGESIZE);
+      
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
+
+      // segment_command.filesize = env.loc.offset - segment_command.fileoff;
+      std::size_t tmp_vmsize = align_up(env.loc.vmaddr, PAGESIZE) - segment_command.vmaddr;
+      segment_command.vmsize = 
+         
+         
+         align_up(env.loc.vmaddr - segment_command.vmaddr + 1, PAGESIZE);
+
+      env.newsegment();
+#endif
    }
    
    template class Segment<Bits::M32>;

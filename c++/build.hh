@@ -27,12 +27,16 @@ namespace MachO {
       void allocate(std::size_t size, Location& loc);
       
       void newsegment();
+
+      unsigned register_dylib() { return ++dylib_counter; }
       
-      BuildEnv(Archive<bits>& archive): archive(archive), vmaddr(0), offset(0) {}
+      const Location& loc() const { return loc_; }
+      
+      BuildEnv(Archive<bits>& archive): archive(archive), dylib_counter(0) {}
       
    private:
-      std::size_t vmaddr;
-      std::size_t offset;
+      Location loc_;
+      unsigned dylib_counter;
    };
    
 }

@@ -9,6 +9,8 @@
 
 namespace MachO {
 
+   constexpr std::size_t PAGESIZE = 0x1000;
+
    namespace {
       template <Bits bits, typename T32, typename T64>
       auto select_type_func() {
