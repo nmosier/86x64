@@ -74,12 +74,11 @@ namespace MachO {
       ~SectionT();
       
    protected:
-      typedef Elem *(*Parser)(const Image&, std::size_t, std::size_t, ParseEnv<bits>&);
+      typedef Elem *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
       SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
       SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT(img, offset, env, [](const Image& img, std::size_t offset, std::size_t vmaddr,
-                                       ParseEnv<bits>& env) {
-                                       return Elem::Parse(img, offset, vmaddr, env);
+         SectionT(img, offset, env, [](const Image& img, const Location& loc, ParseEnv<bits>& env) {
+                                       return Elem::Parse(img, loc, env);
                                     }) {}
    };
 
@@ -89,7 +88,7 @@ namespace MachO {
       template <typename... Args>
       static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
    private:
-      static SectionBlob<bits> *BlobParser(const Image& img, std::size_t offset, std::size_t vmaddr,
+      static SectionBlob<bits> *BlobParser(const Image& img, const Location& loc,
                                            ParseEnv<bits>& env);
       TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
          SectionT<bits, SectionBlob<bits>>(img, offset, env, BlobParser) {}
@@ -116,7 +115,7 @@ namespace MachO {
       
       
    protected:
-      SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env);
+      SectionBlob(const Location& loc, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
@@ -128,8 +127,8 @@ namespace MachO {
       static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
       
    private:
-      DataBlob(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env):
-         SectionBlob<bits>(vmaddr, env), data(img.at<uint8_t>(offset)) {}
+      DataBlob(const Image& img, const Location& loc, ParseEnv<bits>& env):
+         SectionBlob<bits>(loc, env), data(img.at<uint8_t>(loc.offset)) {}
    };
 
    template <Bits bits>
@@ -143,8 +142,8 @@ namespace MachO {
       }
       
    private:
-      ZeroBlob(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env):
-         SectionBlob<bits>(vmaddr, env) {}
+      ZeroBlob(const Image& img, const Location& loc, ParseEnv<bits>& env):
+         SectionBlob<bits>(loc, env) {}
    };
    
    template <Bits bits>
@@ -195,8 +194,7 @@ namespace MachO {
       }
       
    private:
-      LazySymbolPointer(const Image& img, std::size_t offset, std::size_t vmaddr,
-                        ParseEnv<bits>& env);
+      LazySymbolPointer(const Image& img, const Location& loc, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
@@ -207,8 +205,8 @@ namespace MachO {
          return new NonLazySymbolPointer(args...);
       }
    private:
-      NonLazySymbolPointer(const Image& img, std::size_t offset, std::size_t vmaddr,
-                           ParseEnv<bits>& env): SymbolPointer<bits>(vmaddr, env) {}
+      NonLazySymbolPointer(const Image& img, const Location& loc, ParseEnv<bits>& env):
+         SymbolPointer<bits>(loc, env) {}
    };
 
    template <Bits bits>
@@ -240,7 +238,7 @@ namespace MachO {
       static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
       
    private:
-      Instruction(const Image& img, std::size_t offset, std::size_t vmaddr, ParseEnv<bits>& env);
+      Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env);
    };
 
 

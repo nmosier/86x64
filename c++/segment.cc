@@ -50,9 +50,8 @@ namespace MachO {
       };
 
    template <Bits bits>
-   Instruction<bits>::Instruction(const Image& img, std::size_t offset, std::size_t vmaddr,
-                                  ParseEnv<bits>& env):
-      SectionBlob<bits>(vmaddr, env), memdisp(nullptr), brdisp(nullptr)
+   Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
+      SectionBlob<bits>(loc, env), memdisp(nullptr), brdisp(nullptr)
    {
       xed_decoded_inst_t xedd;
       xed_error_enum_t err;
@@ -60,14 +59,14 @@ namespace MachO {
       xed_decoded_inst_zero_set_mode(&xedd, &dstate);
       xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 
-      if ((err = xed_decode(&xedd, &img.at<uint8_t>(offset), img.size() - offset)) !=
+      if ((err = xed_decode(&xedd, &img.at<uint8_t>(loc.offset), img.size() - loc.offset)) !=
           XED_ERROR_NONE) {
-         throw error("%s: offset 0x%x: xed_decode: %s", __FUNCTION__, offset,
+         throw error("%s: offset 0x%x: xed_decode: %s", __FUNCTION__, loc.offset,
                      xed_error_enum_t2str(err));
       }
-      instbuf = std::vector<uint8_t>(&img.at<uint8_t>(offset),
-                                     &img.at<uint8_t>(offset + xed_decoded_inst_get_length(&xedd)));
-      const std::size_t refaddr = vmaddr + xed_decoded_inst_get_length(&xedd);
+      instbuf = std::vector<uint8_t>(&img.at<uint8_t>(loc.offset),
+                                     &img.at<uint8_t>(loc.offset + xed_decoded_inst_get_length(&xedd)));
+      const std::size_t refaddr = loc.vmaddr + xed_decoded_inst_get_length(&xedd);
       
       
 
@@ -83,7 +82,7 @@ namespace MachO {
                   if (memdisp) {
                      fprintf(stderr,
                              "warning: %s: duplicate memdisp at offset 0x%jx, vmaddr 0x%jx\n",
-                             __FUNCTION__, offset, vmaddr);
+                             __FUNCTION__, loc.offset, loc.vmaddr);
                      abort();
                   }
                   
@@ -109,12 +108,12 @@ namespace MachO {
    }
 
    template <Bits bits>
-   SectionBlob<bits> *TextSection<bits>::BlobParser(const Image& img, std::size_t offset,
-                                                    std::size_t vmaddr, ParseEnv<bits>& env) {
+   SectionBlob<bits> *TextSection<bits>::BlobParser(const Image& img, const Location& loc,
+                                                    ParseEnv<bits>& env) {
       try {
-         return Instruction<bits>::Parse(img, offset, vmaddr, env);
+         return Instruction<bits>::Parse(img, loc, env);
       } catch (...) {
-         return DataBlob<bits>::Parse(img, offset, vmaddr, env);
+         return DataBlob<bits>::Parse(img, loc, env);
       }
    }
 
@@ -124,19 +123,19 @@ namespace MachO {
    }
 
    template <Bits bits>
-   SectionBlob<bits>::SectionBlob(std::size_t vmaddr, ParseEnv<bits>& env) {
-      env.vmaddr_resolver.add(vmaddr, this);
-#warning need to also pass offset
+   SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env) {
+      env.vmaddr_resolver.add(loc.vmaddr, this);
+      env.offset_resolver.add(loc.offset, this);
    }
 
    template <Bits bits>
-   LazySymbolPointer<bits>::LazySymbolPointer(const Image& img, std::size_t offset,
-                                              std::size_t vmaddr, ParseEnv<bits>& env):
-      SymbolPointer<bits>(vmaddr, env)
+   LazySymbolPointer<bits>::LazySymbolPointer(const Image& img, const Location& loc,
+                                              ParseEnv<bits>& env):
+      SymbolPointer<bits>(loc, env)
    {
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
       
-      std::size_t targetaddr = img.at<ptr_t>(offset);
+      std::size_t targetaddr = img.at<ptr_t>(loc.offset);
       env.vmaddr_resolver.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
    }
 
@@ -155,7 +154,7 @@ namespace MachO {
       std::size_t it = begin;
       std::size_t vmaddr = this->sect.addr;
       while (it != end) {
-         Elem *elem = parser(img, it, vmaddr, env);
+         Elem *elem = parser(img, Location(it, vmaddr), env);
          content.push_back(elem);
          it += elem->size();
          vmaddr += elem->size();

@@ -3,13 +3,9 @@
 #include <cstdlib>
 
 #include "macho-fwd.hh"
+#include "loc.hh"
 
 namespace MachO {
-
-   struct Location {
-      std::size_t vmaddr;
-      std::size_t offset;
-   };
 
    template <Bits bits>
    class BuildEnv {

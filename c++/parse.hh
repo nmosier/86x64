@@ -4,6 +4,7 @@
 #include <list>
 
 #include "macho-fwd.hh"
+#include "loc.hh"
 
 namespace MachO {
    
@@ -68,9 +69,6 @@ namespace MachO {
    class ParseEnv {
    public:
       Archive<bits>& archive;
-
-      using Dylibs = std::unordered_map<std::size_t, const DylibCommand<bits> *>;
-      using TodoDylibs = std::unordered_map<std::size_t, std::list<const DylibCommand<bits> **>>;
 
       Resolver<SectionBlob<bits>> vmaddr_resolver;
       Resolver<SectionBlob<bits>> offset_resolver;
