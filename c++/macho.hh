@@ -16,6 +16,7 @@ namespace MachO {
       virtual uint32_t& magic() = 0;
       
       static MachO *Parse(const Image& img);
+      virtual void Build() = 0;
       virtual ~MachO() {}
 
    private:
@@ -51,7 +52,7 @@ namespace MachO {
       Segment<bits> *segment(const std::string& name);
 
       static Archive<bits> *Parse(const Image& img, std::size_t offset = 0);
-      void Build();
+      virtual void Build() override;
       virtual ~Archive() override;
 
    private:

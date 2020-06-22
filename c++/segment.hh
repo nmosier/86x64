@@ -46,9 +46,29 @@ namespace MachO {
 
       virtual ~Segment() override;
       
-   protected:
+   private:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+
+      void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
+      void Build_default(BuildEnv<bits>& env);
+      void Build_LINKEDIT(BuildEnv<bits>& env); /*!< for SEG_LINKEDIT segment */
    };
+
+#if 0
+   template <Bits bits>
+   class Segment_LINKEDIT: public Segment<bits> {
+   public:
+      virtual void Build(BuildEnv<bits>& env) override;
+      
+      template <typename... Args>
+      static Segment_LINKEDIT<bits> *Parse(Args&&... args) { return new Segment_LINKEDIT(args...); }
+      
+   private:
+      template <typename... Args>
+      Segment_LINKEDIT(Args&&... args): Segment<bits>(args...) {}
+   };
+#endif
+   
 
    template <Bits bits>
    class Section {

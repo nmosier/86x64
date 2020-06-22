@@ -97,7 +97,7 @@ namespace MachO {
 
    template <Bits bits>
    void Archive<bits>::Build() {
-      BuildEnv<bits>& env(*this);
+      BuildEnv<bits> env(*this);
             
       /* count number of load commands */
       header.ncmds = load_commands.size();
@@ -112,7 +112,7 @@ namespace MachO {
       
       /* build each command */
       for (LoadCommand<bits> *lc : load_commands) {
-         lc->build(env);
+         lc->Build(env);
       }
    }
 

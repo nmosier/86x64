@@ -33,20 +33,12 @@ namespace MachO {
          static unsigned count = 0;
          return ++count;
       }
-         
-#if 0
-      unsigned register_dylib() { return ++dylib_counter; }
-#endif
-      
-      const Location& loc() const { return loc_; }
+
+      Location loc;      
       
       BuildEnv(Archive<bits>& archive): archive(archive) {}
       
    private:
-      Location loc_;
-#if 0
-      unsigned dylib_counter;
-#endif
    };
    
 }

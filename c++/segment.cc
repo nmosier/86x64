@@ -193,27 +193,17 @@ namespace MachO {
    void Segment<bits>::Build(BuildEnv<bits>& env) {
       id = env.template counter<decltype(this)>();
       segment_command.nsects = sections.size();
-      
-#warning INCOMPLETE
-#if 0
 
-      assert(env.loc().offset % PAGESIZE == env.loc().vmaddr % PAGESIZE);
-      segment_command.fileoff = align_down(env.loc().offset, PAGESIZE);
-      segment_command.vmaddr = align_down(env.loc().vmaddr, PAGESIZE);
-      
-      for (Section<bits> *sect : sections) {
-         sect->Build(env);
+      /* get combined size of sections */
+      std::size_t total_size = 0;
+      for (const Section<bits> *sect : sections) {
+         total_size += sect->content_size();
       }
 
-      // segment_command.filesize = env.loc.offset - segment_command.fileoff;
-      std::size_t tmp_vmsize = align_up(env.loc.vmaddr, PAGESIZE) - segment_command.vmaddr;
-      segment_command.vmsize = 
-         
-         
-         align_up(env.loc.vmaddr - segment_command.vmaddr + 1, PAGESIZE);
-
-      env.newsegment();
-#endif
+      /* set segment start location */
+      segment_command.vmaddr = align_down(env.loc.vmaddr, PAGESIZE); 
+      
+#warning INCOMPLETE
    }
 
    template <Bits bits>
@@ -237,6 +227,44 @@ namespace MachO {
          size += elem->size();
       }
       return size;
+   }
+
+   template <Bits bits>
+   void Segment<bits>::Build_PAGEZERO(BuildEnv<bits>& env) {
+      assert(env.loc.vmaddr == 0);
+      segment_command.vmaddr = 0;
+      segment_command.vmsize = PAGESIZE;
+      segment_command.fileoff = 0;
+      segment_command.filesize = 0;
+      env.loc.vmaddr = PAGESIZE;
+   }
+
+   template <Bits bits>
+   void Segment<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
+#warning Segment::Build_LINKEDIT incomplete
+   }
+
+   template <Bits bits>
+   void Segment<bits>::Build_default(BuildEnv<bits>& env) {
+      /* set start offsets */
+      segment_command.vmaddr = env.loc.vmaddr;
+      segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
+
+      /* adjust vmaddr */
+      env.loc.vmaddr = env.loc.vmaddr + env.loc.offset - segment_command.fileoff;
+      assert(env.loc.vmaddr % PAGESIZE == env.loc.offset % PAGESIZE);
+
+      /* build sections */
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
+
+      /* compute and set sizes */
+      segment_command.vmsize = align_up(env.loc.vmaddr, PAGESIZE) - segment_command.vmaddr;
+      segment_command.filesize = segment_command.vmsize;
+
+      /* realign vmaddr in env */
+      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
    }
    
    template class Segment<Bits::M32>;

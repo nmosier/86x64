@@ -17,6 +17,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return linkedit.cmd; }            
       virtual std::size_t size() const override { return sizeof(linkedit); }
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual std::size_t content_size() const = 0;
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset);
       
@@ -30,6 +31,10 @@ namespace MachO {
    public:
       std::vector<data_in_code_entry> dices;
 
+      virtual std::size_t content_size() const override {
+         return dices.size() * sizeof(data_in_code_entry);
+      }
+      
       template <typename... Args>
       static DataInCode<bits> *Parse(Args&&... args) { return new DataInCode<bits>(args...); }
       
@@ -48,6 +53,10 @@ namespace MachO {
 
       Entries function_starts;
 
+      virtual std::size_t content_size() const override {
+         return function_starts.size() * sizeof(pointer_t);
+      }
+
       template <typename... Args>
       static FunctionStarts<bits> *Parse(Args&&... args) { return new FunctionStarts(args...); }
       
@@ -63,6 +72,8 @@ namespace MachO {
    class CodeSignature: public LinkeditData<bits> {
    public:
       std::vector<uint8_t> cs;
+
+      virtual std::size_t content_size() const override { return cs.size(); }
 
       template <typename... Args>
       static CodeSignature<bits> *Parse(Args&&... args) { return new CodeSignature(args...); }
