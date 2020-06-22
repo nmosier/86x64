@@ -109,7 +109,7 @@ namespace MachO {
    template <Bits bits>
    EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       entry_point(img.at<entry_point_command>(offset)) {
-#warning
+      env.offset_resolver.resolve(entry_point.entryoff, &entry);
    }
 
    template <Bits bits>
@@ -146,8 +146,7 @@ namespace MachO {
 
    template <Bits bits>
    void EntryPoint<bits>::Build(BuildEnv<bits>& env) {
-      // TODO
-#warning
+      entry_point.entryoff = entry->loc.offset;
    }
    
 

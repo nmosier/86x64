@@ -107,13 +107,11 @@ namespace MachO {
    template <Bits bits>
    class SectionBlob {
    public:
+      Location loc; /*!< Post-build location */
+      
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}
 
-      static SectionBlob<bits> *Parse(const Image& img, std::size_t offset, std::size_t vmaddr,
-                                      ParseEnv<bits>& env);
-      
-      
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env);
    };

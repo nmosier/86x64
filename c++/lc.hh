@@ -120,7 +120,7 @@ namespace MachO {
    class EntryPoint: public LoadCommand<bits> {
    public:
       entry_point_command entry_point;
-      SectionBlob<bits> *entry;
+      const SectionBlob<bits> *entry;
 
       virtual uint32_t cmd() const override { return entry_point.cmd; }            
       virtual std::size_t size() const override { return sizeof(entry_point); }
