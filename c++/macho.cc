@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
    xed_tables_init();
    
    MachO::MachO *macho = MachO::MachO::Parse(img);
+   macho->Build();
    (void) macho;
 
    return 0;
@@ -109,11 +110,22 @@ namespace MachO {
       }
 
       env.allocate(header.sizeofcmds);
+
+#if 0
+      const uint32_t cmd_priority[] =
+         {LC_SEGMENT,
+          LC_SEGMENT_64,
+          LC_LOAD_DYLIB,
+          
+          
+         };
+#endif
+
       
       /* build each command */
       for (LoadCommand<bits> *lc : load_commands) {
          lc->Build(env);
       }
    }
-
+   
 }
