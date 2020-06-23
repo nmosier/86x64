@@ -23,11 +23,10 @@ namespace MachO {
       static LoadCommand<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Build(BuildEnv<bits>& env) = 0;
       virtual ~LoadCommand() {}
+      virtual void AssignID(BuildEnv<bits>& env) {} /*!< build pass 1 */
       
    protected:
       LoadCommand() {}
-
-      virtual void Parse2(const Image& img, Archive<bits>&& archive) {}
    };
 
 
@@ -142,8 +141,13 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return dylib_cmd.cmd; }            
       virtual std::size_t size() const override;
-      virtual void Build(BuildEnv<bits>& env) override;
-
+      virtual void Build(BuildEnv<bits>& env) override {
+         dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
+      }
+      virtual void AssignID(BuildEnv<bits>& env) override {
+         id = env.template counter<decltype(this)>();
+      }
+      
       template <typename... Args>
       static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }
       

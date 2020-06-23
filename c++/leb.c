@@ -108,7 +108,9 @@ size_t sleb128_encode(void *buf, size_t buflen, intmax_t n) {
       }
 
       const uint8_t data = n & SLEB128_DATAMASK;
-      *it = data;
+      if (buf) {
+         *it = data;
+      }
 
       n >>= 7;
 
@@ -116,7 +118,9 @@ size_t sleb128_encode(void *buf, size_t buflen, intmax_t n) {
       if ((!!(data & SLEB128_SIGNBIT) == (n < 0)) && (n == (n < 0 ? -1 : 0))) {
          return it - begin + 1;
       } else {
-         *it = n | SLEB128_CTRLMASK;
+         if (buf) {
+            *it = n | SLEB128_CTRLMASK;
+         }
       }
 
       ++it;

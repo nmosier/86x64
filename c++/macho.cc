@@ -111,16 +111,10 @@ namespace MachO {
 
       env.allocate(header.sizeofcmds);
 
-#if 0
-      const uint32_t cmd_priority[] =
-         {LC_SEGMENT,
-          LC_SEGMENT_64,
-          LC_LOAD_DYLIB,
-          
-          
-         };
-#endif
-
+      /* assign IDs */
+      for (LoadCommand<bits> *lc : load_commands) {
+         lc->AssignID(env);
+      }
       
       /* build each command */
       for (LoadCommand<bits> *lc : load_commands) {

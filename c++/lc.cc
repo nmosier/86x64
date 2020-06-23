@@ -149,13 +149,6 @@ namespace MachO {
       entry_point.entryoff = entry->loc.offset;
    }
 
-   template <Bits bits>
-   void DylibCommand<bits>::Build(BuildEnv<bits>& env) {
-      dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
-      id = env.template counter<decltype(this)>();
-      // id = env.register_dylib();
-   }
-
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;
    
