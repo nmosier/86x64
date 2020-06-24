@@ -35,3 +35,25 @@ size_t leb128_size(T n) {
       return sleb128_encode(nullptr, std::numeric_limits<size_t>::max(), n);
    }
 }
+
+template <typename T>
+size_t leb128_encode(void *buf, size_t buflen, T n) {
+   static_assert(std::is_integral<T>());
+   
+   std::string name;
+   size_t count;
+   
+   if constexpr (std::is_unsigned<T>()) {
+         count = uleb128_encode(buf, buflen, n);
+         name = "uleb128_encode";
+      } else {
+      count = sleb128_encode(buf, buflen, n);
+      name = "sleb128_encode";
+   }
+
+   if (count == 0) {
+      throw std::invalid_argument(name + ": needs more buffer space");
+   }
+
+   return count;
+}

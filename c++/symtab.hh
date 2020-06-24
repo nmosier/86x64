@@ -21,6 +21,7 @@ namespace MachO {
       
       virtual uint32_t cmd() const override { return symtab.cmd; }
       virtual std::size_t size() const override { return sizeof(symtab); }
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
@@ -44,6 +45,7 @@ namespace MachO {
       template <typename... Args>
       static Nlist<bits> *Parse(Args&&... args) { return new Nlist(args...); }
       void Build();
+      void Emit(Image& img, std::size_t offset) const;
       
    private:
       Nlist(const Image& img, std::size_t offset,
@@ -62,6 +64,7 @@ namespace MachO {
       static String<bits> *Parse(Args&&... args) { return new String(args...); }
 
       void Build(BuildEnv<bits>& env);
+      void Emit(Image& img, std::size_t offset) const;
       
    private:
       String(const Image& img, std::size_t offset, std::size_t maxlen);
@@ -79,6 +82,7 @@ namespace MachO {
       template <typename... Args>
       static Dysymtab<bits> *Parse(Args&&... args) { return new Dysymtab(args...); }
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
    private:
       Dysymtab(const Image& img, std::size_t offset);

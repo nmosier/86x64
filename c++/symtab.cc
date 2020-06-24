@@ -90,6 +90,40 @@ namespace MachO {
       dysymtab.nindirectsyms = indirectsyms.size();
    }
 
+   template <Bits bits>
+   void Symtab<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<symtab_command>(offset) = symtab;
+
+      std::size_t symoff = symtab.symoff;
+      for (const Nlist<bits> *sym : syms) {
+         sym->Emit(img, symoff);
+         symoff += sym->size();
+      }
+
+      std::size_t stroff = symtab.stroff;
+      for (const String<bits> *str : strs) {
+         str->Emit(img, stroff);
+         stroff += str->size();
+      }
+   }
+
+   template <Bits bits>
+   void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<nlist_t>(offset) = nlist;
+   }
+
+   template <Bits bits>
+   void String<bits>::Emit(Image& img, std::size_t offset) const {
+      memcpy(&img.at<char>(offset), str.c_str(), str.size() + 1);
+   }
+
+   template <Bits bits>
+   void Dysymtab<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<dysymtab_command>(offset) = dysymtab;
+      memcpy(&img.at<uint32_t>(dysymtab.indirectsymoff), &*indirectsyms.begin(),
+             indirectsyms.size() * sizeof(uint32_t));
+   }
+
    template class Symtab<Bits::M32>;
    template class Symtab<Bits::M64>;
    

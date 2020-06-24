@@ -28,6 +28,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static DyldInfo<bits> *Parse(Args&&... args) { return new DyldInfo(args...); }
@@ -45,6 +46,7 @@ namespace MachO {
       const SectionBlob<bits> *blob;
       
       std::size_t size() const;
+      void Emit(Image& img, std::size_t offset) const;
 
       template <typename... Args>
       static RebaseNode<bits> *Parse(Args&&... args) { return new RebaseNode(args...); }
@@ -61,6 +63,7 @@ namespace MachO {
       std::list<RebaseNode<bits> *> rebasees;
 
       std::size_t size() const;
+      void Emit(Image& img, std::size_t offset) const;
       
       template <typename... Args>
       static RebaseInfo<bits> *Parse(Args&&... args) { return new RebaseInfo(args...); }
@@ -84,6 +87,7 @@ namespace MachO {
       const SectionBlob<bits> *blob;
 
       std::size_t size() const;
+      void Emit(Image& img, std::size_t offset) const;
       
       template <typename... Args>
       static BindNode<bits> *Parse(Args&&... args) { return new BindNode(args...); }
@@ -101,6 +105,7 @@ namespace MachO {
       std::list<BindNode<bits> *> bindees;
 
       std::size_t size() const;
+      void Emit(Image& img, std::size_t offset) const;
 
       template <typename... Args>
       static BindInfo<bits> *Parse(Args&&... args) { return new BindInfo(args...); }

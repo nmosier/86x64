@@ -61,6 +61,7 @@ namespace MachO {
       template <typename... Args>
       static UUID<bits> *Parse(Args&&... args) { return new UUID(args...); }
       virtual void Build(BuildEnv<bits>& env) override {}
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
    private:
       UUID(const Image& img, std::size_t offset): uuid(img.at<uuid_command>(offset)) {}
@@ -75,6 +76,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return build_version.cmd; }      
       virtual std::size_t size() const override;
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static BuildVersion<bits> *Parse(Args&&... args) { return new BuildVersion(args...); }
@@ -89,6 +91,7 @@ namespace MachO {
       build_tool_version tool;
 
       static std::size_t size() { return sizeof(build_tool_version); }
+      void Emit(Image& img, std::size_t offset) const;
       
       template <typename... Args>
       static BuildToolVersion<bits> *Parse(Args&&... args) { return new BuildToolVersion(args...); }
@@ -106,6 +109,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return source_version.cmd; }      
       virtual std::size_t size() const override { return sizeof(source_version); }
       virtual void Build(BuildEnv<bits>& env) override {}
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
       template <typename... Args>
       static SourceVersion<bits> *Parse(Args&&... args) {
@@ -126,6 +130,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return entry_point.cmd; }            
       virtual std::size_t size() const override { return sizeof(entry_point); }
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
       template <typename... Args>
       static EntryPoint<bits> *Parse(Args&&... args) { return new EntryPoint(args...); }
@@ -149,6 +154,7 @@ namespace MachO {
       virtual void AssignID(BuildEnv<bits>& env) override {
          id = env.template counter<decltype(this)>();
       }
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
       template <typename... Args>
       static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }

@@ -314,6 +314,75 @@ namespace MachO {
       assert(blob->segment->id < 16);
       return 3 + leb128_size(blob->loc.offset - blob->segment->loc().offset);
    }
+
+   template <Bits bits>
+   void DyldInfo<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<dyld_info_command>(offset) = dyld_info;
+
+      rebase->Emit(img, dyld_info.rebase_off);
+      bind->Emit(img, dyld_info.bind_off);
+
+      memcpy(&img.at<uint8_t>(dyld_info.weak_bind_off), &*weak_bind.begin(),
+             dyld_info.weak_bind_size);
+      memcpy(&img.at<uint8_t>(dyld_info.lazy_bind_off), &*lazy_bind.begin(),
+             dyld_info.lazy_bind_size);
+      memcpy(&img.at<uint8_t>(dyld_info.export_off), &*export_info.begin(),
+             dyld_info.export_size);
+   }
+
+   template <Bits bits>
+   void RebaseInfo<bits>::Emit(Image& img, std::size_t offset) const {
+      for (RebaseNode<bits> *rebasee : rebasees) {
+         rebasee->Emit(img, offset);
+         offset += rebasee->size();
+      }
+      img.at<uint8_t>(offset) = REBASE_OPCODE_DONE;
+   }
+
+   template <Bits bits>
+   void RebaseNode<bits>::Emit(Image& img, std::size_t offset) const {
+      /* REBASE_OPCODE_SET_TYPE_IMM
+       * REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+       * REBASE_OPCODE_DO_REBASE_IMM_TIMES
+       */
+      img.at<uint8_t>(offset++) = REBASE_OPCODE_SET_TYPE_IMM | type;
+      img.at<uint8_t>(offset++) = REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
+      const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
+      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
+      img.at<uint8_t>(offset++) = REBASE_OPCODE_DO_REBASE_IMM_TIMES | 0x1;
+   }
+
+   template <Bits bits>
+   void BindInfo<bits>::Emit(Image& img, std::size_t offset) const {
+      for (BindNode<bits> *bindee : bindees) {
+         bindee->Emit(img, offset);
+         offset += bindee->size();
+      }
+      img.at<uint8_t>(offset) = BIND_OPCODE_DONE;
+   }
+
+   template <Bits bits>
+   void BindNode<bits>::Emit(Image& img, std::size_t offset) const {
+      /* BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
+       * BIND_OPCODE_SET_TYPE_IMM
+       * BIND_OPCODE_SET_ADDEND_SLEB
+       * BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+       * BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+       * BIND_OPCODE_DO_BIND
+       */
+      assert(dylib->id < 16);
+      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
+      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_TYPE_IMM | type;
+      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_ADDEND_SLEB;
+      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, addend);
+      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
+      const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
+      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
+      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
+      memcpy(&img.at<char>(offset), sym.c_str(), sym.size() + 1); // +1 for NUL
+      offset += sym.size() + 1;
+      img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
+   }
    
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;

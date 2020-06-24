@@ -154,6 +154,47 @@ namespace MachO {
       img.at<dylinker_command>(offset) = dylinker;
       memcpy(&img.at<char>(offset + dylinker.name.offset), name.c_str(), name.size() + 1);
    }
+
+   template <Bits bits>
+   void UUID<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<uuid_command>(offset) = uuid;
+   }
+
+   template <Bits bits>
+   void BuildVersion<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<build_version_command>(offset) = build_version;
+      offset += sizeof(build_version_command);
+      for (BuildToolVersion<bits> *tool : tools) {
+         tool->Emit(img, offset);
+         offset += tool->size();
+      }
+   }
+
+   template <Bits bits>
+   void BuildToolVersion<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<build_tool_version>(offset) = tool;
+   }
+
+   template <Bits bits>
+   void SourceVersion<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<source_version_command>(offset) = source_version;
+   }
+
+   template <Bits bits>
+   void EntryPoint<bits>::Emit(Image& img, std::size_t offset) const {
+      assert(strcmp(entry->segment->segment_command.segname, SEG_TEXT) == 0);
+      entry_point_command entry_point = this->entry_point;
+      entry_point.entryoff = entry->loc.vmaddr - entry->segment->segment_command.vmaddr;
+      img.at<entry_point_command>(offset) = entry_point;
+   }
+
+   template <Bits bits>
+   void DylibCommand<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<dylib_command>(offset) = dylib_cmd;
+      offset += sizeof(dylib_command);
+      memcpy(&img.at<char>(offset), name.c_str(), name.size() + 1);
+      offset += name.size() + 1;
+   }
    
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;
