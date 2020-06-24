@@ -104,7 +104,7 @@ namespace MachO {
       BuildEnv<bits> env(*this, Location(0, vmaddr_start<bits>));
 
       env.allocate(sizeof(header));
-            
+      
       /* count number of load commands */
       header.ncmds = load_commands.size();
 
