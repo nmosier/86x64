@@ -149,6 +149,12 @@ namespace MachO {
       entry_point.entryoff = entry->loc.offset;
    }
 
+   template <Bits bits>
+   void DylinkerCommand<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<dylinker_command>(offset) = dylinker;
+      memcpy(&img.at<char>(offset + dylinker.name.offset), name.c_str(), name.size() + 1);
+   }
+   
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;
    

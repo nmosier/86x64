@@ -24,6 +24,7 @@ namespace MachO {
       virtual void Build(BuildEnv<bits>& env) = 0;
       virtual ~LoadCommand() {}
       virtual void AssignID(BuildEnv<bits>& env) {} /*!< build pass 1 */
+      virtual void Emit(Image& img, std::size_t offset) const = 0;
       
    protected:
       LoadCommand() {}
@@ -43,6 +44,7 @@ namespace MachO {
       static DylinkerCommand<bits> *Parse(Args&&... args) { return new DylinkerCommand(args...); }
 
       virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
    private:
       DylinkerCommand(const Image& img, std::size_t offset);

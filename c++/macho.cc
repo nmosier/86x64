@@ -120,6 +120,23 @@ namespace MachO {
       for (LoadCommand<bits> *lc : load_commands) {
          lc->Build(env);
       }
+
+      total_size = env.loc.offset;
+   }
+
+   template <Bits bits>
+   void Archive<bits>::Emit(Image& img) const {
+      img.resize(total_size);
+
+      /* emit header */
+      img.at<mach_header_t>(0) = header;
+      
+      /* emit load commands */
+      std::size_t offset = sizeof(header);
+      for (LoadCommand<bits> *lc : load_commands) {
+         lc->Emit(img, offset);
+         offset += lc->size();
+      }
    }
    
 }

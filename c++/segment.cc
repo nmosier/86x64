@@ -266,6 +266,76 @@ namespace MachO {
       /* realign vmaddr in env */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
    }
+
+   template <Bits bits>
+   void Segment<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<segment_command_t>(offset) = segment_command;
+      offset += sizeof(segment_command_t);
+      
+      for (const Section<bits> *sect : sections) {
+         sect->Emit(img, offset);
+         offset += sect->size();
+      }
+   }
+
+   template <Bits bits>
+   void Section<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<section_t>(offset) = sect;
+      Emit_content(img, sect.offset);
+   }
+   
+   template <Bits bits, class Elem>
+   void SectionT<bits, Elem>::Emit_content(Image& img, std::size_t offset) const {
+      for (const Elem *elem : content) {
+         elem->Emit(img, offset);
+         offset += elem->size();
+      }
+   }
+
+   template <Bits bits>
+   void DataBlob<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<uint8_t>(offset) = data;
+   }
+
+   template <Bits bits>
+   void SymbolPointer<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<ptr_t>(offset) = raw_data();
+   }
+
+   template <Bits bits>
+   void Instruction<bits>::Emit(Image& img, std::size_t offset) const {
+      /* patch instruction */
+      xed_decoded_inst_t xedd = this->xedd;
+      std::vector<uint8_t> instbuf = this->instbuf;
+      
+      if (memdisp) {
+         const unsigned width_bits = xed_decoded_inst_get_memory_displacement_width_bits(&xedd, 0); // FIXME: idx 0?
+         const std::size_t disp = memdisp->loc.vmaddr -
+            (ssize_t) (this->loc.vmaddr + size());
+         xed_enc_displacement_t enc; // = {disp, width_bits};
+         enc.displacement = disp;
+         enc.displacement_bits = width_bits;
+         if (!xed_patch_disp(&xedd, &*instbuf.begin(), enc)) {
+            throw error("%s: xed_patch_disp: failed to patch instruction at offset 0x%zx, " \
+                        "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
+         }
+      }
+      
+      if (brdisp) {
+         const unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
+         const std::size_t disp = brdisp->loc.vmaddr - (ssize_t) (this->loc.vmaddr + size());
+         xed_encoder_operand_t enc;
+         enc.u.brdisp = disp;
+         enc.width_bits = width_bits;
+         if (!xed_patch_relbr(&xedd, &*instbuf.begin(), enc)) {
+            throw error("%s: xed_patch_relbr: failed to patch instruction at offset 0x%zx, " \
+                        "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
+         }
+      }
+         
+      /* emit instruction bytes */
+      memcpy(&img.at<uint8_t>(offset), &*instbuf.begin(), instbuf.size());
+   }
    
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;

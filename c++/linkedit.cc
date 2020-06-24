@@ -25,6 +25,12 @@ namespace MachO {
    void LinkeditData<bits>::Build(BuildEnv<bits>& env) {
 #warning TODO
    }
+
+   template <Bits bits>
+   void LinkeditData<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<linkedit_data_command>(offset) = linkedit;
+      memcpy(&img.at<char>(linkedit.dataoff), raw_data(), linkedit.datasize);
+   }
    
    template class LinkeditData<Bits::M32>;
    template class LinkeditData<Bits::M64>;

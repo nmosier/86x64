@@ -18,12 +18,14 @@ namespace MachO {
       virtual std::size_t size() const override { return sizeof(linkedit); }
       virtual void Build(BuildEnv<bits>& env) override;
       virtual std::size_t content_size() const = 0;
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset);
-      
+             
    protected:
       LinkeditData(const Image& img, std::size_t offset):
          linkedit(img.at<linkedit_data_command>(offset)) {}
+      virtual const void *raw_data() const = 0;
    };
 
    template <Bits bits>
@@ -43,6 +45,7 @@ namespace MachO {
          LinkeditData<bits>(img, offset),
          dices(&img.at<data_in_code_entry>(this->linkedit.dataoff),
                &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
+      virtual const void *raw_data() const override { return &*dices.begin(); }
    };
 
    template <Bits bits>
@@ -66,6 +69,8 @@ namespace MachO {
          function_starts(&img.at<pointer_t>(this->linkedit.dataoff),
                          &img.at<pointer_t>(this->linkedit.dataoff + this->linkedit.datasize))
       {}
+
+      virtual const void *raw_data() const override { return &*function_starts.begin(); }
    };
 
    template <Bits bits>
@@ -83,6 +88,7 @@ namespace MachO {
          LinkeditData<bits>(img, offset),
          cs(&img.at<uint8_t>(this->linkedit.dataoff),
             &img.at<uint8_t>(this->linkedit.dataoff + this->linkedit.datasize)) {}
+      virtual const void *raw_data() const override { return &*cs.begin(); }
    };   
    
 }

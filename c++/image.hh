@@ -17,6 +17,8 @@ namespace MachO {
       template <typename T>
       T& at(std::size_t index) { return * (T *) ((char *) img + index); }
 
+      void resize(std::size_t newsize);
+
       Image(const Image&) = delete;
 
    private:
@@ -24,7 +26,6 @@ namespace MachO {
       std::size_t filesize;
       void *img;
 
-      void resize(std::size_t newsize);
    };
 
 }

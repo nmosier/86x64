@@ -17,6 +17,7 @@ namespace MachO {
       
       static MachO *Parse(const Image& img);
       virtual void Build() = 0;
+      virtual void Emit(Image& img) const = 0;
       virtual ~MachO() {}
 
    private:
@@ -53,9 +54,12 @@ namespace MachO {
 
       static Archive<bits> *Parse(const Image& img, std::size_t offset = 0);
       virtual void Build() override;
+      virtual void Emit(Image& img) const override;
       virtual ~Archive() override;
 
    private:
+      std::size_t total_size;
+      
       Archive() {}
       Archive(const mach_header_t& header, const LoadCommands& load_commands):
          header(header), load_commands(load_commands) {}

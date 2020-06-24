@@ -40,6 +40,7 @@ namespace MachO {
       virtual void AssignID(BuildEnv<bits>& env) override {
          id = env.template counter<decltype(this)>();
       };
+      virtual void Emit(Image& img, std::size_t offset) const override;
       Location loc() const { return Location(segment_command.fileoff, segment_command.vmaddr); }
 
       Section<bits> *section(const std::string& name);
@@ -90,9 +91,11 @@ namespace MachO {
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       void Build(BuildEnv<bits>& env);
       virtual std::size_t content_size() const = 0;
+      void Emit(Image& img, std::size_t offset) const;
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
+      virtual void Emit_content(Image& img, std::size_t offset) const = 0;
    };
 
    template <Bits bits, class Elem>
@@ -111,6 +114,7 @@ namespace MachO {
          SectionT(img, offset, env, [](const Image& img, const Location& loc, ParseEnv<bits>& env) {
                                        return Elem::Parse(img, loc, env);
                                     }) {}
+      virtual void Emit_content(Image& img, std::size_t offset) const override;
    };
 
    template <Bits bits>
@@ -133,6 +137,7 @@ namespace MachO {
    private:
       ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
          SectionT<bits, ZeroBlob<bits>>(img, offset, env) {}
+      virtual void Emit_content(Image& img, std::size_t offset) const override {}
    };
 
    template <Bits bits>
@@ -144,7 +149,8 @@ namespace MachO {
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}
       void Build(BuildEnv<bits>& env);
-
+      virtual void Emit(Image& img, std::size_t offset) const = 0;
+      
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env);
    };
@@ -154,6 +160,7 @@ namespace MachO {
    public:
       uint8_t data;
       virtual std::size_t size() const override { return 1; }
+      virtual void Emit(Image& img, std::size_t offset) const override;
       template <typename... Args>
       static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
       
@@ -166,6 +173,7 @@ namespace MachO {
    class ZeroBlob: public SectionBlob<bits> {
    public:
       virtual std::size_t size() const override { return 1; }
+      virtual void Emit(Image& img, std::size_t offset) const override {}
 
       template <typename... Args>
       static ZeroBlob<bits> *Parse(Args&&... args) {
@@ -208,10 +216,12 @@ namespace MachO {
       
       static std::size_t Size() { return sizeof(ptr_t); }
       virtual std::size_t size() const override { return sizeof(ptr_t); }
+      virtual void Emit(Image& img, std::size_t offset) const override;
       
    protected:
       template <typename... Args>
       SymbolPointer(Args&&... args): SectionBlob<bits>(args...) {}
+      virtual ptr_t raw_data() const = 0;
    };
 
    template <Bits bits>
@@ -226,6 +236,9 @@ namespace MachO {
       
    private:
       LazySymbolPointer(const Image& img, const Location& loc, ParseEnv<bits>& env);
+      virtual typename SymbolPointer<bits>::ptr_t raw_data() const override {
+         return pointee->loc.vmaddr;
+      }
    };
 
    template <Bits bits>
@@ -238,6 +251,7 @@ namespace MachO {
    private:
       NonLazySymbolPointer(const Image& img, const Location& loc, ParseEnv<bits>& env):
          SymbolPointer<bits>(loc, env) {}
+      virtual typename SymbolPointer<bits>::ptr_t raw_data() const override { return 0x0; }
    };
 
    template <Bits bits>
@@ -264,6 +278,7 @@ namespace MachO {
       const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
       
       virtual std::size_t size() const override { return instbuf.size(); }
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
