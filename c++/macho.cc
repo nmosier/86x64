@@ -27,17 +27,20 @@ extern "C" {
 int main(int argc, char *argv[]) {
    const char *usage = "usage: %s path\n";
 
-   if (argc != 2) {
+   if (argc < 2 || argc > 3) {
       fprintf(stderr, usage, argv[0]);
       return 1;
    }
+   const char *out_path = argc == 2 ? "a.out" : argv[2];
 
-   MachO::Image img (argv[1]);
+   MachO::Image img(argv[1], O_RDONLY);
+   MachO::Image out_img(out_path, O_RDWR | O_CREAT | O_TRUNC);
 
    xed_tables_init();
    
    MachO::MachO *macho = MachO::MachO::Parse(img);
    macho->Build();
+   macho->Emit(out_img);
    (void) macho;
 
    return 0;
@@ -98,7 +101,9 @@ namespace MachO {
 
    template <Bits bits>
    void Archive<bits>::Build() {
-      BuildEnv<bits> env(*this);
+      BuildEnv<bits> env(*this, Location(0, vmaddr_start<bits>));
+
+      env.allocate(sizeof(header));
             
       /* count number of load commands */
       header.ncmds = load_commands.size();

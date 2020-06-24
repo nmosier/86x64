@@ -2,13 +2,15 @@
 
 #include <cstdio>
 
+#include "util.hh"
+
 namespace MachO {
 
    class Image {
    public:
-      Image(const char *path);
+      Image(const char *path, int mode);
       ~Image();
-      
+
       std::size_t size() const { return filesize; }
       
       template <typename T>
@@ -23,9 +25,11 @@ namespace MachO {
 
    private:
       int fd;
+      int prot;
       std::size_t filesize;
       void *img;
 
+      std::size_t mapsize() const { return std::max(filesize, PAGESIZE); }
    };
 
 }

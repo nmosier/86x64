@@ -9,7 +9,6 @@
 
 namespace MachO {
 
-   constexpr std::size_t PAGESIZE = 0x1000;
 
    namespace {
       template <Bits bits, typename T32, typename T64>
@@ -86,6 +85,11 @@ namespace MachO {
    constexpr T align_down(T a, T b) {
       return div_down(a, b) * b;
    }
+
+   constexpr std::size_t PAGESIZE = 0x1000;
+   template <Bits bits>
+   constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x0 : 0x100000000;
+   
 
 #define str(s) #s
 #define xstr(s) str(s)

@@ -95,7 +95,8 @@ namespace MachO {
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
-      virtual void Emit_content(Image& img, std::size_t offset) const = 0;
+      virtual void Build_content(BuildEnv<bits>& env) = 0;
+      virtual void Emit_content(Image& img, std::size_t offset) const = 0; 
    };
 
    template <Bits bits, class Elem>
@@ -114,6 +115,7 @@ namespace MachO {
          SectionT(img, offset, env, [](const Image& img, const Location& loc, ParseEnv<bits>& env) {
                                        return Elem::Parse(img, loc, env);
                                     }) {}
+      virtual void Build_content(BuildEnv<bits>& env) override;
       virtual void Emit_content(Image& img, std::size_t offset) const override;
    };
 
@@ -274,6 +276,7 @@ namespace MachO {
       
       std::vector<uint8_t> instbuf;
       xed_decoded_inst_t xedd;
+      unsigned memidx;
       const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
       const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
       

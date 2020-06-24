@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <unistd.h>
+#include <algorithm>
 #include <sys/stat.h>
 #include <sys/mman.h>
 
@@ -8,8 +9,8 @@
 
 namespace MachO {
 
-   Image::Image(const char *path) {
-      if ((fd = open(path, O_RDWR)) < 0) {
+   Image::Image(const char *path, int mode) {
+      if ((fd = open(path, mode)) < 0) {
          throw cerror("open");
       }
 
@@ -19,20 +20,26 @@ namespace MachO {
          throw cerror("fstat");
       }
       filesize = st.st_size;
+
+      if ((mode & O_RDWR)) {
+         prot = PROT_READ | PROT_WRITE;
+      } else {
+         prot = PROT_READ;
+      }
       
-      if ((img = mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == NULL) {
+      if ((img = mmap(NULL, mapsize(), prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
          close(fd);
          throw cerror("mmap");
       }
    }
    
    Image::~Image() {
-      munmap(img, filesize);
+      munmap(img, mapsize());
       close(fd);
    }
 
    void Image::resize(std::size_t newsize) {
-      if (munmap(img, filesize) < 0) {
+      if (munmap(img, mapsize()) < 0) {
          img = NULL;
          throw cerror("munmap");
       }
@@ -43,7 +50,7 @@ namespace MachO {
 
       filesize = newsize;
 
-      if ((img = mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == NULL) {
+      if ((img = mmap(NULL, mapsize(), prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
          close(fd);
          throw cerror("mmap");
       }

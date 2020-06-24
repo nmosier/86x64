@@ -56,7 +56,7 @@ namespace MachO {
       symtab.stroff = env.allocate(symtab.strsize);
 
       /* create build environment for string table */
-      BuildEnv<bits> strtab_env(env.archive);
+      BuildEnv<bits> strtab_env(env.archive, Location(0, 0));
       for (String<bits> *str : strs) {
          str->Build(strtab_env);
       }

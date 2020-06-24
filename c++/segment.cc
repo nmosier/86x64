@@ -57,7 +57,7 @@ namespace MachO {
    Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
       SectionBlob<bits>(loc, env), memdisp(nullptr), brdisp(nullptr)
    {
-      xed_decoded_inst_t xedd;
+      // xed_decoded_inst_t xedd;
       xed_error_enum_t err;
       
       xed_decoded_inst_zero_set_mode(&xedd, &dstate);
@@ -89,6 +89,8 @@ namespace MachO {
                              __FUNCTION__, loc.offset, loc.vmaddr);
                      abort();
                   }
+
+                  memidx = i;
                   
                   /* get memory displacement & reference address */
                   const ssize_t memdisp = xed_decoded_inst_get_memory_displacement(operands,
@@ -191,9 +193,19 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
+      assert(env.loc.vmaddr % PAGESIZE == 0);
+             
       id = env.template counter<decltype(this)>();
       segment_command.nsects = sections.size();
 
+      if (strcmp(segment_command.segname, SEG_PAGEZERO) == 0) {
+         Build_PAGEZERO(env);
+         return;
+      } else if (strcmp(segment_command.segname, SEG_PAGEZERO) == 0) {
+         Build_LINKEDIT(env);
+         return;
+      }
+      
       /* get combined size of sections */
       std::size_t total_size = 0;
       for (const Section<bits> *sect : sections) {
@@ -201,9 +213,20 @@ namespace MachO {
       }
 
       /* set segment start location */
-      segment_command.vmaddr = align_down(env.loc.vmaddr, PAGESIZE); 
+      segment_command.vmaddr = env.loc.vmaddr;
+      segment_command.vmsize = align_up(total_size + env.loc.offset % PAGESIZE, PAGESIZE);
+      segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
+      segment_command.filesize = segment_command.vmsize;
+
+      /* update env loc */
+      env.loc.vmaddr += env.loc.offset % PAGESIZE;
       
-#warning INCOMPLETE
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
+
+      /* post-conditions for vmaddr */
+      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
    }
 
    template <Bits bits>
@@ -214,12 +237,20 @@ namespace MachO {
    template <Bits bits>
    void Section<bits>::Build(BuildEnv<bits>& env) {
       sect.size = content_size();
+      loc(env.loc);
+      Build_content(env);
 
-      Location tmploc;
-      env.allocate(content_size(), tmploc);
-      loc(tmploc);
+      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname, sect.sectname, loc().offset, loc().vmaddr);
+         
    }
 
+   template <Bits bits, class Elem>
+   void SectionT<bits, Elem>::Build_content(BuildEnv<bits>& env) {
+      for (Elem *elem : content) {
+         elem->Build(env);
+      }
+   }
+   
    template <Bits bits, class Elem>
    std::size_t SectionT<bits, Elem>::content_size() const {
       std::size_t size = 0;
@@ -231,12 +262,12 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Build_PAGEZERO(BuildEnv<bits>& env) {
-      assert(env.loc.vmaddr == 0);
-      segment_command.vmaddr = 0;
+      assert(env.loc.vmaddr == vmaddr_start<bits>);
+      segment_command.vmaddr = env.loc.vmaddr;
       segment_command.vmsize = PAGESIZE;
       segment_command.fileoff = 0;
       segment_command.filesize = 0;
-      env.loc.vmaddr = PAGESIZE;
+      env.loc.vmaddr += PAGESIZE;
    }
 
    template <Bits bits>
@@ -265,6 +296,9 @@ namespace MachO {
 
       /* realign vmaddr in env */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+
+      fprintf(stderr, "[BUILD] segment %s @ offset 0x%zx, vmaddr 0x%zx\n", segment_command.segname,
+              loc().offset, loc().vmaddr);
    }
 
    template <Bits bits>
@@ -309,7 +343,8 @@ namespace MachO {
       std::vector<uint8_t> instbuf = this->instbuf;
       
       if (memdisp) {
-         const unsigned width_bits = xed_decoded_inst_get_memory_displacement_width_bits(&xedd, 0); // FIXME: idx 0?
+         const unsigned width_bits =
+            xed_decoded_inst_get_memory_displacement_width_bits(&xedd, memidx);
          const std::size_t disp = memdisp->loc.vmaddr -
             (ssize_t) (this->loc.vmaddr + size());
          xed_enc_displacement_t enc; // = {disp, width_bits};

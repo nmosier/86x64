@@ -36,7 +36,7 @@ namespace MachO {
 
       Location loc;      
       
-      BuildEnv(Archive<bits>& archive): archive(archive) {}
+      BuildEnv(Archive<bits>& archive, const Location& loc): archive(archive), loc(loc) {}
       
    private:
    };
