@@ -131,8 +131,6 @@ namespace MachO {
 
    template <Bits bits>
    void Archive<bits>::Emit(Image& img) const {
-      img.resize(total_size);
-
       /* emit header */
       img.at<mach_header_t>(0) = header;
       

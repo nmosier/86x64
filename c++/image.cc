@@ -20,6 +20,7 @@ namespace MachO {
          throw cerror("fstat");
       }
       filesize = st.st_size;
+      mapsize = std::max(filesize, PAGESIZE);
 
       if ((mode & O_RDWR)) {
          prot = PROT_READ | PROT_WRITE;
@@ -27,19 +28,20 @@ namespace MachO {
          prot = PROT_READ;
       }
       
-      if ((img = mmap(NULL, mapsize(), prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+      if ((img = mmap(NULL, mapsize, prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
          close(fd);
          throw cerror("mmap");
       }
    }
    
    Image::~Image() {
-      munmap(img, mapsize());
+      munmap(img, mapsize);
+      ftruncate(fd, filesize);
       close(fd);
    }
 
    void Image::resize(std::size_t newsize) {
-      if (munmap(img, mapsize()) < 0) {
+      if (munmap(img, mapsize) < 0) {
          img = NULL;
          throw cerror("munmap");
       }
@@ -48,9 +50,9 @@ namespace MachO {
          throw cerror("ftruncate");
       }
 
-      filesize = newsize;
-
-      if ((img = mmap(NULL, mapsize(), prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+      mapsize = newsize;
+      
+      if ((img = mmap(NULL, mapsize, prot, MAP_SHARED, fd, 0)) == MAP_FAILED) {
          close(fd);
          throw cerror("mmap");
       }

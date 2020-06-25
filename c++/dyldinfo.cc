@@ -322,12 +322,9 @@ namespace MachO {
       rebase->Emit(img, dyld_info.rebase_off);
       bind->Emit(img, dyld_info.bind_off);
 
-      memcpy(&img.at<uint8_t>(dyld_info.weak_bind_off), &*weak_bind.begin(),
-             dyld_info.weak_bind_size);
-      memcpy(&img.at<uint8_t>(dyld_info.lazy_bind_off), &*lazy_bind.begin(),
-             dyld_info.lazy_bind_size);
-      memcpy(&img.at<uint8_t>(dyld_info.export_off), &*export_info.begin(),
-             dyld_info.export_size);
+      img.copy(dyld_info.weak_bind_off, &*weak_bind.begin(), dyld_info.weak_bind_size);
+      img.copy(dyld_info.lazy_bind_off, &*lazy_bind.begin(), dyld_info.lazy_bind_size);
+      img.copy(dyld_info.export_off, &*export_info.begin(), dyld_info.export_size);
    }
 
    template <Bits bits>
@@ -379,7 +376,7 @@ namespace MachO {
       const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
       offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
-      memcpy(&img.at<char>(offset), sym.c_str(), sym.size() + 1); // +1 for NUL
+      img.copy(offset, sym.c_str(), sym.size() + 1);
       offset += sym.size() + 1;
       img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
    }
