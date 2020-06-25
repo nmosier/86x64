@@ -22,6 +22,12 @@ namespace MachO {
       loc.vmaddr += size;
    }
 
+   template <Bits bits>
+   void BuildEnv<bits>::newsegment() {
+      loc.offset = align_up(loc.offset, PAGESIZE);
+      loc.vmaddr = align_up(loc.vmaddr, PAGESIZE);
+   }
+
    template class BuildEnv<Bits::M32>;
    template class BuildEnv<Bits::M64>;
    

@@ -225,23 +225,27 @@ namespace MachO {
          return;
       }
 
-      /* set segment start location */
-      segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
-      segment_command.vmaddr = env.loc.vmaddr;
-      // segment_command.filesize = content_size() + env.loc.offset % PAGESIZE;
-      // segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
-
-      /* update env loc */
-      env.loc.vmaddr += env.loc.offset % PAGESIZE;
-
-      for (Section<bits> *sect : sections) {
-         sect->Build(env);
-      }
       
-      /* post-conditions for vmaddr */
-      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
-      segment_command.filesize = env.loc.offset - segment_command.fileoff;
-      segment_command.vmsize = env.loc.vmaddr - segment_command.vmaddr;
+      /* set segment start location */
+      if (strcmp(segment_command.segname, SEG_TEXT) == 0) {
+         env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+         segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
+         segment_command.vmaddr = env.loc.vmaddr;
+         env.loc.vmaddr += env.loc.offset % PAGESIZE;
+      } else {
+         env.newsegment();
+         segment_command.fileoff = env.loc.offset;
+         segment_command.vmaddr = env.loc.vmaddr;
+      }
+         
+         for (Section<bits> *sect : sections) {
+            sect->Build(env);
+         }
+         
+         /* post-conditions for vmaddr */
+         env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+         segment_command.filesize = env.loc.offset - segment_command.fileoff;
+         segment_command.vmsize = align_up<size_t>(env.loc.vmaddr - segment_command.vmaddr, PAGESIZE);
    }
 
    template <Bits bits>
@@ -257,7 +261,7 @@ namespace MachO {
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
       
       this->segment_command.filesize = env.loc.offset - this->segment_command.fileoff;
-      this->segment_command.vmsize = env.loc.vmaddr - this->segment_command.vmaddr;
+      this->segment_command.vmsize = align_up<std::size_t>(this->segment_command.filesize, PAGESIZE);
    }
 
 #if 0
