@@ -9,8 +9,8 @@ namespace MachO {
       /* construct strings */
       const std::size_t strbegin = symtab.stroff;
       const std::size_t strend = strbegin + symtab.strsize;
-      std::unordered_map<std::size_t, String<bits> *> off2str = {{0, nullptr}};
-      for (std::size_t strit = strbegin + strnlen(&img.at<char>(strbegin), strend - strbegin) + 1;
+      std::unordered_map<std::size_t, String<bits> *> off2str; // = {{0, nullptr}};
+      for (std::size_t strit = strbegin /* + strnlen(&img.at<char>(strbegin), strend - strbegin) + 1 */;
            strit < strend; ) {
          const std::size_t strrem = strend - strit;
 
