@@ -273,7 +273,7 @@ namespace MachO {
       sect.size = content_size();
       loc(env.loc);
       Build_content(env);
-      env.align();
+      env.align(this->sect.align);
       fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname,
               sect.sectname, loc().offset, loc().vmaddr);
    }

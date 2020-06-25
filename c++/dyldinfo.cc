@@ -245,7 +245,7 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void DyldInfo<bits>::Build(BuildEnv<bits>& env) {
+   void DyldInfo<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
       dyld_info.rebase_size = rebase->size();
       dyld_info.rebase_off = env.allocate(dyld_info.rebase_size);
 
@@ -382,6 +382,12 @@ namespace MachO {
       memcpy(&img.at<char>(offset), sym.c_str(), sym.size() + 1); // +1 for NUL
       offset += sym.size() + 1;
       img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
+   }
+
+   template <Bits bits>
+   std::size_t DyldInfo<bits>::content_size() const {
+      return rebase->size() + bind->size() +
+         weak_bind.size() + lazy_bind.size() + export_info.size();
    }
    
    template class DyldInfo<Bits::M32>;

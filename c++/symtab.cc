@@ -58,14 +58,12 @@ namespace MachO {
       /* allocate space for symbol table */
       symtab.nsyms = syms.size();
       symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
-      env.align();
       
       symtab.strsize = 0;
       for (const String<bits> *str : strs) {
          symtab.strsize += str->size();
       }
       symtab.stroff = env.allocate(symtab.strsize);
-      env.align();
       
       /* create build environment for string table */
       BuildEnv<bits> strtab_env(env.archive, Location(0, 0));
@@ -100,7 +98,6 @@ namespace MachO {
       dysymtab.indirectsymoff = env.allocate(sizeof(typename decltype(indirectsyms)::value_type) *
                                              indirectsyms.size());
       dysymtab.nindirectsyms = indirectsyms.size();
-      env.align();
    }
 
    template <Bits bits>

@@ -25,8 +25,8 @@ namespace MachO {
    }
    
    template <Bits bits>
-   void LinkeditData<bits>::Build(BuildEnv<bits>& env) {
-      linkedit.datasize = content_size();
+   void LinkeditData<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
+      linkedit.datasize = this->content_size();
       linkedit.dataoff = env.allocate(linkedit.datasize);
    }
 
@@ -67,7 +67,7 @@ namespace MachO {
          refaddr = entry->loc.offset;
       }
 
-      return align_up(size, align<bits>);
+      return align<bits>(size);
    }
 
    template <Bits bits>
