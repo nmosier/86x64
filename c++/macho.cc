@@ -143,5 +143,8 @@ namespace MachO {
          offset += lc->size();
       }
    }
+
+   template class Archive<Bits::M32>;
+   template class Archive<Bits::M64>;
    
 }

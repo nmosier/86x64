@@ -87,8 +87,12 @@ namespace MachO {
    }
 
    constexpr std::size_t PAGESIZE = 0x1000;
+
    template <Bits bits>
    constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x0 : 0x100000000;
+
+   template <Bits bits>
+   constexpr std::size_t align = bits == Bits::M32 ? 4 : 8;
    
 
 #define str(s) #s

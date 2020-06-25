@@ -64,7 +64,7 @@ namespace MachO {
          fprintf(stderr, "warning: %s: data in code not yet supported\n", __FUNCTION__);
       case LC_FUNCTION_STARTS:
       case LC_CODE_SIGNATURE:
-         return LinkeditData<bits>::Parse(img, offset);
+         return LinkeditData<bits>::Parse(img, offset, env);
          
       default:
          throw error("load command 0x%x not supported", lc.cmd);

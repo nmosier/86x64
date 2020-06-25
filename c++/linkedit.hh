@@ -20,12 +20,12 @@ namespace MachO {
       virtual std::size_t content_size() const = 0;
       virtual void Emit(Image& img, std::size_t offset) const override;
       
-      static LinkeditData<bits> *Parse(const Image& img, std::size_t offset);
+      static LinkeditData<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
              
    protected:
-      LinkeditData(const Image& img, std::size_t offset):
+      LinkeditData(const Image& img, std::size_t offset, ParseEnv<bits>& env):
          linkedit(img.at<linkedit_data_command>(offset)) {}
-      virtual const void *raw_data() const = 0;
+      virtual const void *raw_data() const { return nullptr; }
    };
 
    template <Bits bits>
@@ -40,37 +40,48 @@ namespace MachO {
       template <typename... Args>
       static DataInCode<bits> *Parse(Args&&... args) { return new DataInCode<bits>(args...); }
       
+      
    private:
-      DataInCode(const Image& img, std::size_t offset):
-         LinkeditData<bits>(img, offset),
+      DataInCode(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         LinkeditData<bits>(img, offset, env),
          dices(&img.at<data_in_code_entry>(this->linkedit.dataoff),
                &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
-      virtual const void *raw_data() const override { return &*dices.begin(); }
+      virtual const void *raw_data() const override { return nullptr; }
    };
 
    template <Bits bits>
    class FunctionStarts: public LinkeditData<bits> {
    public:
-      using pointer_t = select_type<bits, uint32_t, uint64_t>;
-      using Entries = std::vector<pointer_t>;
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+      using Entries = std::list<const SectionBlob<bits> *>;
 
-      Entries function_starts;
+      Entries entries;
+      const Segment<bits> *segment;
 
-      virtual std::size_t content_size() const override {
-         return function_starts.size() * sizeof(pointer_t);
-      }
+      virtual std::size_t content_size() const override;
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static FunctionStarts<bits> *Parse(Args&&... args) { return new FunctionStarts(args...); }
       
    private:
-      FunctionStarts(const Image& img, std::size_t offset):
-         LinkeditData<bits>(img, offset),
-         function_starts(&img.at<pointer_t>(this->linkedit.dataoff),
-                         &img.at<pointer_t>(this->linkedit.dataoff + this->linkedit.datasize))
-      {}
+      FunctionStarts(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+   };
 
-      virtual const void *raw_data() const override { return &*function_starts.begin(); }
+   template <Bits bits>
+   class FunctionStart {
+   public:
+      using ptr_t = select_type<bits, uint32_t, uint64_t>;
+
+      SectionBlob<bits> *function;
+      
+      std::size_t size() const { return sizeof(ptr_t); }
+      
+      template <typename... Args>
+      static FunctionStart<bits> *Parse(Args&&... args) { return new FunctionStart(args...); }
+      
+   private:
+      FunctionStart(const Image& img, std::size_t offset, std::size_t refaddr, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
@@ -84,8 +95,8 @@ namespace MachO {
       static CodeSignature<bits> *Parse(Args&&... args) { return new CodeSignature(args...); }
       
    private:
-      CodeSignature(const Image& img, std::size_t offset):
-         LinkeditData<bits>(img, offset),
+      CodeSignature(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         LinkeditData<bits>(img, offset, env),
          cs(&img.at<uint8_t>(this->linkedit.dataoff),
             &img.at<uint8_t>(this->linkedit.dataoff + this->linkedit.datasize)) {}
       virtual const void *raw_data() const override { return &*cs.begin(); }

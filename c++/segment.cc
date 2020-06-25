@@ -206,16 +206,18 @@ namespace MachO {
          return;
       }
 
+#if 1
       /* get combined size of sections */
       std::size_t total_size = 0;
       for (const Section<bits> *sect : sections) {
          total_size += sect->content_size();
       }
+#endif
 
       /* set segment start location */
       segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
-      segment_command.filesize = total_size + env.loc.offset % PAGESIZE;
       segment_command.vmaddr = env.loc.vmaddr;
+      segment_command.filesize = total_size + env.loc.offset % PAGESIZE;
       segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
 
       /* update env loc */
