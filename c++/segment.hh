@@ -38,42 +38,47 @@ namespace MachO {
       std::size_t vmaddr() const { return segment_command.vmaddr; }
       virtual void Build(BuildEnv<bits>& env) override;
       virtual void AssignID(BuildEnv<bits>& env) override {
-         id = env.template counter<decltype(this)>();
+         id = env.segment_counter();
       };
       virtual void Emit(Image& img, std::size_t offset) const override;
       Location loc() const { return Location(segment_command.fileoff, segment_command.vmaddr); }
 
       Section<bits> *section(const std::string& name);
 
+      static Segment<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
 
       virtual ~Segment() override;
       
-   private:
+   protected:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
 
       void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
       void Build_default(BuildEnv<bits>& env);
       void Build_LINKEDIT(BuildEnv<bits>& env); /*!< for SEG_LINKEDIT segment */
-
-      std::size_t content_size(std::size_t offset) const;
+      virtual void Build_content(BuildEnv<bits>& env);
+      virtual std::size_t content_size() const;
    };
 
-#if 0
    template <Bits bits>
    class Segment_LINKEDIT: public Segment<bits> {
    public:
-      virtual void Build(BuildEnv<bits>& env) override;
+      // virtual void Build(BuildEnv<bits>& env) override;
+      // virtual void Emit(Image& img, std::size_t offset) const override;
       
       template <typename... Args>
       static Segment_LINKEDIT<bits> *Parse(Args&&... args) { return new Segment_LINKEDIT(args...); }
       
    private:
+      std::vector<LinkeditCommand<bits> *> linkedits;
+      
       template <typename... Args>
       Segment_LINKEDIT(Args&&... args): Segment<bits>(args...) {}
+      virtual void Build_content(BuildEnv<bits>& env) override;
+      virtual std::size_t content_size() const override;
    };
-#endif
    
 
    template <Bits bits>
@@ -92,7 +97,7 @@ namespace MachO {
       static std::size_t size() { return sizeof(section_t); }
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Build(BuildEnv<bits>& env);
-      virtual std::size_t content_size(std::size_t offset) const = 0;
+      virtual std::size_t content_size() const = 0;
       void Emit(Image& img, std::size_t offset) const;
 
    protected:
@@ -108,7 +113,7 @@ namespace MachO {
       Content content;
 
       ~SectionT();
-      virtual std::size_t content_size(std::size_t offset) const override;
+      virtual std::size_t content_size() const override;
       
    protected:
       typedef Elem *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
