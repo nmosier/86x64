@@ -91,9 +91,16 @@ namespace MachO {
    template <Bits bits>
    constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x0 : 0x100000000;
 
+   namespace {
+      template <Bits bits>
+      constexpr std::size_t align_bytes = bits == Bits::M32 ? 4 : 8;
+   }
+
    template <Bits bits>
-   constexpr std::size_t align = bits == Bits::M32 ? 4 : 8;
-   
+   constexpr std::size_t align(std::size_t value) { return align_up(value, align_bytes<bits>); }
+
+   template <Bits bits>
+   constexpr std::size_t align_rem(std::size_t value) { return align<bits>(value) - value; }
 
 #define str(s) #s
 #define xstr(s) str(s)
