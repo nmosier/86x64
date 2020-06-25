@@ -15,7 +15,7 @@ namespace MachO {
    template <Bits bits> class BindInfo;
 
    template <Bits bits>
-   class DyldInfo: public LoadCommand<bits> {
+   class DyldInfo: public LinkeditCommand<bits> {
    public:
       dyld_info_command dyld_info;
 
@@ -27,9 +27,10 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
-      virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
-
+      virtual std::size_t content_size() const override;
+      
       template <typename... Args>
       static DyldInfo<bits> *Parse(Args&&... args) { return new DyldInfo(args...); }
       
