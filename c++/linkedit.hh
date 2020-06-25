@@ -10,14 +10,14 @@
 namespace MachO {
 
    template <Bits bits>
-   class LinkeditData: public LoadCommand<bits> {
+   class LinkeditData: public LinkeditCommand<bits> {
    public:
       linkedit_data_command linkedit;
-
+      
       virtual uint32_t cmd() const override { return linkedit.cmd; }            
       virtual std::size_t size() const override { return sizeof(linkedit); }
-      virtual void Build(BuildEnv<bits>& env) override;
-      virtual std::size_t content_size() const = 0;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
+      // virtual std::size_t content_size() const = 0;
       virtual void Emit(Image& img, std::size_t offset) const override;
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
@@ -66,22 +66,6 @@ namespace MachO {
       
    private:
       FunctionStarts(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-   };
-
-   template <Bits bits>
-   class FunctionStart {
-   public:
-      using ptr_t = select_type<bits, uint32_t, uint64_t>;
-
-      SectionBlob<bits> *function;
-      
-      std::size_t size() const { return sizeof(ptr_t); }
-      
-      template <typename... Args>
-      static FunctionStart<bits> *Parse(Args&&... args) { return new FunctionStart(args...); }
-      
-   private:
-      FunctionStart(const Image& img, std::size_t offset, std::size_t refaddr, ParseEnv<bits>& env);
    };
 
    template <Bits bits>
