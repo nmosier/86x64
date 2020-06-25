@@ -1,3 +1,4 @@
 [X] Parse NLIST
-[ ] Fix LINKEDIT segment
+[X] Fix LINKEDIT segment
 [ ] Transition PAGEZERO segment
+[ ] Rebase doesn't work

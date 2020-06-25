@@ -47,12 +47,15 @@ namespace MachO {
             break;
 
          case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
+            it += leb128_decode(img, it, vmaddr);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->vmaddr();
             break;
 
          case REBASE_OPCODE_ADD_ADDR_ULEB:
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr += uleb;
             break;
 
@@ -65,19 +68,23 @@ namespace MachO {
             break;
             
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr = do_rebase_times(imm, vmaddr, env, type);
             break;
 
          case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr = do_rebase(vmaddr, env, type);
             vmaddr += uleb;
             break;
             
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
+            it += leb128_decode(img, it, uleb);
+            it += leb128_decode(img, it, uleb2);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
             vmaddr = do_rebase_times(uleb, vmaddr, env, type, uleb2);
             break;
             
@@ -139,7 +146,8 @@ namespace MachO {
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
             fprintf(stderr, "BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB\n");
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             dylib = imm;
             break;
 
@@ -160,19 +168,21 @@ namespace MachO {
             break;
 
          case BIND_OPCODE_SET_ADDEND_SLEB:
-            fprintf(stderr, "BIND_OPCODE_SET_ADDEND_SLEB\n");
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, addend);
+            it += leb128_decode(img, it, addend);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, addend);
             break;
 
          case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
             fprintf(stderr, "BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB\n");
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
+            it += leb128_decode(img, it, vmaddr);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->segment_command.vmaddr;
             break;
 
          case BIND_OPCODE_ADD_ADDR_ULEB:
             fprintf(stderr, "BIND_OPCODE_ADD_ADDR_ULEB\n");
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             fprintf(stderr, "uleb=%zx\n", uleb);
             vmaddr += (ptr_t) uleb;
             break;
@@ -185,7 +195,8 @@ namespace MachO {
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
             fprintf(stderr, "BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB\n");
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            it += leb128_decode(img, it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr += (ptr_t) uleb;
             break;
 
@@ -197,8 +208,10 @@ namespace MachO {
 
          case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
             fprintf(stderr, "BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB\n");
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
+            it += leb128_decode(img, it, uleb);
+            it += leb128_decode(img, it, uleb2);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
+            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
             vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, dylib, sym, flags,
                                    (ptr_t) uleb2);
             break;
@@ -351,7 +364,8 @@ namespace MachO {
       img.at<uint8_t>(offset++) = REBASE_OPCODE_SET_TYPE_IMM | type;
       img.at<uint8_t>(offset++) = REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
       const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
-      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
+      offset += leb128_encode(img, offset, segoff);
+      // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
       img.at<uint8_t>(offset++) = REBASE_OPCODE_DO_REBASE_IMM_TIMES | 0x1;
    }
 
@@ -379,10 +393,12 @@ namespace MachO {
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_TYPE_IMM | type;
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_ADDEND_SLEB;
-      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, addend);
+      offset += leb128_encode(img, offset, addend);
+      // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, addend);
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
       const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
-      offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
+      offset += leb128_encode(img, offset, segoff);
+      // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
       img.copy(offset, sym.c_str(), sym.size() + 1);
       offset += sym.size() + 1;

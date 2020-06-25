@@ -47,7 +47,8 @@ namespace MachO {
 
       while (it != end) {
          std::size_t uleb;
-         it += leb128_decode(&img.at<uint8_t>(it), img.size() - it, uleb);
+         it += leb128_decode(img, it, uleb);
+         // it += leb128_decode(&img.at<uint8_t>(it), img.size() - it, uleb);
          if (uleb != 0 || refaddr == segment->loc().offset) {
             entries.push_back(nullptr);
             refaddr += uleb;
@@ -79,7 +80,8 @@ namespace MachO {
       const std::size_t end = begin + size;
       std::size_t it = begin;
       for (const SectionBlob<bits> *entry : entries) {
-         it += leb128_encode(&img.at<uint8_t>(it), img.size() - it, entry->loc.offset - refaddr);
+         it += leb128_encode(img, it, entry->loc.offset - refaddr);
+         // it += leb128_encode(&img.at<uint8_t>(it), img.size() - it, entry->loc.offset - refaddr);
       }
       img.memset(it, 0, end - it);
    }
