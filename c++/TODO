@@ -1,1 +1,2 @@
-[ ] Parse NLIST
+[X] Parse NLIST
+[ ] Fix LINKEDIT segment

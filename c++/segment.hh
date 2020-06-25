@@ -91,14 +91,14 @@ namespace MachO {
       
       static std::size_t size() { return sizeof(section_t); }
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-      void Build(BuildEnv<bits>& env);
+      virtual void Build(BuildEnv<bits>& env);
       virtual std::size_t content_size(std::size_t offset) const = 0;
       void Emit(Image& img, std::size_t offset) const;
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
       virtual void Build_content(BuildEnv<bits>& env) = 0;
-      virtual void Emit_content(Image& img, std::size_t offset) const = 0; 
+      virtual void Emit_content(Image& img, std::size_t offset) const = 0;
    };
 
    template <Bits bits, class Elem>
@@ -138,6 +138,7 @@ namespace MachO {
    public:
       template <typename... Args>
       static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
+      virtual void Build(BuildEnv<bits>& env) override;
    private:
       ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
          SectionT<bits, ZeroBlob<bits>>(img, offset, env) {}

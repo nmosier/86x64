@@ -30,7 +30,9 @@ namespace MachO {
 
    template <Bits bits>
    Nlist<bits>::Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                      const std::unordered_map<std::size_t, String<bits> *>& off2str) {
+                      const std::unordered_map<std::size_t, String<bits> *>& off2str):
+      value(nullptr)
+   {
       nlist = img.at<nlist_t>(offset);
       if (nlist.n_value != 0) {
          env.vmaddr_resolver.resolve(nlist.n_value, &value);
@@ -39,7 +41,7 @@ namespace MachO {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
       }
       string = off2str.at(nlist.n_un.n_strx);
-
+      
       fprintf(stderr, "nlist={name=%s,sect=0x%x,value=0x%zx}\n", string->str.c_str(), nlist.n_sect,
               (std::size_t) nlist.n_value);
    }
@@ -118,7 +120,9 @@ namespace MachO {
    template <Bits bits>
    void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
       nlist_t nlist = this->nlist;
-      nlist.n_value = value->loc.vmaddr;
+      if (value) {
+         nlist.n_value = value->loc.vmaddr;
+      }
       img.at<nlist_t>(offset) = nlist;
    }
    

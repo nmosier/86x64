@@ -248,6 +248,13 @@ namespace MachO {
               sect.sectname, loc().offset, loc().vmaddr);
    }
 
+   template <Bits bits>
+   void ZerofillSection<bits>::Build(BuildEnv<bits>& env) {
+      env.align(this->sect.align);
+      this->sect.size = this->content_size(env.loc.offset);
+      this->loc(Location(0, env.loc.vmaddr));
+   }
+
    template <Bits bits, class Elem>
    void SectionT<bits, Elem>::Build_content(BuildEnv<bits>& env) {
       for (Elem *elem : content) {
