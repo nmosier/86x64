@@ -25,6 +25,8 @@ namespace MachO {
        * @param loc output location, essentially a virtual address and offset pair
        */
       void allocate(std::size_t size, Location& loc);
+
+      void align(unsigned pow2) { loc.align(pow2); }
       
       void newsegment();
 

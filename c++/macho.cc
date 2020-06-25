@@ -101,7 +101,7 @@ namespace MachO {
 
    template <Bits bits>
    void Archive<bits>::Build() {
-      BuildEnv<bits> env(*this, Location(0, vmaddr_start<bits>));
+      BuildEnv<bits> env(*this, Location(0, 0));
 
       env.allocate(sizeof(header));
       

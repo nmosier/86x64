@@ -37,7 +37,7 @@ namespace MachO {
          return DyldInfo<bits>::Parse(img, offset, env);
 
       case LC_SYMTAB:
-         return Symtab<bits>::Parse(img, offset);
+         return Symtab<bits>::Parse(img, offset, env);
 
       case LC_DYSYMTAB:
          return Dysymtab<bits>::Parse(img, offset);

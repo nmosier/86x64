@@ -10,6 +10,7 @@ add_executable(macho
   leb.c
   build.cc
   symtab.cc
+  loc.cc
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})

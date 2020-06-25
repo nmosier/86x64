@@ -56,6 +56,8 @@ namespace MachO {
       void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
       void Build_default(BuildEnv<bits>& env);
       void Build_LINKEDIT(BuildEnv<bits>& env); /*!< for SEG_LINKEDIT segment */
+
+      std::size_t content_size(std::size_t offset) const;
    };
 
 #if 0
@@ -90,7 +92,7 @@ namespace MachO {
       static std::size_t size() { return sizeof(section_t); }
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       void Build(BuildEnv<bits>& env);
-      virtual std::size_t content_size() const = 0;
+      virtual std::size_t content_size(std::size_t offset) const = 0;
       void Emit(Image& img, std::size_t offset) const;
 
    protected:
@@ -106,7 +108,7 @@ namespace MachO {
       Content content;
 
       ~SectionT();
-      virtual std::size_t content_size() const override;
+      virtual std::size_t content_size(std::size_t offset) const override;
       
    protected:
       typedef Elem *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);

@@ -1,4 +1,5 @@
 #include "segment.hh"
+#include "util.hh"
 
 namespace MachO {
 
@@ -192,6 +193,15 @@ namespace MachO {
    }
 
    template <Bits bits>
+   std::size_t Segment<bits>::content_size(std::size_t offset) const {
+      std::size_t total_size = 0;
+      for (const Section<bits> *sect : sections) {
+         total_size += sect->content_size(offset);
+      }
+      return total_size;
+   }
+
+   template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
       assert(env.loc.vmaddr % PAGESIZE == 0);
              
@@ -206,18 +216,10 @@ namespace MachO {
          return;
       }
 
-#if 1
-      /* get combined size of sections */
-      std::size_t total_size = 0;
-      for (const Section<bits> *sect : sections) {
-         total_size += sect->content_size();
-      }
-#endif
-
       /* set segment start location */
       segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
       segment_command.vmaddr = env.loc.vmaddr;
-      segment_command.filesize = total_size + env.loc.offset % PAGESIZE;
+      segment_command.filesize = content_size(env.loc.offset) + env.loc.offset % PAGESIZE;
       segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
 
       /* update env loc */
@@ -238,12 +240,12 @@ namespace MachO {
 
    template <Bits bits>
    void Section<bits>::Build(BuildEnv<bits>& env) {
-      sect.size = content_size();
+      env.align(sect.align);
+      sect.size = content_size(env.loc.offset);
       loc(env.loc);
       Build_content(env);
-
-      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname, sect.sectname, loc().offset, loc().vmaddr);
-         
+      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname,
+              sect.sectname, loc().offset, loc().vmaddr);
    }
 
    template <Bits bits, class Elem>
@@ -254,8 +256,8 @@ namespace MachO {
    }
    
    template <Bits bits, class Elem>
-   std::size_t SectionT<bits, Elem>::content_size() const {
-      std::size_t size = 0;
+   std::size_t SectionT<bits, Elem>::content_size(std::size_t offset) const {
+      std::size_t size = align_up<std::size_t>(offset, 1 << this->sect.align) - offset;
       for (const Elem *elem : content) {
          size += elem->size();
       }
@@ -264,12 +266,12 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Build_PAGEZERO(BuildEnv<bits>& env) {
-      assert(env.loc.vmaddr == vmaddr_start<bits>);
-      segment_command.vmaddr = env.loc.vmaddr;
-      segment_command.vmsize = PAGESIZE;
+      assert(env.loc.vmaddr == 0);
+      segment_command.vmaddr = 0;
+      segment_command.vmsize = vmaddr_start<bits>;
       segment_command.fileoff = 0;
       segment_command.filesize = 0;
-      env.loc.vmaddr += PAGESIZE;
+      env.loc.vmaddr += vmaddr_start<bits>;
    }
 
    template <Bits bits>

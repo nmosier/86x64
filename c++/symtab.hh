@@ -28,7 +28,7 @@ namespace MachO {
       virtual void Build(BuildEnv<bits>& env) override;
       
    private:
-      Symtab(const Image& img, std::size_t offset);
+      Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       
    };
 
@@ -41,6 +41,7 @@ namespace MachO {
 
       nlist_t nlist;
       String<bits> *string;
+      const SectionBlob<bits> *value;
       
       template <typename... Args>
       static Nlist<bits> *Parse(Args&&... args) { return new Nlist(args...); }
@@ -48,7 +49,7 @@ namespace MachO {
       void Emit(Image& img, std::size_t offset) const;
       
    private:
-      Nlist(const Image& img, std::size_t offset,
+      Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
             const std::unordered_map<std::size_t, String<bits> *>& off2str);
    };
 

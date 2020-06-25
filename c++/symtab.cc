@@ -1,9 +1,10 @@
 #include "symtab.hh"
+#include "segment.hh"
 
 namespace MachO {
 
    template <Bits bits>
-   Symtab<bits>::Symtab(const Image& img, std::size_t offset):
+   Symtab<bits>::Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       symtab(img.at<symtab_command>(offset)) {
       /* construct strings */
       const std::size_t strbegin = symtab.stroff;
@@ -21,19 +22,26 @@ namespace MachO {
 
       /* construct symbols */
       for (uint32_t i = 0; i < symtab.nsyms; ++i) {
-         syms.push_back(Nlist<bits>::Parse(img, symtab.symoff + i * Nlist<bits>::size(), off2str));
+         syms.push_back(Nlist<bits>::Parse(img, symtab.symoff + i * Nlist<bits>::size(), env,
+                                           off2str));
       }
 
    }
 
    template <Bits bits>
-   Nlist<bits>::Nlist(const Image& img, std::size_t offset,
+   Nlist<bits>::Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
                       const std::unordered_map<std::size_t, String<bits> *>& off2str) {
       nlist = img.at<nlist_t>(offset);
+      if (nlist.n_value != 0) {
+         env.vmaddr_resolver.resolve(nlist.n_value, &value);
+      }
       if (off2str.find(nlist.n_un.n_strx) == off2str.end()) {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
       }
       string = off2str.at(nlist.n_un.n_strx);
+
+      fprintf(stderr, "nlist={name=%s,sect=0x%x,value=0x%zx}\n", string->str.c_str(), nlist.n_sect,
+              (std::size_t) nlist.n_value);
    }
 
    template <Bits bits>
@@ -109,9 +117,11 @@ namespace MachO {
 
    template <Bits bits>
    void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
+      nlist_t nlist = this->nlist;
+      nlist.n_value = value->loc.vmaddr;
       img.at<nlist_t>(offset) = nlist;
    }
-
+   
    template <Bits bits>
    void String<bits>::Emit(Image& img, std::size_t offset) const {
       memcpy(&img.at<char>(offset), str.c_str(), str.size() + 1);
