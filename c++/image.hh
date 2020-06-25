@@ -19,28 +19,18 @@ namespace MachO {
 
       template <typename T>
       T& at(std::size_t index) {
-         const std::size_t end = index + sizeof(T);
-         if (end > filesize) {
-            filesize = end;
-            if (ftruncate(fd, filesize) < 0) { throw cerror("ftruncate"); }
-            if (filesize > mapsize) {
-               resize(filesize * 2);
-            }
-         }
+         grow(index + sizeof(T));
          return * (T *) ((char *) img + index);
       }
 
       template <typename T>
       void copy(std::size_t offset, const T *begin, std::size_t count) {
-         const std::size_t endoff = offset + count * sizeof(T);
-         if (endoff > filesize) {
-            filesize = endoff;
-            if (ftruncate(fd, filesize) < 0) { throw cerror("ftruncate"); }
-            if (filesize > mapsize) {
-               resize(filesize * 2);
-            }
-         }
+         const std::size_t bytes = count * sizeof(T);
+         grow(offset + bytes);
+         memcpy((char *) img + offset, begin, bytes);
       }
+
+      void memset(std::size_t offset, int c, std::size_t bytes);
       
       Image(const Image&) = delete;
 
@@ -52,6 +42,7 @@ namespace MachO {
       void *img;
  
       void resize(std::size_t newsize);
+      void grow(std::size_t size);
    };
 
 }

@@ -32,10 +32,8 @@ namespace MachO {
 
    template <Bits bits>
    void LinkeditData<bits>::Emit(Image& img, std::size_t offset) const {
-#warning TODO
       img.at<linkedit_data_command>(offset) = linkedit;
       img.copy(linkedit.dataoff, (const char *) raw_data(), linkedit.datasize);
-      // memcpy(&img.at<char>(linkedit.dataoff), raw_data(), linkedit.datasize);
    }
 
    template <Bits bits>
@@ -83,7 +81,7 @@ namespace MachO {
       for (const SectionBlob<bits> *entry : entries) {
          it += leb128_encode(&img.at<uint8_t>(it), img.size() - it, entry->loc.offset - refaddr);
       }
-      memset(&img.at<uint8_t>(it), 0, end - it);
+      img.memset(it, 0, end - it);
    }
    
    template class LinkeditData<Bits::M32>;

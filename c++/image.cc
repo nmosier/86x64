@@ -57,6 +57,21 @@ namespace MachO {
          throw cerror("mmap");
       }
 
-   }   
+   }
+
+   void Image::grow(std::size_t size) {
+      if (size > filesize) {
+         filesize = size;
+         if (ftruncate(fd, filesize) < 0) { throw cerror("ftruncate"); } 
+         if (filesize > mapsize) {
+            resize(filesize * 2);
+         }
+      }
+   }
+
+   void Image::memset(std::size_t offset, int c, std::size_t bytes) {
+      grow(offset + bytes);
+      ::memset((char *) img + offset, c, bytes);
+   }
    
 }

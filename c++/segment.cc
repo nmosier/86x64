@@ -254,6 +254,7 @@ namespace MachO {
       for (LinkeditCommand<bits> *linkedit : linkedits) {
          linkedit->Build_LINKEDIT(env);
       }
+      // done
    }
 
    template <Bits bits>
@@ -314,11 +315,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void Segment<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
-#warning Segment::Build_LINKEDIT incomplete
-   }
-
-   template <Bits bits>
    void Segment<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<segment_command_t>(offset) = segment_command;
       offset += sizeof(segment_command_t);
@@ -328,9 +324,7 @@ namespace MachO {
          offset += sect->size();
       }
 
-      fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname,
-              segment_command.fileoff, segment_command.filesize, segment_command.vmaddr,
-              segment_command.vmsize);
+      fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname, (std::size_t) segment_command.fileoff, (size_t) segment_command.filesize, (size_t) segment_command.vmaddr, (size_t) segment_command.vmsize);
    }
 
    template <Bits bits>
