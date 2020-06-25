@@ -10,7 +10,7 @@ namespace MachO {
    template <Bits bits> class String;
 
    template <Bits bits>
-   class Symtab: public LoadCommand<bits> {
+   class Symtab: public LinkeditCommand<bits> {
    public:
       using Nlists = std::vector<Nlist<bits> *>;
       using Strings = std::vector<String<bits> *>;
@@ -25,7 +25,8 @@ namespace MachO {
 
       template <typename... Args>
       static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
-      virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
+      virtual std::size_t content_size() const override;
       
    private:
       Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
@@ -72,7 +73,7 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class Dysymtab: public LoadCommand<bits> {
+   class Dysymtab: public LinkeditCommand<bits> {
    public:
       dysymtab_command dysymtab;
       std::vector<uint32_t> indirectsyms;
@@ -82,8 +83,9 @@ namespace MachO {
 
       template <typename... Args>
       static Dysymtab<bits> *Parse(Args&&... args) { return new Dysymtab(args...); }
-      virtual void Build(BuildEnv<bits>& env) override;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
+      virtual std::size_t content_size() const override;
       
    private:
       Dysymtab(const Image& img, std::size_t offset);
