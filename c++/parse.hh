@@ -10,23 +10,6 @@ namespace MachO {
    
    template <Bits bits> class SectionBlob;
 
-#if 0
-   template <typename T>
-   class ResolverNode {
-   public:
-      ResolverNode(const T **pointer, bool required): pointer(pointer), required(required) {}
-
-      void bind(const T *pointee) { *pointer = pointee; }
-      bool ok(std::size_t offset) {
-         
-      }
-
-   private:
-      const T **pointer;
-      bool required;
-   };
-#endif
-
    template <typename T>
    class Resolver {
    public:
