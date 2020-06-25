@@ -5,10 +5,13 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t BuildEnv<bits>::allocate(std::size_t size) {
-      // loc.offset = align<bits>(loc.offset);
-      std::size_t r_offset = loc.offset;
-      loc.offset += size;
-      return r_offset;
+      if (size == 0) {
+         return 0;
+      } else {
+         std::size_t r_offset = loc.offset;
+         loc.offset += size;
+         return r_offset;
+      }
    }
    
    template <Bits bits>

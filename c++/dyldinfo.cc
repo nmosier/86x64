@@ -268,8 +268,10 @@ namespace MachO {
       for (const RebaseNode<bits> *node : rebasees) {
          size += node->size();
       }
-      size += 1; /* REBASE_OPCODE_DONE */
-      return size;
+      if (size > 0) {
+         ++size; /* REBASE_OPCODE_DONE */
+      }
+      return align<bits>(size);
    }
 
    template <Bits bits>
@@ -278,8 +280,10 @@ namespace MachO {
       for (const BindNode<bits> *node : bindees) {
          size += node->size();
       }
-      size += 1; /* BIND_OPCODE_DONE */
-      return size;
+      if (size > 0) {
+         ++size;
+      }
+      return align<bits>(size);
    }
 
    template <Bits bits>
@@ -333,7 +337,9 @@ namespace MachO {
          rebasee->Emit(img, offset);
          offset += rebasee->size();
       }
-      img.at<uint8_t>(offset) = REBASE_OPCODE_DONE;
+      if (!rebasees.empty()) {
+         img.at<uint8_t>(offset) = REBASE_OPCODE_DONE;
+      }
    }
 
    template <Bits bits>
@@ -355,7 +361,9 @@ namespace MachO {
          bindee->Emit(img, offset);
          offset += bindee->size();
       }
-      img.at<uint8_t>(offset) = BIND_OPCODE_DONE;
+      if (!bindees.empty()) {
+         img.at<uint8_t>(offset) = BIND_OPCODE_DONE;
+      }
    }
 
    template <Bits bits>

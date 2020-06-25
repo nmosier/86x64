@@ -272,11 +272,10 @@ namespace MachO {
 
    template <Bits bits>
    void Section<bits>::Build(BuildEnv<bits>& env) {
-      // env.align(sect.align);
-      sect.size = content_size();
+      env.align(sect.align);
       loc(env.loc);
       Build_content(env);
-      env.align(this->sect.align);
+      sect.size = env.loc.offset - loc().offset;
       fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname,
               sect.sectname, loc().offset, loc().vmaddr);
    }
@@ -320,32 +319,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void Segment<bits>::Build_default(BuildEnv<bits>& env) {
-      /* set start offsets */
-      segment_command.vmaddr = env.loc.vmaddr;
-      segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
-
-      /* adjust vmaddr */
-      env.loc.vmaddr = env.loc.vmaddr + env.loc.offset - segment_command.fileoff;
-      assert(env.loc.vmaddr % PAGESIZE == env.loc.offset % PAGESIZE);
-
-      /* build sections */
-      for (Section<bits> *sect : sections) {
-         sect->Build(env);
-      }
-
-      /* compute and set sizes */
-      segment_command.vmsize = align_up(env.loc.vmaddr, PAGESIZE) - segment_command.vmaddr;
-      segment_command.filesize = segment_command.vmsize;
-
-      /* realign vmaddr in env */
-      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
-
-      fprintf(stderr, "[BUILD] segment %s @ offset 0x%zx, vmaddr 0x%zx\n", segment_command.segname,
-              loc().offset, loc().vmaddr);
-   }
-
-   template <Bits bits>
    void Segment<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<segment_command_t>(offset) = segment_command;
       offset += sizeof(segment_command_t);
@@ -354,6 +327,10 @@ namespace MachO {
          sect->Emit(img, offset);
          offset += sect->size();
       }
+
+      fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname,
+              segment_command.fileoff, segment_command.filesize, segment_command.vmaddr,
+              segment_command.vmsize);
    }
 
    template <Bits bits>
