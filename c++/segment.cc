@@ -1,8 +1,21 @@
 #include "segment.hh"
 #include "util.hh"
+#include "macho.hh"
 
 namespace MachO {
 
+   template <Bits bits>
+   Segment<bits> *Segment<bits>::Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+      const char *segname = img.at<segment_command_t>(offset).segname;
+
+      if (strcmp(segname, SEG_LINKEDIT) == 0) {
+         return Segment_LINKEDIT<bits>::Parse(img, offset, env);
+      } else {
+         return new Segment(img, offset, env);
+      }
+   }
+
+   
    template <Bits bits>
    Segment<bits>::Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
       segment_command = img.at<segment_command_t>(offset);
@@ -193,10 +206,10 @@ namespace MachO {
    }
 
    template <Bits bits>
-   std::size_t Segment<bits>::content_size(std::size_t offset) const {
+   std::size_t Segment<bits>::content_size() const {
       std::size_t total_size = 0;
       for (const Section<bits> *sect : sections) {
-         total_size += sect->content_size(offset);
+         total_size += sect->content_size();
       }
       return total_size;
    }
@@ -204,35 +217,51 @@ namespace MachO {
    template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
       assert(env.loc.vmaddr % PAGESIZE == 0);
-             
-      id = env.template counter<decltype(this)>();
       segment_command.nsects = sections.size();
-
       if (strcmp(segment_command.segname, SEG_PAGEZERO) == 0) {
          Build_PAGEZERO(env);
-         return;
-      } else if (strcmp(segment_command.segname, SEG_PAGEZERO) == 0) {
-         Build_LINKEDIT(env);
          return;
       }
 
       /* set segment start location */
       segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
       segment_command.vmaddr = env.loc.vmaddr;
-      segment_command.filesize = content_size(env.loc.offset) + env.loc.offset % PAGESIZE;
+      segment_command.filesize = content_size() + env.loc.offset % PAGESIZE;
       segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
 
       /* update env loc */
       env.loc.vmaddr += env.loc.offset % PAGESIZE;
-      
-      for (Section<bits> *sect : sections) {
-         sect->Build(env);
-      }
 
+      Build_content(env);
+      
       /* post-conditions for vmaddr */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
    }
 
+   template <Bits bits>
+   void Segment<bits>::Build_content(BuildEnv<bits>& env) {
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
+   }
+
+   template <Bits bits>
+   void Segment_LINKEDIT<bits>::Build_content(BuildEnv<bits>& env) {
+      linkedits = env.archive.template subcommands<LinkeditCommand<bits>>();
+      for (LinkeditCommand<bits> *linkedit : linkedits) {
+         linkedit->Build_LINKEDIT(env);
+      }
+   }
+
+   template <Bits bits>
+   std::size_t Segment_LINKEDIT<bits>::content_size() const {
+      std::size_t size = 0;
+      for (LinkeditCommand<bits> *linkedit : linkedits) {
+         size += linkedit->content_size();
+      }
+      return size;
+   }
+   
    template <Bits bits>
    void SectionBlob<bits>::Build(BuildEnv<bits>& env) {
       env.allocate(size(), loc);
@@ -240,18 +269,19 @@ namespace MachO {
 
    template <Bits bits>
    void Section<bits>::Build(BuildEnv<bits>& env) {
-      env.align(sect.align);
-      sect.size = content_size(env.loc.offset);
+      // env.align(sect.align);
+      sect.size = content_size();
       loc(env.loc);
       Build_content(env);
+      env.align();
       fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname,
               sect.sectname, loc().offset, loc().vmaddr);
    }
 
    template <Bits bits>
    void ZerofillSection<bits>::Build(BuildEnv<bits>& env) {
-      env.align(this->sect.align);
-      this->sect.size = this->content_size(env.loc.offset);
+      // env.align(this->sect.align);
+      this->sect.size = this->content_size();
       this->loc(Location(0, env.loc.vmaddr));
    }
 
@@ -263,12 +293,12 @@ namespace MachO {
    }
    
    template <Bits bits, class Elem>
-   std::size_t SectionT<bits, Elem>::content_size(std::size_t offset) const {
-      std::size_t size = align_up<std::size_t>(offset, 1 << this->sect.align) - offset;
+   std::size_t SectionT<bits, Elem>::content_size() const {
+      std::size_t size = 0;
       for (const Elem *elem : content) {
          size += elem->size();
       }
-      return size;
+      return align<bits>(size);
    }
 
    template <Bits bits>
@@ -382,6 +412,18 @@ namespace MachO {
       /* emit instruction bytes */
       memcpy(&img.at<uint8_t>(offset), &*instbuf.begin(), instbuf.size());
    }
+
+#if 0
+   template <Bits bits>
+   void Segment_LINKEDIT<bits>::Build(BuildEnv<bits>& env) {
+      linkedits = env.archive.template subcommands<const LinkeditCommand<bits> *>();
+   }
+
+   template <Bits bits>
+   void Segment_LINKEDIT<bits>::Emit(Image& img, std::size_t offset) const {
+      /* find data offset of LC_SYMTAB, first linkedit entry */
+   }
+#endif
    
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
