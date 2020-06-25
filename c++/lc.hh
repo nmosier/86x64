@@ -30,6 +30,13 @@ namespace MachO {
       LoadCommand() {}
    };
 
+   template <Bits bits>
+   class LinkeditCommand: public LoadCommand<bits> {
+   public:
+      virtual std::size_t content_size() const = 0;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) = 0;
+      virtual void Build(BuildEnv<bits>& env) override {}
+   };
 
    template <Bits bits>
    class DylinkerCommand: public LoadCommand<bits> {
@@ -152,7 +159,7 @@ namespace MachO {
          dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
       }
       virtual void AssignID(BuildEnv<bits>& env) override {
-         id = env.template counter<decltype(this)>();
+         id = env.dylib_counter();
       }
       virtual void Emit(Image& img, std::size_t offset) const override;
       
