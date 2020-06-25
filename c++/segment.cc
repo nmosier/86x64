@@ -205,6 +205,7 @@ namespace MachO {
                                                           sizeof(segment_command.segname)));
    }
 
+#if 0
    template <Bits bits>
    std::size_t Segment<bits>::content_size() const {
       std::size_t total_size = 0;
@@ -213,6 +214,7 @@ namespace MachO {
       }
       return total_size;
    }
+#endif
 
    template <Bits bits>
    void Segment<bits>::Build(BuildEnv<bits>& env) {
@@ -232,8 +234,9 @@ namespace MachO {
       /* update env loc */
       env.loc.vmaddr += env.loc.offset % PAGESIZE;
 
-      Build_content(env);
-
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
       
       /* post-conditions for vmaddr */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
@@ -242,21 +245,22 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void Segment<bits>::Build_content(BuildEnv<bits>& env) {
-      for (Section<bits> *sect : sections) {
-         sect->Build(env);
-      }
-   }
-
-   template <Bits bits>
-   void Segment_LINKEDIT<bits>::Build_content(BuildEnv<bits>& env) {
+   void Segment_LINKEDIT<bits>::Build(BuildEnv<bits>& env) {
+      this->segment_command.fileoff = env.loc.offset = align_up(env.loc.offset, PAGESIZE);
+      this->segment_command.vmaddr = env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+      
       linkedits = env.archive.template subcommands<LinkeditCommand<bits>>();
       for (LinkeditCommand<bits> *linkedit : linkedits) {
          linkedit->Build_LINKEDIT(env);
       }
-      // done
+      
+      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+      
+      this->segment_command.filesize = env.loc.offset - this->segment_command.fileoff;
+      this->segment_command.vmsize = env.loc.vmaddr - this->segment_command.vmaddr;
    }
 
+#if 0
    template <Bits bits>
    std::size_t Segment_LINKEDIT<bits>::content_size() const {
       std::size_t size = 0;
@@ -265,6 +269,7 @@ namespace MachO {
       }
       return size;
    }
+#endif
    
    template <Bits bits>
    void SectionBlob<bits>::Build(BuildEnv<bits>& env) {

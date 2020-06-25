@@ -56,10 +56,9 @@ namespace MachO {
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
 
       void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
-      void Build_default(BuildEnv<bits>& env);
-      void Build_LINKEDIT(BuildEnv<bits>& env); /*!< for SEG_LINKEDIT segment */
-      virtual void Build_content(BuildEnv<bits>& env);
-      virtual std::size_t content_size() const;
+      // void Build_default(BuildEnv<bits>& env);
+      // void Build_LINKEDIT(BuildEnv<bits>& env); /*!< for SEG_LINKEDIT segment */
+      // virtual std::size_t content_size() const;
    };
 
    template <Bits bits>
@@ -70,14 +69,14 @@ namespace MachO {
       
       template <typename... Args>
       static Segment_LINKEDIT<bits> *Parse(Args&&... args) { return new Segment_LINKEDIT(args...); }
+      virtual void Build(BuildEnv<bits>& env) override;
       
    private:
       std::vector<LinkeditCommand<bits> *> linkedits;
       
       template <typename... Args>
       Segment_LINKEDIT(Args&&... args): Segment<bits>(args...) {}
-      virtual void Build_content(BuildEnv<bits>& env) override;
-      virtual std::size_t content_size() const override;
+      // virtual std::size_t content_size() const override;
    };
    
 
