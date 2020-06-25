@@ -226,16 +226,19 @@ namespace MachO {
       /* set segment start location */
       segment_command.fileoff = align_down(env.loc.offset, PAGESIZE);
       segment_command.vmaddr = env.loc.vmaddr;
-      segment_command.filesize = content_size() + env.loc.offset % PAGESIZE;
-      segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
+      // segment_command.filesize = content_size() + env.loc.offset % PAGESIZE;
+      // segment_command.vmsize = align_up<std::size_t>(segment_command.filesize, PAGESIZE);
 
       /* update env loc */
       env.loc.vmaddr += env.loc.offset % PAGESIZE;
 
       Build_content(env);
+
       
       /* post-conditions for vmaddr */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+      segment_command.filesize = env.loc.offset - segment_command.fileoff;
+      segment_command.vmsize = env.loc.vmaddr - segment_command.vmaddr;
    }
 
    template <Bits bits>
