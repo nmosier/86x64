@@ -54,17 +54,19 @@ namespace MachO {
                                          dysymtab.nindirectsyms)) {}
 
    template <Bits bits>
-   void Symtab<bits>::Build(BuildEnv<bits>& env) {
+   void Symtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
       /* allocate space for symbol table */
       symtab.nsyms = syms.size();
       symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
+      env.align();
       
       symtab.strsize = 0;
       for (const String<bits> *str : strs) {
          symtab.strsize += str->size();
       }
       symtab.stroff = env.allocate(symtab.strsize);
-
+      env.align();
+      
       /* create build environment for string table */
       BuildEnv<bits> strtab_env(env.archive, Location(0, 0));
       for (String<bits> *str : strs) {
@@ -94,10 +96,16 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void Dysymtab<bits>::Build(BuildEnv<bits>& env) {
+   void Dysymtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
       dysymtab.indirectsymoff = env.allocate(sizeof(typename decltype(indirectsyms)::value_type) *
                                              indirectsyms.size());
       dysymtab.nindirectsyms = indirectsyms.size();
+      env.align();
+   }
+
+   template <Bits bits>
+   std::size_t Dysymtab<bits>::content_size() const {
+      return align<bits>(indirectsyms.size() * sizeof(uint32_t));
    }
 
    template <Bits bits>
@@ -136,6 +144,15 @@ namespace MachO {
       img.at<dysymtab_command>(offset) = dysymtab;
       memcpy(&img.at<uint32_t>(dysymtab.indirectsymoff), &*indirectsyms.begin(),
              indirectsyms.size() * sizeof(uint32_t));
+   }
+
+   template <Bits bits>
+   std::size_t Symtab<bits>::content_size() const {
+      std::size_t size = Nlist<bits>::size() * syms.size();
+      for (const String<bits> *str : strs) {
+         size += str->size();
+      }
+      return align<bits>(size);
    }
 
    template class Symtab<Bits::M32>;
