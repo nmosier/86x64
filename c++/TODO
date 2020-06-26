@@ -1,4 +1,5 @@
 [X] Parse NLIST
 [X] Fix LINKEDIT segment
-[ ] Transition PAGEZERO segment
-[ ] Rebase doesn't work
+[X] Transition PAGEZERO segment
+[X] Rebase doesn't work
+[ ] Weak bind?
