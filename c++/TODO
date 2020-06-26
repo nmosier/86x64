@@ -2,4 +2,5 @@
 [X] Fix LINKEDIT segment
 [X] Transition PAGEZERO segment
 [X] Rebase doesn't work
-[ ] Weak bind?
+[X] Weak bind?
+[ ] Data in code screws stuff up
