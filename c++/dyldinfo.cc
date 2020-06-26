@@ -69,7 +69,7 @@ namespace MachO {
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
             it += leb128_decode(img, it, uleb);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            vmaddr = do_rebase_times(imm, vmaddr, env, type);
+            vmaddr = do_rebase_times(uleb, vmaddr, env, type);
             break;
 
          case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
