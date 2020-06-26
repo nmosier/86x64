@@ -3,6 +3,9 @@
 #include <list>
 #include <vector>
 #include <mach-o/loader.h>
+extern "C" {
+#include <xed-interface.h>
+}
 
 #include "macho-fwd.hh"
 #include "util.hh"

@@ -5,6 +5,7 @@
 
 #include "macho-fwd.hh"
 #include "loc.hh"
+#include "archive.hh"
 
 namespace MachO {
    

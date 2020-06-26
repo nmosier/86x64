@@ -1,15 +1,5 @@
 #pragma once
 
-#include <vector>
-#include <list>
-#include <unordered_map>
-#include <optional>
-#include <string>
-
-extern "C" {
-#include <xed-interface.h>
-}
-
 #include <mach-o/loader.h>
 
 #include "image.hh"
