@@ -48,7 +48,6 @@ namespace MachO {
 
          case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
             it += leb128_decode(img, it, vmaddr);
-            it += leb128_decode(img, it, uleb);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->vmaddr();
             break;

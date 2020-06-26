@@ -43,12 +43,16 @@ namespace MachO {
    Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
       section_t sect = img.at<section_t>(offset);
       uint32_t flags = sect.flags;
+
+      /* chcek whether contains instructions */
+      std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER};
+      for (const std::string& sectname : text_sectnames) {
+         if (sectname == sect.sectname) {
+            return TextSection<bits>::Parse(img, offset, env);
+         }
+      }
       
-      if ((flags & S_ATTR_PURE_INSTRUCTIONS)) {
-         return TextSection<bits>::Parse(img, offset, env);
-      } else if ((flags & S_ATTR_SOME_INSTRUCTIONS)) {
-         throw error("segments with only 'some' instructions not supported");
-      } else if (flags == S_LAZY_SYMBOL_POINTERS) {
+      if (flags == S_LAZY_SYMBOL_POINTERS) {
          return LazySymbolPointerSection<bits>::Parse(img, offset, env);
       } else if (flags == S_NON_LAZY_SYMBOL_POINTERS) {
          return NonLazySymbolPointerSection<bits>::Parse(img, offset, env);
@@ -71,7 +75,6 @@ namespace MachO {
    Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
       SectionBlob<bits>(loc, env), memdisp(nullptr), brdisp(nullptr)
    {
-      // xed_decoded_inst_t xedd;
       xed_error_enum_t err;
       
       xed_decoded_inst_zero_set_mode(&xedd, &dstate);
@@ -89,9 +92,12 @@ namespace MachO {
       
 
       xed_operand_values_t *operands = xed_decoded_inst_operands(&xedd);
-      unsigned int memops = xed_operand_values_number_of_memory_operands(operands);
+
+      /* Memory Accesses */
+      // const unsigned int memops = xed_operand_values_number_of_memory_operands(operands);
+      const unsigned int nops = xed_decoded_inst_noperands(&xedd);
       if (xed_operand_values_has_memory_displacement(operands)) {
-         for (unsigned i = 0; i < memops; ++i) {
+         for (unsigned i = 0; i < nops; ++i) {
             xed_reg_enum_t basereg  = xed_decoded_inst_get_base_reg(operands,  i);
             xed_reg_enum_t indexreg = xed_decoded_inst_get_index_reg(operands, i);
             if (basereg == select_value(bits, XED_REG_EIP, XED_REG_RIP) &&
@@ -113,10 +119,20 @@ namespace MachO {
 
                   /* resolve pointer */
                   env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
+
+                  char pbuf[32];
+                  xed_print_info_t pinfo;
+                  xed_init_print_info(&pinfo);
+                  pinfo.blen = 32;
+                  pinfo.buf = pbuf;
+                  pinfo.p = &xedd;
+                  pinfo.runtime_address = loc.vmaddr;
+                  xed_format_generic(&pinfo);
+                  fprintf(stderr, "%s\n", pbuf);
                }
          }
       }
-
+      
       /* Relative Branches */
       if (xed_operand_values_has_branch_displacement(operands)) {
          const ssize_t brdisp = xed_decoded_inst_get_branch_displacement(operands);
@@ -237,15 +253,15 @@ namespace MachO {
          segment_command.fileoff = env.loc.offset;
          segment_command.vmaddr = env.loc.vmaddr;
       }
-         
-         for (Section<bits> *sect : sections) {
-            sect->Build(env);
-         }
-         
-         /* post-conditions for vmaddr */
-         env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
-         segment_command.filesize = env.loc.offset - segment_command.fileoff;
-         segment_command.vmsize = align_up<size_t>(env.loc.vmaddr - segment_command.vmaddr, PAGESIZE);
+      
+      for (Section<bits> *sect : sections) {
+         sect->Build(env);
+      }
+      
+      /* post-conditions for vmaddr */
+      env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+      segment_command.filesize = env.loc.offset - segment_command.fileoff;
+      segment_command.vmsize = align_up<size_t>(env.loc.vmaddr - segment_command.vmaddr, PAGESIZE);
    }
 
    template <Bits bits>

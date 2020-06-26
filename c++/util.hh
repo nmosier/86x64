@@ -7,8 +7,10 @@
 
 #include "macho-fwd.hh"
 
-namespace MachO {
+#define SECT_STUBS "__stubs"
+#define SECT_STUB_HELPER "__stub_helper"
 
+namespace MachO {
 
    namespace {
       template <Bits bits, typename T32, typename T64>
