@@ -11,6 +11,7 @@ add_executable(macho
   build.cc
   symtab.cc
   loc.cc
+  section.cc
 )
 
 target_link_libraries(macho PRIVATE ${xed_LIBRARIES})
