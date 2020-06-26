@@ -37,8 +37,12 @@ namespace MachO {
       
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
-
       virtual ~Segment() override;
+
+      template <typename... Args>
+      void Insert(const SectionLocation<bits>& loc, Args&&... args) {
+         loc.section->Insert(loc, args...);
+      }
       
    protected:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);

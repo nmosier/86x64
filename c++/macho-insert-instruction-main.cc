@@ -2,8 +2,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <scanopt.h>
+#include <vector>
 
 #include "macho.hh"
+#include "section.hh"
+#include "segment.hh"
 
 int main(int argc, char *argv[]) {
    const char *usagestr =
@@ -50,6 +53,20 @@ int main(int argc, char *argv[]) {
    MachO::MachO *macho = MachO::MachO::Parse(in_img);
    macho->Build();
 
+   /* insert instruction */
+   auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+
+   MachO::SectionLocation<MachO::Bits::M64> loc;
+   loc.segment = archive->segment(SEG_TEXT);
+   loc.section = loc.segment->section(SECT_TEXT);
+   loc.index = 1;
+
+   const std::vector<uint8_t> instbuf = {0x90};
+   MachO::Instruction<MachO::Bits::M64> inst(loc.segment, instbuf.begin(), instbuf.end());
+
+   archive->Insert(loc, &inst);
+
+   macho->Build();
    macho->Emit(out_img);
 
    return 0;

@@ -263,6 +263,15 @@ namespace MachO {
       img.copy(offset, &*instbuf.begin(), instbuf.size());
    }
 
+   template <Bits bits, class Elem>
+   void SectionT<bits, Elem>::Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) {
+      Elem *elem = dynamic_cast<Elem *>(blob);
+      if (elem == nullptr) {
+         throw std::invalid_argument(std::string(__FUNCTION__) + ": blob is of incorrect type");
+      }
+      content.insert(content.begin() + loc.index, elem);
+   }
+
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

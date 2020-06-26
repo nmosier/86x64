@@ -37,6 +37,7 @@ namespace MachO {
       virtual void Build(BuildEnv<bits>& env);
       virtual std::size_t content_size() const = 0;
       void Emit(Image& img, std::size_t offset) const;
+      virtual void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) = 0;
 
    protected:
       Section(const Image& img, std::size_t offset): sect(img.at<section_t>(offset)) {}
@@ -47,11 +48,12 @@ namespace MachO {
    template <Bits bits, class Elem>
    class SectionT: public Section<bits> {
    public:
-      using Content = std::list<Elem *>;
+      using Content = std::vector<Elem *>;
       Content content;
 
       ~SectionT();
       virtual std::size_t content_size() const override;
+      virtual void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) override;
       
    protected:
       typedef Elem *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
@@ -101,6 +103,7 @@ namespace MachO {
       
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env);
+      SectionBlob(Segment<bits> *segment): segment(segment) {}
    };
 
    template <Bits bits>
@@ -232,6 +235,10 @@ namespace MachO {
       template <typename... Args>
       static Instruction<bits> *Parse(Args&&... args) { return new Instruction(args...); }
       
+      template <typename It>
+      Instruction(Segment<bits> *segment, It begin, It end):
+         SectionBlob<bits>(segment), instbuf(begin, end), memdisp(nullptr), brdisp(nullptr) {}
+
    private:
       Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env);
    };   

@@ -41,6 +41,11 @@ namespace MachO {
       virtual void Emit(Image& img) const override;
       virtual ~Archive() override;
 
+      template <typename... Args>
+      void Insert(const SectionLocation<bits>& loc, Args&&... args) {
+         loc.segment->Insert(loc, args...);
+      }
+
    private:
       std::size_t total_size;
       

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <string>
+
 #include "macho-fwd.hh"
 #include "util.hh"
 #include "image.hh"
+#include "loc.hh"
 
 namespace MachO {
 
@@ -20,9 +23,6 @@ namespace MachO {
       virtual void Build() = 0;
       virtual void Emit(Image& img) const = 0;
       virtual ~MachO() {}
-
-   private:
    };
-
 }
 
