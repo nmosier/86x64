@@ -60,3 +60,12 @@ which instructions are correct and skipping invalid ones (treating them as data 
 Idea -- don't even record rebase/bind information separately; record the information inside the section blobs themselves.
  - Advantage: easy to regenerate at emit time without bookkeeping during editing.
  - Disadvantage: Can't print out rebase information easily.
+
+-------
+
+Transforming Ideas
+
+Two stages.
+Stage 1: transform each MachO node into other node of opposite bits. Add each node do (void *) map.
+Stage 2: bind all memebrs of MachO nodes using map.
+

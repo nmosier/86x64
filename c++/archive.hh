@@ -4,6 +4,7 @@
 #include <mach-o/loader.h>
 
 #include "macho.hh"
+#include "transform.hh"
 
 namespace MachO {
 

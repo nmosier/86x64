@@ -104,6 +104,9 @@ namespace MachO {
    template <Bits bits>
    constexpr std::size_t align_rem(std::size_t value) { return align<bits>(value) - value; }
 
+   template <Bits bits>
+   constexpr Bits opposite = bits == Bits::M32 ? Bits::M64 : Bits::M32;
+
 #define str(s) #s
 #define xstr(s) str(s)
    
