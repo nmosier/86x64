@@ -241,6 +241,20 @@ namespace MachO {
 
    private:
       Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env);
-   };   
+   };
+
+   template <Bits bits>
+   class EntryPointBlob: public SectionBlob<bits> {
+   public:
+      template <typename... Args>
+      EntryPointBlob<bits> *Create(Args&&... args) { return new EntryPointBlob(args...); }
+
+      virtual std::size_t size() const override { return 0; }
+      virtual void Emit(Image& img, std::size_t offset) const override {}
+      
+   private:
+      template <typename... Args>
+      EntryPointBlob(Args&&... args): SectionBlob<bits>(args...) {}
+   };
 
 }

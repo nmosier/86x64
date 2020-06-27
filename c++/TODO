@@ -3,4 +3,9 @@
 [X] Transition PAGEZERO segment
 [X] Rebase doesn't work
 [X] Weak bind?
-[ ] Data in code screws stuff up
+[ ] Data in code problem
+[ ] Add new kind of section blob that is function start placeholder.
+[ ] Add transformation routines.
+
+How to solve data-in-code problem?
+1. Do 2nd pass that checks unresolved pointers and reconsiders instructions at that address. 
