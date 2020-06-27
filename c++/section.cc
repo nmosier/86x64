@@ -6,7 +6,7 @@ namespace MachO {
 
    template <Bits bits>
    Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-      section_t sect = img.at<section_t>(offset);
+      section_t<bits> sect = img.at<section_t<bits>>(offset);
       uint32_t flags = sect.flags;
 
       /* chcek whether contains instructions */
@@ -138,14 +138,14 @@ namespace MachO {
       env.vmaddr_resolver.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
    }
 
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    SectionT<bits, Elem>::~SectionT() {
-      for (Elem *elem : content) {
+      for (Elem<bits> *elem : content) {
          delete elem;
       }
    }
 
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    SectionT<bits, Elem>::SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env,
                                   Parser parser): Section<bits>(img, offset) {
       const std::size_t begin = this->sect.offset;
@@ -153,7 +153,7 @@ namespace MachO {
       std::size_t it = begin;
       std::size_t vmaddr = this->sect.addr;
       while (it != end) {
-         Elem *elem = parser(img, Location(it, vmaddr), env);
+         Elem<bits> *elem = parser(img, Location(it, vmaddr), env);
          content.push_back(elem);
          it += elem->size();
          vmaddr += elem->size();
@@ -187,17 +187,17 @@ namespace MachO {
       this->loc(Location(0, env.loc.vmaddr));
    }
 
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    void SectionT<bits, Elem>::Build_content(BuildEnv<bits>& env) {
-      for (Elem *elem : content) {
+      for (Elem<bits> *elem : content) {
          elem->Build(env);
       }
    }
    
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    std::size_t SectionT<bits, Elem>::content_size() const {
       std::size_t size = 0;
-      for (const Elem *elem : content) {
+      for (const Elem<bits> *elem : content) {
          size += elem->size();
       }
       return align<bits>(size);
@@ -205,13 +205,13 @@ namespace MachO {
 
    template <Bits bits>
    void Section<bits>::Emit(Image& img, std::size_t offset) const {
-      img.at<section_t>(offset) = sect;
+      img.at<section_t<bits>>(offset) = sect;
       Emit_content(img, sect.offset);
    }
    
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    void SectionT<bits, Elem>::Emit_content(Image& img, std::size_t offset) const {
-      for (const Elem *elem : content) {
+      for (const Elem<bits> *elem : content) {
          elem->Emit(img, offset);
          offset += elem->size();
       }
@@ -263,15 +263,62 @@ namespace MachO {
       img.copy(offset, &*instbuf.begin(), instbuf.size());
    }
 
-   template <Bits bits, class Elem>
+   template <Bits bits, template <Bits> typename Elem>
    void SectionT<bits, Elem>::Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) {
-      Elem *elem = dynamic_cast<Elem *>(blob);
+      Elem<bits> *elem = dynamic_cast<Elem<bits> *>(blob);
       if (elem == nullptr) {
          throw std::invalid_argument(std::string(__FUNCTION__) + ": blob is of incorrect type");
       }
       content.insert(content.begin() + loc.index, elem);
    }
 
+   template <Bits bits>
+   SectionBlob<bits>::SectionBlob(const SectionBlob<opposite<bits>>& other,
+                                  TransformEnv<opposite<bits>>& env): segment(nullptr) {
+      env.add(&other, this);
+      env.resolve(other.segment, &segment);
+   }
+
+   template <Bits bits>
+   Instruction<bits>::Instruction(const Instruction<opposite<bits>>& other,
+                                  TransformEnv<opposite<bits>>& env):
+      SectionBlob<bits>(other, env), instbuf(other.instbuf), memidx(other.memidx), memdisp(nullptr),
+      brdisp(nullptr)
+   {
+      if (other.memdisp) { env.resolve(other.memdisp, &memdisp); }
+      if (other.brdisp) { env.resolve(other.brdisp, &brdisp); }
+
+      xed_decoded_inst_zero_set_mode(&xedd, &dstate);
+      xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
+
+      xed_error_enum_t err;
+      if ((err = xed_decode(&xedd, instbuf.data(), instbuf.size())) != XED_ERROR_NONE) {
+         throw error("%s: xed_decode: %s\n", __FUNCTION__, xed_error_enum_t2str(err));
+      }
+
+      if (xed_decoded_inst_get_length(&xedd) != xed_decoded_inst_get_length(&other.xedd)) {
+         throw error("%s: lengths of transformed instruction mismatch\n", __FUNCTION__);
+      }
+   }
+
+   template <Bits bits, template <Bits> typename Elem>
+   SectionT<bits, Elem>::SectionT(const SectionT<opposite<bits>, Elem>& other,
+                                  TransformEnv<opposite<bits>>& env): Section<bits>(other, env)
+   {
+      for (const auto elem : other.content) {
+         content.push_back(elem->Transform(env));
+      }
+   }
+
+   template <Bits bits>
+   LazySymbolPointer<bits>::LazySymbolPointer(const LazySymbolPointer<opposite<bits>>& other,
+                                              TransformEnv<opposite<bits>>& env):
+      SymbolPointer<bits>(other, env), pointee(nullptr)
+   {
+      env.resolve(other.pointee, &pointee);
+   }
+   
+                                  
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

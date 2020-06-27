@@ -7,7 +7,7 @@ namespace MachO {
 
    template <Bits bits>
    DyldInfo<bits>::DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      dyld_info(img.at<dyld_info_command>(offset)),
+      LinkeditCommand<bits>(img, offset, env), dyld_info(img.at<dyld_info_command>(offset)),
       rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env)),
       bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env))
    {
@@ -408,6 +408,40 @@ namespace MachO {
    std::size_t DyldInfo<bits>::content_size() const {
       return rebase->size() + bind->size() +
          weak_bind.size() + lazy_bind.size() + export_info.size();
+   }
+
+   template <Bits bits>
+   RebaseInfo<bits>::RebaseInfo(const RebaseInfo<opposite<bits>>& other,
+                                TransformEnv<opposite<bits>>& env) {
+      for (const auto other_rebasee : other.rebasees) {
+         rebasees.push_back(other_rebasee->Transform(env));
+      }
+   }
+
+   template <Bits bits>
+   BindInfo<bits>::BindInfo(const BindInfo<opposite<bits>>& other,
+                            TransformEnv<opposite<bits>>& env) {
+      for (const auto other_bindee : other.bindees) {
+         bindees.push_back(other_bindee->Transform(env));
+      }
+   }
+
+   template <Bits bits>
+   RebaseNode<bits>::RebaseNode(const RebaseNode<opposite<bits>>& other,
+                                TransformEnv<opposite<bits>>& env):
+      type(other.type), blob(nullptr)
+   {
+      env.resolve(other.blob, &blob);
+   }
+
+   template <Bits bits>
+   BindNode<bits>::BindNode(const BindNode<opposite<bits>>& other,
+                            TransformEnv<opposite<bits>>& env):
+      type(other.type), addend(other.addend), dylib(nullptr), sym(other.sym), flags(other.flags),
+      blob(nullptr)
+   {
+      env.resolve(other.dylib, &dylib);
+      env.resolve(other.blob, &blob);
    }
    
    template class DyldInfo<Bits::M32>;

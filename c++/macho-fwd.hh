@@ -21,7 +21,7 @@ namespace MachO {
    template <Bits bits> class DylinkerCommand;
    template <Bits bits> class UUID;
    template <Bits bits> class BuildVersion;
-   template <Bits bits> class BuildToolVersion;
+   class BuildToolVersion;
    template <Bits bits> class Instruction;
    template <Bits bits> class DataInCode;
    template <Bits bits> class SectionBlob;
@@ -29,6 +29,7 @@ namespace MachO {
    template <Bits bits> class LoadCommand;
    template <Bits bits> class SectionBlob;
    template <Bits bits> class DylibCommand;
+
 
 }
 

@@ -40,19 +40,19 @@ namespace MachO {
          return Symtab<bits>::Parse(img, offset, env);
 
       case LC_DYSYMTAB:
-         return Dysymtab<bits>::Parse(img, offset);
+         return Dysymtab<bits>::Parse(img, offset, env);
 
       case LC_LOAD_DYLINKER:
-         return DylinkerCommand<bits>::Parse(img, offset);
+         return DylinkerCommand<bits>::Parse(img, offset, env);
 
       case LC_UUID:
-         return UUID<bits>::Parse(img, offset);
+         return UUID<bits>::Parse(img, offset, env);
 
       case LC_BUILD_VERSION:
-         return BuildVersion<bits>::Parse(img, offset);
+         return BuildVersion<bits>::Parse(img, offset, env);
 
       case LC_SOURCE_VERSION:
-         return SourceVersion<bits>::Parse(img, offset);
+         return SourceVersion<bits>::Parse(img, offset, env);
 
       case LC_MAIN:
          return EntryPoint<bits>::Parse(img, offset, env);
@@ -75,8 +75,10 @@ namespace MachO {
 
 
    template <Bits bits>
-   DylinkerCommand<bits>::DylinkerCommand(const Image& img, std::size_t offset):
-      dylinker(img.at<dylinker_command>(offset)) {
+   DylinkerCommand<bits>::DylinkerCommand(const Image& img, std::size_t offset,
+                                          ParseEnv<bits>& env):
+      LoadCommand<bits>(img, offset, env), dylinker(img.at<dylinker_command>(offset))
+   {
       if (dylinker.name.offset > dylinker.cmdsize) {
          throw error("dylinker name starts past end of command");
       }
@@ -92,29 +94,29 @@ namespace MachO {
    }
 
    template <Bits bits>
-   BuildVersion<bits>::BuildVersion(const Image& img, std::size_t offset):
-      build_version(img.at<build_version_command>(offset)) {
+   BuildVersion<bits>::BuildVersion(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      LoadCommand<bits>(img, offset, env), build_version(img.at<build_version_command>(offset))
+   {
       for (int i = 0; i < build_version.ntools; ++i) {
-         tools.push_back(BuildToolVersion<bits>::Parse(img, offset +
-                                                       sizeof(build_version) +
-                                                       i * BuildToolVersion<bits>::size()));
+         tools.emplace_back(img, offset + sizeof(build_version) + i * BuildToolVersion::size());
       }
    }
 
    template <Bits bits>
    std::size_t BuildVersion<bits>::size() const {
-      return sizeof(build_version) + BuildToolVersion<bits>::size() * tools.size();
+      return sizeof(build_version) + BuildToolVersion::size() * tools.size();
    }
 
    template <Bits bits>
    EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      entry_point(img.at<entry_point_command>(offset)) {
+      LoadCommand<bits>(img, offset, env), entry_point(img.at<entry_point_command>(offset))
+   {
       env.offset_resolver.resolve(entry_point.entryoff, &entry);
    }
 
    template <Bits bits>
    DylibCommand<bits>::DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      dylib_cmd(img.at<dylib_command>(offset))
+      LoadCommand<bits>(img, offset, env), dylib_cmd(img.at<dylib_command>(offset))
    {
       const std::size_t stroff = dylib_cmd.dylib.name.offset;
       if (stroff > dylib_cmd.cmdsize) {
@@ -164,14 +166,13 @@ namespace MachO {
    void BuildVersion<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<build_version_command>(offset) = build_version;
       offset += sizeof(build_version_command);
-      for (BuildToolVersion<bits> *tool : tools) {
-         tool->Emit(img, offset);
-         offset += tool->size();
+      for (const BuildToolVersion& tool : tools) {
+         tool.Emit(img, offset);
+         offset += tool.size();
       }
    }
 
-   template <Bits bits>
-   void BuildToolVersion<bits>::Emit(Image& img, std::size_t offset) const {
+   void BuildToolVersion::Emit(Image& img, std::size_t offset) const {
       img.at<build_tool_version>(offset) = tool;
    }
 
@@ -195,7 +196,22 @@ namespace MachO {
       memcpy(&img.at<char>(offset), name.c_str(), name.size() + 1);
       offset += name.size() + 1;
    }
+
+   template <Bits bits>
+   LoadCommand<bits>::LoadCommand(const LoadCommand<opposite<bits>>& other,
+                                  TransformEnv<opposite<bits>>& env) {
+      env.add(&other, this);
+   }
    
+   template <Bits bits>
+   EntryPoint<bits>::EntryPoint(const EntryPoint<opposite<bits>>& other,
+                                TransformEnv<opposite<bits>>& env):
+      LoadCommand<bits>(other, env), entry_point(other.entry_point), entry(nullptr)
+   {
+      env.resolve(other.entry, &entry);
+   }
+   
+
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;
    

@@ -9,7 +9,7 @@ namespace MachO {
    Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
       Archive<bits> *archive = new Archive<bits>();
       ParseEnv<bits> env(*archive);
-      archive->header = img.at<mach_header_t>(offset);
+      archive->header = img.at<mach_header_t<bits>>(offset);
 
       offset += sizeof(archive->header);
       for (int i = 0; i < archive->header.ncmds; ++i) {
@@ -71,7 +71,7 @@ namespace MachO {
    template <Bits bits>
    void Archive<bits>::Emit(Image& img) const {
       /* emit header */
-      img.at<mach_header_t>(0) = header;
+      img.at<mach_header_t<bits>>(0) = header;
       
       /* emit load commands */
       std::size_t offset = sizeof(header);

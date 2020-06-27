@@ -7,16 +7,16 @@
 #include "lc.hh"
 #include "parse.hh"
 #include "section.hh"
+#include "types.hh"
 
 namespace MachO {
 
    template <Bits bits>
    class Segment: public LoadCommand<bits> {
    public:
-      using segment_command_t = select_type<bits, segment_command, segment_command_64>;
       using Sections = std::vector<Section<bits> *>;
 
-      segment_command_t segment_command;
+      segment_command_t<bits> segment_command;
       Sections sections;
       unsigned id; /*!< assigned during build time */
 
@@ -46,8 +46,14 @@ namespace MachO {
       
    protected:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      Segment(const Segment<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      virtual Segment<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Segment<opposite<bits>>(*this, env);
+      }
 
       void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
+
+      template <Bits b> friend class Segment;
    };
 
    template <Bits bits>

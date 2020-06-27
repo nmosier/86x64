@@ -85,7 +85,18 @@ namespace MachO {
       }
       img.memset(it, 0, end - it);
    }
-   
+
+   template <Bits bits>
+   FunctionStarts<bits>::FunctionStarts(const FunctionStarts<opposite<bits>>& other,
+                                        TransformEnv<opposite<bits>>& env):
+      LinkeditData<bits>(other, env)
+   {
+      for (const auto entry : other.entries) {
+         entries.push_back(entry->Transform(env));
+      }
+      env.resolve(other.segment, &segment);
+   }
+
    template class LinkeditData<Bits::M32>;
    template class LinkeditData<Bits::M64>;
 

@@ -5,7 +5,8 @@ namespace MachO {
 
    template <Bits bits>
    Symtab<bits>::Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-      symtab(img.at<symtab_command>(offset)) {
+      LinkeditCommand<bits>(img, offset, env), symtab(img.at<symtab_command>(offset))
+   {
       /* construct strings */
       const std::size_t strbegin = symtab.stroff;
       const std::size_t strend = strbegin + symtab.strsize;
@@ -33,7 +34,7 @@ namespace MachO {
                       const std::unordered_map<std::size_t, String<bits> *>& off2str):
       value(nullptr)
    {
-      nlist = img.at<nlist_t>(offset);
+      nlist = img.at<nlist_t<bits>>(offset);
       if (nlist.n_value != 0) {
          env.vmaddr_resolver.resolve(nlist.n_value, &value);
       }
@@ -47,8 +48,8 @@ namespace MachO {
    }
 
    template <Bits bits>
-   Dysymtab<bits>::Dysymtab(const Image& img, std::size_t offset):
-      dysymtab(img.at<dysymtab_command>(offset)),
+   Dysymtab<bits>::Dysymtab(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      LinkeditCommand<bits>(img, offset, env), dysymtab(img.at<dysymtab_command>(offset)),
       indirectsyms(std::vector<uint32_t>(&img.at<uint32_t>(dysymtab.indirectsymoff),
                                          &img.at<uint32_t>(dysymtab.indirectsymoff) +
                                          dysymtab.nindirectsyms)) {}
@@ -124,11 +125,11 @@ namespace MachO {
 
    template <Bits bits>
    void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
-      nlist_t nlist = this->nlist;
+      nlist_t<bits> nlist = this->nlist;
       if (value) {
          nlist.n_value = value->loc.vmaddr;
       }
-      img.at<nlist_t>(offset) = nlist;
+      img.at<nlist_t<bits>>(offset) = nlist;
    }
    
    template <Bits bits>
@@ -150,6 +151,34 @@ namespace MachO {
          size += str->size();
       }
       return align<bits>(size);
+   }
+
+   template <Bits bits>
+   Symtab<bits>::Symtab(const Symtab<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+      LinkeditCommand<bits>(other, env), symtab(other.symtab)
+   {
+      for (const auto sym : other.syms) {
+         syms.push_back(sym->Transform(env));
+      }
+      for (const auto str : other.strs) {
+         strs.push_back(str->Transform(env));
+      }
+   }
+
+   template <Bits bits>
+   Nlist<bits>::Nlist(const Nlist<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+      string(nullptr), value(nullptr)
+   {
+      env(other.nlist, nlist);
+      env.resolve(other.string, &string);
+      env.resolve(other.value, &value);
+   }
+
+   template <Bits bits>
+   String<bits>::String(const String<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+      str(other.str), offset(0)
+   {
+      env.add(&other, this);
    }
 
    template class Symtab<Bits::M32>;

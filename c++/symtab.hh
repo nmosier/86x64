@@ -28,30 +28,43 @@ namespace MachO {
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
       virtual std::size_t content_size() const override;
       
+      virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Symtab<opposite<bits>>(*this, env);
+      }
+
    private:
       Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-      
+      Symtab(const Symtab<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      template <Bits b> friend class Symtab;
    };
 
    template <Bits bits>
    class Nlist {
    public:
-      using nlist_t = select_type<bits, struct nlist, struct nlist_64>;
+      static std::size_t size() { return sizeof(nlist_t<bits>); }
 
-      static std::size_t size() { return sizeof(nlist_t); }
-
-      nlist_t nlist;
-      String<bits> *string;
+      nlist_t<bits> nlist;
+      const String<bits> *string;
       const SectionBlob<bits> *value;
-      
-      template <typename... Args>
-      static Nlist<bits> *Parse(Args&&... args) { return new Nlist(args...); }
+
+      static Nlist<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                const std::unordered_map<std::size_t, String<bits> *>& off2str) {
+         return new Nlist(img, offset, env, off2str);
+      }
+
       void Build();
       void Emit(Image& img, std::size_t offset) const;
+      Nlist<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new Nlist<opposite<bits>>(*this, env);
+      }
       
    private:
       Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
             const std::unordered_map<std::size_t, String<bits> *>& off2str);
+      Nlist(const Nlist<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      template <Bits b> friend class Nlist;
    };
 
    template <Bits bits>
@@ -62,14 +75,22 @@ namespace MachO {
 
       std::size_t size() const { return str.size() + 1; }
 
-      template <typename... Args>
-      static String<bits> *Parse(Args&&... args) { return new String(args...); }
+      static String<bits> *Parse(const Image& img, std::size_t offset, std::size_t maxlen) {
+         return new String(img, offset, maxlen);
+      }
 
       void Build(BuildEnv<bits>& env);
       void Emit(Image& img, std::size_t offset) const;
+
+      String<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new String<opposite<bits>>(*this, env);
+      }
       
    private:
       String(const Image& img, std::size_t offset, std::size_t maxlen);
+      String(const String<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      template <Bits b> friend class String;
    };
 
    template <Bits bits>
@@ -81,14 +102,26 @@ namespace MachO {
       virtual uint32_t cmd() const override { return dysymtab.cmd; }      
       virtual std::size_t size() const override { return sizeof(dysymtab_command); }
 
+      static Dysymtab<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new Dysymtab(img, offset, env);
+      }
+      
       template <typename... Args>
       static Dysymtab<bits> *Parse(Args&&... args) { return new Dysymtab(args...); }
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
       virtual std::size_t content_size() const override;
       
+      virtual Dysymtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Dysymtab<opposite<bits>>(*this, env);
+      }
+
    private:
-      Dysymtab(const Image& img, std::size_t offset);
+      Dysymtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      Dysymtab(const Dysymtab<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         LinkeditCommand<bits>(other, env), dysymtab(other.dysymtab),
+         indirectsyms(other.indirectsyms) {}
+      template <Bits> friend class Dysymtab;
    };   
    
 }

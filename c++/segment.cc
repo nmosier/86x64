@@ -6,23 +6,25 @@ namespace MachO {
 
    template <Bits bits>
    Segment<bits> *Segment<bits>::Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-      const char *segname = img.at<segment_command_t>(offset).segname;
-
+      const char *segname = img.at<segment_command_t<bits>>(offset).segname;
+      
       if (strcmp(segname, SEG_LINKEDIT) == 0) {
          return Segment_LINKEDIT<bits>::Parse(img, offset, env);
       } else {
          return new Segment(img, offset, env);
       }
    }
-
+   
    
    template <Bits bits>
-   Segment<bits>::Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-      segment_command = img.at<segment_command_t>(offset);
+   Segment<bits>::Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+      LoadCommand<bits>(img, offset, env)
+   {
+      segment_command = img.at<segment_command_t<bits>>(offset);
 
       env.current_segment = this;
       
-      offset += sizeof(segment_command_t);
+      offset += sizeof(segment_command_t<bits>);
       for (int i = 0; i < segment_command.nsects; ++i) {
          Section<bits> *section = Section<bits>::Parse(img, offset, env);
          sections.push_back(section);
@@ -119,8 +121,8 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Emit(Image& img, std::size_t offset) const {
-      img.at<segment_command_t>(offset) = segment_command;
-      offset += sizeof(segment_command_t);
+      img.at<segment_command_t<bits>>(offset) = segment_command;
+      offset += sizeof(segment_command_t<bits>);
       
       for (const Section<bits> *sect : sections) {
          sect->Emit(img, offset);
@@ -128,6 +130,18 @@ namespace MachO {
       }
 
       fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname, (std::size_t) segment_command.fileoff, (size_t) segment_command.filesize, (size_t) segment_command.vmaddr, (size_t) segment_command.vmsize);
+   }
+
+   template <Bits bits>
+   Segment<bits>::Segment(const Segment<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+      LoadCommand<bits>(other, env), id(0)
+   {
+      env(other.segment_command, segment_command);
+
+      Sections sections;
+      for (const auto other_section : other.sections) {
+         sections.push_back(other_section->Transform(env));
+      }
    }
 
    template class Segment<Bits::M32>;

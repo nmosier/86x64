@@ -107,8 +107,8 @@ namespace MachO {
    template <Bits bits>
    constexpr Bits opposite = bits == Bits::M32 ? Bits::M64 : Bits::M32;
 
-#define str(s) #s
-#define xstr(s) str(s)
+   // #define str(s) #s
+   // #define xstr(s) str(s)
    
 #define case_log(label) case label: fprintf(stderr, xstr(label)  "\n");
 

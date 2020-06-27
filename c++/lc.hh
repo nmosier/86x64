@@ -25,9 +25,12 @@ namespace MachO {
       virtual ~LoadCommand() {}
       virtual void AssignID(BuildEnv<bits>& env) {} /*!< build pass 1 */
       virtual void Emit(Image& img, std::size_t offset) const = 0;
+
+      virtual LoadCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
       
    protected:
-      LoadCommand() {}
+      LoadCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env) {}
+      LoadCommand(const LoadCommand<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
    };
 
    template <Bits bits>
@@ -36,6 +39,13 @@ namespace MachO {
       virtual std::size_t content_size() const = 0;
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) = 0;
       virtual void Build(BuildEnv<bits>& env) override {}
+
+   protected:
+      LinkeditCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         LoadCommand<bits>(img, offset, env) {}
+      LinkeditCommand(const LinkeditCommand<opposite<bits>>& other,
+                      TransformEnv<opposite<bits>>& env): LoadCommand<bits>(other, env) {}
+      template <Bits b> friend class LinkeditCommand;
    };
 
    template <Bits bits>
@@ -47,14 +57,25 @@ namespace MachO {
       virtual uint32_t cmd() const override { return dylinker.cmd; }      
       virtual std::size_t size() const override;
 
-      template <typename... Args>
-      static DylinkerCommand<bits> *Parse(Args&&... args) { return new DylinkerCommand(args...); }
+      static DylinkerCommand<bits> *Parse(const Image& img, std::size_t offset,
+                                          ParseEnv<bits>& env) {
+         return new DylinkerCommand(img, offset, env);
+      }
 
       virtual void Build(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
       
+      virtual DylinkerCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new DylinkerCommand<opposite<bits>>(*this, env);
+      }
+
    private:
-      DylinkerCommand(const Image& img, std::size_t offset);
+      DylinkerCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      DylinkerCommand(const DylinkerCommand<opposite<bits>>& other,
+                      TransformEnv<opposite<bits>>& env):
+         LoadCommand<bits>(other, env), dylinker(other.dylinker), name(other.name) {}
+
+      template <Bits b> friend class DylinkerCommand;
    };
 
    template <Bits bits>
@@ -65,34 +86,54 @@ namespace MachO {
       virtual uint32_t cmd() const override { return uuid.cmd; }
       virtual std::size_t size() const override { return sizeof(uuid_command); }
 
-      template <typename... Args>
-      static UUID<bits> *Parse(Args&&... args) { return new UUID(args...); }
+      static UUID<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new UUID(img, offset, env);
+      }
+      
       virtual void Build(BuildEnv<bits>& env) override {}
       virtual void Emit(Image& img, std::size_t offset) const override;
       
+      virtual UUID<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new UUID<opposite<bits>>(*this, env);
+      }
+
    private:
-      UUID(const Image& img, std::size_t offset): uuid(img.at<uuid_command>(offset)) {}
+      UUID(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         LoadCommand<bits>(img, offset, env), uuid(img.at<uuid_command>(offset)) {}
+      UUID(const UUID<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         LoadCommand<bits>(other, env), uuid(other.uuid) {}
+
+      template <Bits b> friend class UUID;
    };
 
    template <Bits bits>
    class BuildVersion: public LoadCommand<bits> {
    public:
+      using Tools = std::vector<BuildToolVersion>;
       build_version_command build_version;
-      std::vector<BuildToolVersion<bits> *> tools;
+      Tools tools;
 
       virtual uint32_t cmd() const override { return build_version.cmd; }      
       virtual std::size_t size() const override;
       virtual void Build(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
 
-      template <typename... Args>
-      static BuildVersion<bits> *Parse(Args&&... args) { return new BuildVersion(args...); }
+      static BuildVersion<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new BuildVersion(img, offset, env);
+      }
       
+      virtual BuildVersion<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new BuildVersion<opposite<bits>>(*this, env);
+      }
+
    private:
-      BuildVersion(const Image& img, std::size_t offset);
+      BuildVersion(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      BuildVersion(const BuildVersion<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         LoadCommand<bits>(other, env), build_version(other.build_version), tools(other.tools) {}
+
+      template <Bits b> friend class BuildVersion;
    };
 
-   template <Bits bits>
    class BuildToolVersion {
    public:
       build_tool_version tool;
@@ -100,12 +141,9 @@ namespace MachO {
       static std::size_t size() { return sizeof(build_tool_version); }
       void Emit(Image& img, std::size_t offset) const;
       
-      template <typename... Args>
-      static BuildToolVersion<bits> *Parse(Args&&... args) { return new BuildToolVersion(args...); }
-      
-   private:
       BuildToolVersion(const Image& img, std::size_t offset):
          tool(img.at<build_tool_version>(offset)) {}
+      BuildToolVersion(const build_tool_version& tool): tool(tool) {}
    };
 
    template <Bits bits>
@@ -117,15 +155,26 @@ namespace MachO {
       virtual std::size_t size() const override { return sizeof(source_version); }
       virtual void Build(BuildEnv<bits>& env) override {}
       virtual void Emit(Image& img, std::size_t offset) const override;
+
+      static SourceVersion<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env)
+      { return new SourceVersion(img, offset, env); }
       
       template <typename... Args>
       static SourceVersion<bits> *Parse(Args&&... args) {
          return new SourceVersion(args...);
       }
       
+      virtual SourceVersion<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new SourceVersion<opposite<bits>>(*this, env);
+      }
+
    private:
-      SourceVersion(const Image& img, std::size_t offset):
-         source_version(img.at<source_version_command>(offset)) {}
+      SourceVersion(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         LoadCommand<bits>(img, offset, env), source_version(img.at<source_version_command>(offset)) {}
+      SourceVersion(const SourceVersion<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         LoadCommand<bits>(other, env), source_version(other.source_version) {}
+
+      template <Bits b> friend class SourceVersion;
    };
 
    template <Bits bits>
@@ -141,9 +190,16 @@ namespace MachO {
       
       template <typename... Args>
       static EntryPoint<bits> *Parse(Args&&... args) { return new EntryPoint(args...); }
+
+      virtual EntryPoint<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new EntryPoint<opposite<bits>>(*this, env);
+      }
       
    private:
+      EntryPoint(const EntryPoint<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+
+      template <Bits b> friend class EntryPoint;
    };
 
    template <Bits bits>
@@ -166,8 +222,15 @@ namespace MachO {
       template <typename... Args>
       static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }
       
+      virtual DylibCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new DylibCommand<opposite<bits>>(*this, env);
+      }
+
    private:
       DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      DylibCommand(const DylibCommand<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         LoadCommand<bits>(other, env), dylib_cmd(other.dylib_cmd), name(other.name), id(0) {}
+      template <Bits> friend class DylibCommand;
    };   
    
 }
