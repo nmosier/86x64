@@ -39,7 +39,7 @@ namespace MachO {
 
    template <Bits bits>
    Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
-      SectionBlob<bits>(loc, env), memdisp(nullptr), brdisp(nullptr)
+      SectionBlob<bits>(loc, env), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
    {
       xed_error_enum_t err;
       
@@ -322,7 +322,7 @@ namespace MachO {
    Instruction<bits>::Instruction(const Instruction<opposite<bits>>& other,
                                   TransformEnv<opposite<bits>>& env):
       SectionBlob<bits>(other, env), instbuf(other.instbuf), memidx(other.memidx), memdisp(nullptr),
-      brdisp(nullptr)
+      imm(nullptr), brdisp(nullptr)
    {
       if (other.memdisp) { env.resolve(other.memdisp, &memdisp); }
       if (other.brdisp) { env.resolve(other.brdisp, &brdisp); }

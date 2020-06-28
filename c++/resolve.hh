@@ -9,23 +9,27 @@ namespace MachO {
    class Resolver {
    public:
       using FoundMap = std::unordered_map<T, const U *>;
-      using TodoMap = std::unordered_map<T, std::list<const U **>>;
+      typedef void (*Callback)(const U *); /*!< callback for resolved values */
+      using TodoNode = std::pair<const U **, Callback>;
+      using TodoMap = std::unordered_map<T, std::list<TodoNode>>;
       
       void add(const T& key, const U *pointee) {
          auto todo_it = todo.find(key);
          if (todo_it != todo.end()) {
-            for (const U **pointer : todo_it->second) { *pointer = pointee; }
+            for (const TodoNode& node : todo_it->second) {
+               node.second(*node.first = pointee);
+            }
             todo.erase(todo_it);
          }
          found.insert({key, pointee});
       }
       
-      void resolve(const T& key, const U **pointer) {
+      void resolve(const T& key, const U **pointer, Callback callback = [] (const U *value) {}) {
          auto found_it = found.find(key);
          if (found_it != found.end()) {
-            *pointer = found_it->second;
+            callback(*pointer = found_it->second);
          } else {
-            todo[key].push_back(pointer);
+            todo[key].emplace_back(pointer, callback);
          }
       }
 

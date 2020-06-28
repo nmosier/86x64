@@ -21,3 +21,6 @@ How to solve data-in-code problem?
     (1) Convert InstructionPointer to Immediate
     (2) Make 'pointee' field optional
     (3) Add 32-bit 'value' field; used when 'pointee == nullptr'
+
+
+[ ] Add callback to resolver.
