@@ -317,6 +317,7 @@ namespace MachO {
    RebaseNode<bits>::RebaseNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type):
       type(type), blob(nullptr)
    {
+      // const auto callback = [] (const SectionBlob<bits> *blob) 
       env.vmaddr_resolver.resolve(vmaddr, &blob);
    }
 

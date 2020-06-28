@@ -60,7 +60,6 @@ namespace MachO {
       xed_operand_values_t *operands = xed_decoded_inst_operands(&xedd);
 
       /* Memory Accesses */
-      // const unsigned int memops = xed_operand_values_number_of_memory_operands(operands);
       const unsigned int nops = xed_decoded_inst_noperands(&xedd);
       if (xed_operand_values_has_memory_displacement(operands)) {
          for (unsigned i = 0; i < nops; ++i) {

@@ -10,7 +10,7 @@ namespace MachO {
    class TransformEnv {
    public:
       template <template<Bits> typename T>
-      void add(const T<b1> *key, const T<b2> *pointee) {
+      void add(const T<b1> *key, T<b2> *pointee) {
          if (key) {
             resolver.add(key, pointee);
          } else {

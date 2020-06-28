@@ -13,7 +13,7 @@ namespace MachO {
    class CountResolver {
    public:
 
-      void add(const T *pointee) { resolver.add(++id, pointee); }
+      void add(T *pointee) { resolver.add(++id, pointee); }
       template <typename... Args>
       void resolve(Args&&... args) { return resolver.resolve(args...); }
       
