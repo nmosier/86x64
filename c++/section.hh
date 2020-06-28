@@ -180,52 +180,11 @@ namespace MachO {
       template <Bits b> friend class ZeroBlob;
    };
 
-#if 0
-   template <Bits bits>
-   class DataSection: public SectionT<bits, DataBlob> {
-   public:
-      static DataSection<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-         return new DataSection(img, offset, env);
-      }
-      virtual DataSection<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
-         return new DataSection<opposite<bits>>(*this, env);
-      }
-      
-   private:
-      DataSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT<bits, DataBlob>(img, offset, env) {}
-      DataSection(const DataSection<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         SectionT<bits, DataBlob>(other, env) {}
-
-      template <Bits b> friend class DataSection;
-   };
-#else
    template <Bits bits>
    using DataSection = SectionT<bits, DataBlob>;
-#endif
 
    template <Bits bits>
    using LazySymbolPointerSection = SectionT<bits, LazySymbolPointer>;
-
-#if 0
-   template <Bits bits>
-   class LazySymbolPointerSection: public SectionT<bits, LazySymbolPointer<bits>> {
-   public:
-      static LazySymbolPointerSection<bits> *Parse(const Image& img, std::size_t offset,
-                                                   ParseEnv<bits>& env) {
-         return new LazySymbolPointerSection(img, offset, env);
-      }
-      virtual LazySymbolPointerSection<opposite<bits>> *Transform(TransformEnv<bits>& env) const
-         override { return new LazySymbolPointerSection<opposite<bits>>(*this, env); }
-      
-   private:
-      LazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT<bits, LazySymbolPointer<bits>>(img, offset, env) {}
-      LazySymbolPointerSection(const LazySymbolPointerSection<opposite<bits>>& other,
-                               TransformEnv<opposite<bits>>& env):
-         SectionT<bits, LazySymbolPointer<bits>>(other, env) {}
-   };
-#endif
 
    template <Bits bits>
    class SymbolPointer: public SectionBlob<bits> {
@@ -302,6 +261,27 @@ namespace MachO {
    };
 
    template <Bits bits>
+   class InstructionPointer: public SectionBlob<bits> {
+   public:
+      const SectionBlob<bits> *pointee;
+      virtual std::size_t size() const override { return bits == Bits::M32 ? 4 : 8; }
+
+      static InstructionPointer<bits> *Parse(const Image& img, const Location& loc,
+                                             ParseEnv<bits>& env)
+      { return new InstructionPointer(img, loc, env); }
+      
+      virtual void Emit(Image& img, std::size_t offset) const override;
+      virtual InstructionPointer<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
+      { return new InstructionPointer<opposite<bits>>(*this, env); }
+      
+   private:
+      InstructionPointer(const Image& img, const Location& loc, ParseEnv<bits>& env);
+      InstructionPointer(const InstructionPointer<opposite<bits>>& other,
+                         TransformEnv<opposite<bits>>& env);
+      template <Bits> friend class InstructionPointer;
+   };
+   
+   template <Bits bits>
    class Instruction: public SectionBlob<bits> {
    public:
       static const xed_state_t dstate;
@@ -310,6 +290,7 @@ namespace MachO {
       xed_decoded_inst_t xedd;
       unsigned memidx;
       const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
+      InstructionPointer<bits> *memptr; /*!< memory pointer */
       const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
       
       virtual std::size_t size() const override { return instbuf.size(); }

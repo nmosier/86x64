@@ -14,6 +14,12 @@ namespace MachO {
       Location(): offset(0), vmaddr(0) {}
       Location(std::size_t offset, std::size_t vmaddr): offset(offset), vmaddr(vmaddr) {}
 
+      template <typename T>
+      Location operator+(T off) const {
+         static_assert(std::is_integral<T>());
+         return Location(offset + off, vmaddr + off);
+      }
+
       void align(unsigned pow2);
    };
 

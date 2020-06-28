@@ -18,5 +18,8 @@ namespace MachO {
 
    template <Bits bits>
    using section_t = select_type<bits, struct section, struct section_64>;
+
+   template <Bits bits>
+   using ptr_t = select_type<bits, uint32_t, uint64_t>;
    
 }

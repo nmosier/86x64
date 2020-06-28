@@ -79,13 +79,12 @@ namespace MachO {
                   memidx = i;
                   
                   /* get memory displacement & reference address */
-                  const ssize_t memdisp = xed_decoded_inst_get_memory_displacement(operands,
-                                                                                        i);
+                  const ssize_t memdisp = xed_decoded_inst_get_memory_displacement(operands, i);
                   const std::size_t targetaddr = refaddr + memdisp;
-
+                  
                   /* resolve pointer */
                   env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
-
+                  
                   char pbuf[32];
                   xed_print_info_t pinfo;
                   xed_init_print_info(&pinfo);
@@ -95,10 +94,16 @@ namespace MachO {
                   pinfo.runtime_address = loc.vmaddr;
                   xed_format_generic(&pinfo);
                   fprintf(stderr, "%s\n", pbuf);
-               }
+               } else if (basereg == XED_REG_INVALID && indexreg == XED_REG_INVALID &&
+                          xed_decoded_inst_get_memory_displacement_width(operands, i) ==
+                          sizeof(uint32_t)) {
+               /* simple pointer */
+               const std::size_t idx = instbuf.size() - sizeof(uint32_t);
+               memdisp = InstructionPointer<bits>::Parse(img, loc + idx, env);
+            }            
          }
       }
-      
+
       /* Relative Branches */
       if (xed_operand_values_has_branch_displacement(operands)) {
          const ssize_t brdisp = xed_decoded_inst_get_branch_displacement(operands);
@@ -247,6 +252,11 @@ namespace MachO {
                         "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
          }
       }
+
+      if (memptr) {
+         const uint8_t *patch = instbuf.data() + (instbuf.size() - sizeof(ptr_t<bits>));
+         * (ptr_t<bits> *) patch = memptr->loc.vmaddr;
+      }
       
       if (brdisp) {
          const unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
@@ -259,7 +269,7 @@ namespace MachO {
                         "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
          }
       }
-         
+
       /* emit instruction bytes */
       img.copy(offset, &*instbuf.begin(), instbuf.size());
    }
@@ -318,8 +328,29 @@ namespace MachO {
    {
       env.resolve(other.pointee, &pointee);
    }
+
+   template <Bits bits>
+   InstructionPointer<bits>::InstructionPointer(const Image& img, const Location& loc,
+                                                ParseEnv<bits>& env): SectionBlob<bits>(loc, env),
+                                                                      pointee(nullptr) {
+      const std::size_t vmaddr = img.at<uint32_t>(loc.offset);
+      env.vmaddr_resolver.resolve(vmaddr, &pointee);
+   }
+
+   template <Bits bits>
+   void InstructionPointer<bits>::Emit(Image& img, std::size_t offset) const {
+      img.at<uint32_t>(offset) = pointee->loc.vmaddr;
+   }
+
+   template <Bits bits>
+   InstructionPointer<bits>::InstructionPointer(const InstructionPointer<opposite<bits>>& other,
+                                                TransformEnv<opposite<bits>>& env):
+      SectionBlob<bits>(other, env), pointee(nullptr)
+   {
+      env.resolve(other.pointee, &pointee);
+   }
    
-                                  
+
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

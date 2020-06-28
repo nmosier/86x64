@@ -11,4 +11,13 @@ How to solve data-in-code problem?
 1. Do 2nd pass that checks unresolved pointers and reconsiders instructions at that address. 
 
 
-[ ] Rebasing issues -- some instructions need rebasing, e.g. jmp dword ptr [0x2000]
+[X] Rebasing issues -- some instructions need rebasing, e.g. jmp dword ptr [0x2000]
+[ ] More rebasing issues -- some pushes need rebasing, e.g. push 0x8200
+    RebaseInfo needs to be able to go back and populate instructions.
+    Perhaps instructions should also parse immediate operands and add them as subblobs within the
+    instruction.
+
+    Possible Solution:
+    (1) Convert InstructionPointer to Immediate
+    (2) Make 'pointee' field optional
+    (3) Add 32-bit 'value' field; used when 'pointee == nullptr'
