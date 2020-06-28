@@ -11,11 +11,19 @@ namespace MachO {
    public:
       template <template<Bits> typename T>
       void add(const T<b1> *key, const T<b2> *pointee) {
-         resolver.add(key, pointee);
+         if (key) {
+            resolver.add(key, pointee);
+         } else {
+            fprintf(stderr, "warning: %s: not adding null key\n", __FUNCTION__);
+         }
       }
       template <template<Bits> typename T>
       void resolve(const T<b1> *key, const T<b2> **pointer) {
-         resolver.resolve(key, (const void **) pointer);
+         if (key) {
+            resolver.resolve(key, (const void **) pointer);
+         } else {
+            fprintf(stderr, "warning: %s: not resolving null key\n", __FUNCTION__);
+         }
       }
 
       void operator()(const mach_header_t<b1>& h1, mach_header_t<b2>& h2) const {

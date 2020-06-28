@@ -6,6 +6,20 @@
 namespace MachO {
 
    template <Bits bits>
+   Archive<bits>::Archive(const Image& img, std::size_t offset):
+      header(img.at<mach_header_t<bits>>(offset))
+   {
+      ParseEnv<bits> env(*this);
+      offset += sizeof(header);
+      for (int i = 0; i < header.ncmds; ++i) {
+         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset, env);
+         load_commands.push_back(cmd);
+         offset += cmd->size();
+      }
+   }
+                                                                 
+#if 0
+   template <Bits bits>
    Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
       Archive<bits> *archive = new Archive<bits>();
       ParseEnv<bits> env(*archive);
@@ -20,6 +34,7 @@ namespace MachO {
 
       return archive;
    }
+#endif
 
    template <Bits bits>
    Archive<bits>::~Archive() {
@@ -78,6 +93,15 @@ namespace MachO {
       for (LoadCommand<bits> *lc : load_commands) {
          lc->Emit(img, offset);
          offset += lc->size();
+      }
+   }
+
+   template <Bits bits>
+   Archive<bits>::Archive(const Archive<opposite<bits>>& other, TransformEnv<opposite<bits>>& env)
+   {
+      env(other.header, header);
+      for (const auto lc : other.load_commands) {
+         load_commands.push_back(lc->Transform(env));
       }
    }
 

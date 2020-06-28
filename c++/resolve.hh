@@ -31,7 +31,7 @@ namespace MachO {
 
       ~Resolver() {
          if (!todo.empty()) {
-            fprintf(stderr, "%s: pending unresolved pointers after parsing\n", __FUNCTION__);
+            fprintf(stderr, "%s: pending unresolved pointers\n", __FUNCTION__);
             for (auto pair : todo) {
                fprintf(stderr, "key 0x%zx\n", pair.first);
             }

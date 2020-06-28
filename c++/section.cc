@@ -10,7 +10,8 @@ namespace MachO {
       uint32_t flags = sect.flags;
 
       /* chcek whether contains instructions */
-      std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER};
+      std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER,
+                                                 SECT_SYMBOL_STUBS};
       for (const std::string& sectname : text_sectnames) {
          if (sectname == sect.sectname) {
             return TextSection<bits>::Parse(img, offset, env);

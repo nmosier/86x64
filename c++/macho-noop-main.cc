@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "macho.hh"
+#include "archive.hh"
 
 int main(int argc, char *argv[]) {
    const char *usage = "usage: %s path\n";
@@ -19,9 +20,16 @@ int main(int argc, char *argv[]) {
    MachO::init();
    
    MachO::MachO *macho = MachO::MachO::Parse(img);
+
+   /* transform */
+   const auto archive32 = dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho);
+   if (archive32 && 0) {
+      fprintf(stderr, "TRANSFORM\n");
+      macho = archive32->Transform();
+   }
+   
    macho->Build();
    macho->Emit(out_img);
-   (void) macho;
 
    return 0;
 }

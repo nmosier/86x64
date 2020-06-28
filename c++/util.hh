@@ -9,6 +9,7 @@
 
 #define SECT_STUBS "__stubs"
 #define SECT_STUB_HELPER "__stub_helper"
+#define SECT_SYMBOL_STUBS "__symbol_stub"
 
 namespace MachO {
 
