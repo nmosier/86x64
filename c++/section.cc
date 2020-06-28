@@ -100,10 +100,10 @@ namespace MachO {
                /* simple pointer */
                const std::size_t idx = instbuf.size() - sizeof(uint32_t);
                imm = Immediate<bits>::Parse(img, loc + idx, env, true);
-            }            
+            }
          }
       }
-
+      
       /* Relative Branches */
       if (xed_operand_values_has_branch_displacement(operands)) {
          const ssize_t brdisp = xed_decoded_inst_get_branch_displacement(operands);
@@ -112,6 +112,16 @@ namespace MachO {
          /* resolve */
          env.vmaddr_resolver.resolve(targetaddr, &this->brdisp);
       }
+
+      /* Check for other immediates */
+      switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+      case XED_IFORM_PUSH_IMMz: /* push imm32 */
+         imm = Immediate<bits>::Parse(img, loc + (instbuf.size() - sizeof(uint32_t)), env, false);
+         break;
+      default:
+         break;
+      }
+      
    }
 
    template <Bits bits>
