@@ -99,7 +99,7 @@ namespace MachO {
                           sizeof(uint32_t)) {
                /* simple pointer */
                const std::size_t idx = instbuf.size() - sizeof(uint32_t);
-               memdisp = InstructionPointer<bits>::Parse(img, loc + idx, env);
+               imm = Immediate<bits>::Parse(img, loc + idx, env, true);
             }            
          }
       }
@@ -114,6 +114,16 @@ namespace MachO {
       }
    }
 
+   template <Bits bits>
+   Immediate<bits>::Immediate(const Image& img, const Location& loc, ParseEnv<bits>& env,
+                              bool is_pointer):
+      SectionBlob<bits>(loc, env), value(img.at<uint32_t>(loc.offset)), pointee(nullptr) 
+   {
+      if (is_pointer) {
+         env.vmaddr_resolver.resolve(loc.vmaddr, &pointee);
+      }
+   }
+   
    template <Bits bits>
    SectionBlob<bits> *TextSection<bits>::BlobParser(const Image& img, const Location& loc,
                                                     ParseEnv<bits>& env) {
@@ -253,9 +263,8 @@ namespace MachO {
          }
       }
 
-      if (memptr) {
-         const uint8_t *patch = instbuf.data() + (instbuf.size() - sizeof(ptr_t<bits>));
-         * (ptr_t<bits> *) patch = memptr->loc.vmaddr;
+      if (imm) {
+         imm->Emit(img, offset + instbuf.size() - imm->size());
       }
       
       if (brdisp) {
@@ -272,6 +281,15 @@ namespace MachO {
 
       /* emit instruction bytes */
       img.copy(offset, &*instbuf.begin(), instbuf.size());
+   }
+
+   template <Bits bits>
+   void Instruction<bits>::Build(BuildEnv<bits>& env) {
+      SectionBlob<bits>::Build(env);
+      if (imm) {
+         BuildEnv immenv(env.archive, env.loc - imm->size());
+         imm->Build(immenv);
+      }
    }
 
    template <Bits bits, template <Bits> typename Elem>

@@ -129,7 +129,7 @@ namespace MachO {
       
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}
-      void Build(BuildEnv<bits>& env);
+      virtual void Build(BuildEnv<bits>& env);
       virtual void Emit(Image& img, std::size_t offset) const = 0;
       virtual SectionBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
       
@@ -288,18 +288,17 @@ namespace MachO {
       const SectionBlob<bits> *pointee; /*!< optional -- only if deemed to be pointer */
       virtual std::size_t size() const override { return sizeof(uint32_t); }
       
-      static Immediate<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
-         return new Immediate(img, loc, env);
-      }
-
+      static Immediate<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env,
+                                    bool is_pointer)
+      { return new Immediate(img, loc, env, is_pointer); }
+      
       virtual void Emit(Image& img, std::size_t offset) const override;
       virtual Immediate<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Immediate<opposite<bits>>(*this, env);
       }
       
    private:
-      Immediate(const Image& img, const Location& loc, ParseEnv<bits>& env):
-         SectionBlob<bits>(img, loc, env), value(img.at<uint32_t>(loc.offset)), pointee(nullptr) {}
+      Immediate(const Image& img, const Location& loc, ParseEnv<bits>& env, bool is_pointer);
       Immediate(const Immediate<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       template <Bits> friend class Immediate;
    };
@@ -313,15 +312,15 @@ namespace MachO {
       xed_decoded_inst_t xedd;
       unsigned memidx;
       const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
-      InstructionPointer<bits> *memptr; /*!< memory pointer */
+      Immediate<bits> *imm;
       const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
       
       virtual std::size_t size() const override { return instbuf.size(); }
       virtual void Emit(Image& img, std::size_t offset) const override;
+      virtual void Build(BuildEnv<bits>& env) override;
 
-      static Instruction<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
-         return new Instruction(img, loc, env);
-      }
+      static Instruction<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
+      { return new Instruction(img, loc, env); }
       
       template <typename It>
       Instruction(Segment<bits> *segment, It begin, It end):

@@ -20,6 +20,8 @@ namespace MachO {
          return Location(offset + off, vmaddr + off);
       }
 
+      template <typename T> Location operator-(T off) const { return operator+(-off); }
+
       void align(unsigned pow2);
    };
 
