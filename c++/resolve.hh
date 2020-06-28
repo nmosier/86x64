@@ -11,7 +11,7 @@ namespace MachO {
    class Resolver {
    public:
       using FoundMap = std::unordered_map<T, U *>;
-      typedef void (*Callback)(U *); /*!< callback for resolved values */
+      typedef void (*Callback)(U *, Resolver<T, U>&);
       using TodoNode = std::pair<const U **, Callback>;
       using TodoMap = std::unordered_map<T, std::list<TodoNode>>;
       
@@ -20,18 +20,18 @@ namespace MachO {
          if (todo_it != todo.end()) {
             for (const TodoNode& node : todo_it->second) {
                *node.first = pointee;
-               node.second(pointee);
+               node.second(pointee, *this);
             }
             todo.erase(todo_it);
          }
          found.insert({key, pointee});
       }
       
-      void resolve(const T& key, const U **pointer, Callback callback = [] (U *value) {}) {
+      void resolve(const T& key, const U **pointer, Callback callback = CallbackNop) {
          auto found_it = found.find(key);
          if (found_it != found.end()) {
             *pointer = found_it->second;
-            callback(found_it->second);
+            callback(found_it->second, *this);
          } else {
             todo[key].emplace_back(pointer, callback);
          }
@@ -46,9 +46,12 @@ namespace MachO {
          }
       }
 
+      static void CallbackNop(U *pointee, Resolver<T, U>& resolver) {}
+
    private:
       FoundMap found;
       TodoMap todo;
+
    };   
    
 }

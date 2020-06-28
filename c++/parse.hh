@@ -12,7 +12,6 @@ namespace MachO {
    template <typename T>
    class CountResolver {
    public:
-
       void add(T *pointee) { resolver.add(++id, pointee); }
       template <typename... Args>
       void resolve(Args&&... args) { return resolver.resolve(args...); }
