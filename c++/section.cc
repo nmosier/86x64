@@ -349,8 +349,26 @@ namespace MachO {
    {
       env.resolve(other.pointee, &pointee);
    }
-   
 
+   template <Bits bits>
+   Immediate<bits>::Immediate(const Immediate<opposite<bits>>& other,
+                              TransformEnv<opposite<bits>>& env):
+      SectionBlob<bits>(other, env), value(other.value), pointee(nullptr)
+   {
+      env.resolve(other.pointee, &pointee);
+   }
+
+   template <Bits bits>
+   void Immediate<bits>::Emit(Image& img, std::size_t offset) const {
+      uint32_t value;
+      if (pointee) {
+         value = pointee->loc.vmaddr;
+      } else {
+         value = this->value;
+      }
+      img.at<uint32_t>(offset) = value;
+   }
+   
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

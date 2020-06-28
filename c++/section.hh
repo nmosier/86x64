@@ -280,6 +280,29 @@ namespace MachO {
                          TransformEnv<opposite<bits>>& env);
       template <Bits> friend class InstructionPointer;
    };
+
+   template <Bits bits>
+   class Immediate: public SectionBlob<bits> {
+   public:
+      uint32_t value;
+      const SectionBlob<bits> *pointee; /*!< optional -- only if deemed to be pointer */
+      virtual std::size_t size() const override { return sizeof(uint32_t); }
+      
+      static Immediate<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
+         return new Immediate(img, loc, env);
+      }
+
+      virtual void Emit(Image& img, std::size_t offset) const override;
+      virtual Immediate<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Immediate<opposite<bits>>(*this, env);
+      }
+      
+   private:
+      Immediate(const Image& img, const Location& loc, ParseEnv<bits>& env):
+         SectionBlob<bits>(img, loc, env), value(img.at<uint32_t>(loc.offset)), pointee(nullptr) {}
+      Immediate(const Immediate<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      template <Bits> friend class Immediate;
+   };
    
    template <Bits bits>
    class Instruction: public SectionBlob<bits> {
