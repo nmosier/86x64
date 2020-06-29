@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdio>
+#include <type_traits>
+
 #include "resolve.hh"
 #include "types.hh"
 #include "util.hh"
@@ -19,6 +22,9 @@ namespace MachO {
       }
       template <template<Bits> typename T>
       void resolve(const T<b1> *key, const T<b2> **pointer) {
+         // DEBUG
+         fprintf(stderr, "TransformEnv: resolve %p %s\n", (void *) key, typeid(pointer).name());
+         
          if (key) {
             resolver.resolve(key, (const void **) pointer);
          } else {
@@ -27,8 +33,21 @@ namespace MachO {
       }
 
       void operator()(const mach_header_t<b1>& h1, mach_header_t<b2>& h2) const {
-         memset(&h2, 0, sizeof(h2));
-         memcpy(&h2, &h1, std::min(sizeof(h1), sizeof(h2)));
+         if constexpr (b2 == Bits::M32) {
+            h2.magic = MH_MAGIC;
+            h2.cputype = CPU_TYPE_I386;
+            h2.cpusubtype = CPU_SUBTYPE_I386_ALL;
+         } else {
+            h2.magic = MH_MAGIC_64;
+            h2.cputype = CPU_TYPE_X86_64;
+            h2.cpusubtype = CPU_SUBTYPE_X86_64_ALL;
+            h2.reserved = 0;
+         }
+
+         h2.filetype = h1.filetype;
+         h2.ncmds = 0; /* build-time */
+         h2.sizeofcmds = 0; /* build-time */
+         h2.flags = h1.flags;
       }
 
       void operator()(const segment_command_t<b1>& h1, segment_command_t<b2>& h2) const {

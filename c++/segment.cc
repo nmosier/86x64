@@ -66,6 +66,9 @@ namespace MachO {
    void Segment<bits>::Build(BuildEnv<bits>& env) {
       assert(env.loc.vmaddr % PAGESIZE == 0);
       segment_command.nsects = sections.size();
+      segment_command.cmdsize =
+         sizeof(segment_command) + Section<bits>::size() * segment_command.nsects;
+      
       if (strcmp(segment_command.segname, SEG_PAGEZERO) == 0) {
          Build_PAGEZERO(env);
          return;
@@ -138,7 +141,6 @@ namespace MachO {
    {
       env(other.segment_command, segment_command);
 
-      Sections sections;
       for (const auto other_section : other.sections) {
          sections.push_back(other_section->Transform(env));
       }

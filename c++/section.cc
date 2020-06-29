@@ -320,11 +320,20 @@ namespace MachO {
    template <Bits bits>
    Instruction<bits>::Instruction(const Instruction<opposite<bits>>& other,
                                   TransformEnv<opposite<bits>>& env):
-      SectionBlob<bits>(other, env), instbuf(other.instbuf), memidx(other.memidx), memdisp(nullptr),
-      imm(nullptr), brdisp(nullptr)
+      SectionBlob<bits>(other, env), instbuf(other.instbuf), memidx(other.memidx),
+      memdisp(nullptr), imm(nullptr), brdisp(nullptr)
    {
-      if (other.memdisp) { env.resolve(other.memdisp, &memdisp); }
-      if (other.brdisp) { env.resolve(other.brdisp, &brdisp); }
+      if (other.memdisp) {
+         env.resolve(other.memdisp, &memdisp);
+      }
+      
+      if (other.imm) {
+         imm = other.imm->Transform(env);
+      }
+      
+      if (other.brdisp) {
+         env.resolve(other.brdisp, &brdisp);
+      }
 
       xed_decoded_inst_zero_set_mode(&xedd, &dstate);
       xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
