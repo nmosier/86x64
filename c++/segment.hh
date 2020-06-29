@@ -53,7 +53,7 @@ namespace MachO {
 
       void Build_PAGEZERO(BuildEnv<bits>& env); /*!< for SEG_PAGEZERO segment */
 
-      template <Bits b> friend class Segment;
+      template <Bits> friend class Segment;
    };
 
    template <Bits bits>
@@ -62,12 +62,17 @@ namespace MachO {
       template <typename... Args>
       static Segment_LINKEDIT<bits> *Parse(Args&&... args) { return new Segment_LINKEDIT(args...); }
       virtual void Build(BuildEnv<bits>& env) override;
-      
+      virtual Segment<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Segment_LINKEDIT<opposite<bits>>(*this, env);
+      }
+     
    private:
       std::vector<LinkeditCommand<bits> *> linkedits;
       
       template <typename... Args>
       Segment_LINKEDIT(Args&&... args): Segment<bits>(args...) {}
+
+      template <Bits> friend class Segment_LINKEDIT;
    };
 
 };

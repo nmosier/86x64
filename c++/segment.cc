@@ -98,6 +98,8 @@ namespace MachO {
 
    template <Bits bits>
    void Segment_LINKEDIT<bits>::Build(BuildEnv<bits>& env) {
+      this->segment_command.cmdsize = sizeof(segment_command_t<bits>);
+      this->segment_command.nsects = 0;
       this->segment_command.fileoff = env.loc.offset = align_up(env.loc.offset, PAGESIZE);
       this->segment_command.vmaddr = env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
       
@@ -109,7 +111,8 @@ namespace MachO {
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
       
       this->segment_command.filesize = env.loc.offset - this->segment_command.fileoff;
-      this->segment_command.vmsize = align_up<std::size_t>(this->segment_command.filesize, PAGESIZE);
+      this->segment_command.vmsize = align_up<std::size_t>(this->segment_command.filesize,
+                                                           PAGESIZE);
    }
 
    template <Bits bits>

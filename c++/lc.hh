@@ -90,7 +90,9 @@ namespace MachO {
          return new UUID(img, offset, env);
       }
       
-      virtual void Build(BuildEnv<bits>& env) override {}
+      virtual void Build(BuildEnv<bits>& env) override {
+         uuid.cmdsize = size();
+      }
       virtual void Emit(Image& img, std::size_t offset) const override;
       
       virtual UUID<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
@@ -153,7 +155,9 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return source_version.cmd; }      
       virtual std::size_t size() const override { return sizeof(source_version); }
-      virtual void Build(BuildEnv<bits>& env) override {}
+      virtual void Build(BuildEnv<bits>& env) override {
+         source_version.cmdsize = size();
+      }
       virtual void Emit(Image& img, std::size_t offset) const override;
 
       static SourceVersion<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env)
@@ -212,6 +216,7 @@ namespace MachO {
       virtual uint32_t cmd() const override { return dylib_cmd.cmd; }            
       virtual std::size_t size() const override;
       virtual void Build(BuildEnv<bits>& env) override {
+         dylib_cmd.cmdsize = size();
          dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
       }
       virtual void AssignID(BuildEnv<bits>& env) override {

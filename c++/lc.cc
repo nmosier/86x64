@@ -138,16 +138,19 @@ namespace MachO {
 
    template <Bits bits>
    void DylinkerCommand<bits>::Build(BuildEnv<bits>& env) {
+      dylinker.cmdsize = size();
       dylinker.name.offset = sizeof(dylinker);
    }
 
    template <Bits bits>
    void BuildVersion<bits>::Build(BuildEnv<bits>& env) {
+      build_version.cmdsize = size();
       build_version.ntools = tools.size();
    }
 
    template <Bits bits>
    void EntryPoint<bits>::Build(BuildEnv<bits>& env) {
+      entry_point.cmdsize = size();
       entry_point.entryoff = entry->loc.offset;
    }
 
