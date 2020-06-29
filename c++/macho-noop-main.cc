@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
    /* transform */
    const auto archive32 = dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho);
    if (archive32) {
-      fprintf(stderr, "TRANSFORM\n");
       macho = archive32->Transform();
    }
    

@@ -96,6 +96,9 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
+      // DEBUG
+      fprintf(stderr, "do_rebase: vmaddr 0x%zx\n", vmaddr);
+      
       rebasees.push_back(RebaseNode<bits>::Parse(vmaddr, env, type));
       return vmaddr + sizeof(ptr_t);
    }
@@ -135,34 +138,28 @@ namespace MachO {
 
          switch (opcode) {
          case BIND_OPCODE_DONE:
-            fprintf(stderr, "BIND_OPCODE_DONE\n");
             return;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
-            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_ORDINAL_IMM\n");
             dylib = imm;
             break;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
-            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB\n");
             it += leb128_decode(img, it, uleb);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             dylib = imm;
             break;
 
          case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
-            fprintf(stderr, "BIND_OPCODE_SET_DYLIB_SPECIAL_IMM\n");
             throw error("%s: BIND_OPCODE_SET_DYLIB_SPECIAL_IMM not supported", __FUNCTION__);
 
          case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
-            fprintf(stderr, "BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM\n");
             flags = imm;
             sym = &img.at<char>(it);
             it += strnlen(sym, end - it) + 1;
             break;
 
          case BIND_OPCODE_SET_TYPE_IMM:
-            fprintf(stderr, "BIND_OPCODE_SET_TYPE_IMM\n");
             type = imm;
             break;
 
@@ -172,14 +169,12 @@ namespace MachO {
             break;
 
          case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
-            fprintf(stderr, "BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB\n");
             it += leb128_decode(img, it, vmaddr);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->segment_command.vmaddr;
             break;
 
          case BIND_OPCODE_ADD_ADDR_ULEB:
-            fprintf(stderr, "BIND_OPCODE_ADD_ADDR_ULEB\n");
             it += leb128_decode(img, it, uleb);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             fprintf(stderr, "uleb=%zx\n", uleb);
@@ -187,12 +182,10 @@ namespace MachO {
             break;
 
          case BIND_OPCODE_DO_BIND:
-            fprintf(stderr, "BIND_OPCODE_DO_BINDn");
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
-            fprintf(stderr, "BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB\n");
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             it += leb128_decode(img, it, uleb);
             // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
@@ -200,17 +193,13 @@ namespace MachO {
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
-            fprintf(stderr, "BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED\n");
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             vmaddr += imm * sizeof(ptr_t);
             break;
 
          case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
-            fprintf(stderr, "BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB\n");
             it += leb128_decode(img, it, uleb);
             it += leb128_decode(img, it, uleb2);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
             vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, dylib, sym, flags,
                                    (ptr_t) uleb2);
             break;
@@ -230,7 +219,6 @@ namespace MachO {
    std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
                                        ssize_t addend, std::size_t dylib, const char *sym,
                                        uint8_t flags) {
-      fprintf(stderr, "%s: binding at 0x%zx\n", __FUNCTION__, vmaddr);
       bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
       return vmaddr + sizeof(ptr_t);
    }
@@ -264,13 +252,13 @@ namespace MachO {
       dyld_info.bind_size = bind->size();
       dyld_info.bind_off = env.allocate(dyld_info.bind_size);
 
-      dyld_info.weak_bind_size = weak_bind.size();
+      dyld_info.weak_bind_size = align<bits>(weak_bind.size());
       dyld_info.weak_bind_off = env.allocate(dyld_info.weak_bind_size);
-
-      dyld_info.lazy_bind_size = lazy_bind.size();
+      
+      dyld_info.lazy_bind_size = align<bits>(lazy_bind.size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
 
-      dyld_info.export_size = export_info.size();
+      dyld_info.export_size = align<bits>(export_info.size());
       dyld_info.export_off = env.allocate(dyld_info.export_size);
    }
 

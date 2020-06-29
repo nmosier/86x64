@@ -64,7 +64,7 @@ namespace MachO {
             const std::unordered_map<std::size_t, String<bits> *>& off2str);
       Nlist(const Nlist<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
 
-      template <Bits b> friend class Nlist;
+      template <Bits> friend class Nlist;
    };
 
    template <Bits bits>

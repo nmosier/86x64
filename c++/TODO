@@ -5,14 +5,14 @@
 [X] Weak bind?
 [ ] Data in code problem
 [ ] Add new kind of section blob that is function start placeholder.
-[ ] Add transformation routines.
+[X] Add transformation routines.
 
 How to solve data-in-code problem?
 1. Do 2nd pass that checks unresolved pointers and reconsiders instructions at that address. 
 
 
 [X] Rebasing issues -- some instructions need rebasing, e.g. jmp dword ptr [0x2000]
-[ ] More rebasing issues -- some pushes need rebasing, e.g. push 0x8200
+[X] More rebasing issues -- some pushes need rebasing, e.g. push 0x8200
     RebaseInfo needs to be able to go back and populate instructions.
     Perhaps instructions should also parse immediate operands and add them as subblobs within the
     instruction.
@@ -23,4 +23,11 @@ How to solve data-in-code problem?
     (3) Add 32-bit 'value' field; used when 'pointee == nullptr'
 
 
-[ ] Add callback to resolver.
+[X] Add callback to resolver.
+
+[ ] TRANSFORM: i386 -> x86_64 -- some instructions illegal
+    push abs32 -> lea r11, [rip + off32] \ push r11
+    jmp dword ptr [abs32] -> jmp qword ptr [rip + off32] (SAME OPCODE)
+
+
+[ ] 

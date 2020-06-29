@@ -64,6 +64,7 @@ namespace MachO {
       for (const String<bits> *str : strs) {
          symtab.strsize += str->size();
       }
+      symtab.strsize = align<bits>(symtab.strsize);
       symtab.stroff = env.allocate(symtab.strsize);
       
       /* create build environment for string table */
@@ -96,8 +97,7 @@ namespace MachO {
 
    template <Bits bits>
    void Dysymtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
-      dysymtab.indirectsymoff = env.allocate(sizeof(typename decltype(indirectsyms)::value_type) *
-                                             indirectsyms.size());
+      dysymtab.indirectsymoff = env.allocate(align<bits>(sizeof(uint32_t) * indirectsyms.size()));
       dysymtab.nindirectsyms = indirectsyms.size();
    }
 
@@ -158,10 +158,15 @@ namespace MachO {
       LinkeditCommand<bits>(other, env), symtab(other.symtab)
    {
       for (const auto sym : other.syms) {
-         syms.push_back(sym->Transform(env));
+         // DEBUG
+         if (sym->string->str != "__dyld_private" || 1) {
+            syms.push_back(sym->Transform(env));
+         }
       }
       for (const auto str : other.strs) {
-         strs.push_back(str->Transform(env));
+         if (str->str != "__dyld_private" || 1) {
+            strs.push_back(str->Transform(env));
+         }
       }
    }
 

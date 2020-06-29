@@ -22,9 +22,6 @@ namespace MachO {
       }
       template <template<Bits> typename T>
       void resolve(const T<b1> *key, const T<b2> **pointer) {
-         // DEBUG
-         fprintf(stderr, "TransformEnv: resolve %p %s\n", (void *) key, typeid(pointer).name());
-         
          if (key) {
             resolver.resolve(key, (const void **) pointer);
          } else {
