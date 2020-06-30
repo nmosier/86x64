@@ -442,26 +442,27 @@ namespace MachO {
             assert((*old_inst_it)->loc.vmaddr < vmaddr_todo_it->first);
 
             /* instruction replacement loop */
-            Location old_loc((*old_inst_it)->loc);
+            Location old_loc = (*old_inst_it)->loc;
             Location new_loc = old_loc + (vmaddr_todo_it->first - old_loc.vmaddr);
 
-
+            /* erase instruction */
+            old_inst_it = content.erase(old_inst_it);
+            assert(old_inst_it != content.end());
+            
+            /* populate with data */
+            for (Location data_loc = old_loc; data_loc != new_loc; ++data_loc) {
+               content.insert(old_inst_it, DataBlob<bits>::Parse(img, data_loc, env));
+            }
+            old_loc = (*old_inst_it)->loc;            
+            
             while (old_loc != new_loc) {
                std::clog << "old_loc=" << old_loc << " new_loc=" << new_loc << std::endl;
                
                if (old_loc < new_loc) {
-                  Location data_loc = old_loc;
-                  
-                  /* erase instruction */
+                  /* now just erase instruction */
                   old_inst_it = content.erase(old_inst_it);
-                  assert(old_inst_it != content.end());
-                  old_loc = (*old_inst_it)->loc;
-
-                  /* populate with data */
-                  for (; data_loc != old_loc; ++data_loc) {
-                     content.insert(old_inst_it, DataBlob<bits>::Parse(img, data_loc, env));
-                  }
-               } else if(old_loc > new_loc) {
+                  old_loc = (*old_inst_it)->loc;            
+               } else if (old_loc > new_loc) {
                   /* parse and insert new instruction */
                   SectionBlob<bits> *new_inst = TextParser(img, new_loc, env);
                   // Instruction<bits> *new_inst = Instruction<bits>::Parse(img, new_loc, env);
