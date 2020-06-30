@@ -17,7 +17,6 @@ namespace MachO {
       virtual uint32_t cmd() const override { return linkedit.cmd; }            
       virtual std::size_t size() const override { return sizeof(linkedit); }
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
-      // virtual std::size_t content_size() const = 0;
       virtual void Emit(Image& img, std::size_t offset) const override;
       
       static LinkeditData<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
@@ -29,6 +28,40 @@ namespace MachO {
          LinkeditCommand<bits>(img, offset, env), linkedit(img.at<linkedit_data_command>(offset))
       {}
       virtual const void *raw_data() const { return nullptr; }
+   };
+
+   template <Bits bits>
+   class DataInCodeEntry {
+   public:
+#warning DataInCodeEntry not complete
+      data_in_code_entry entry;
+      SectionBlob<bits> *start = nullptr;
+
+      void Build(BuildEnv<bits>& build) {}
+      void Emit(Image& img, std::size_t offset) const {
+         data_in_code_entry entry = this->entry;
+         entry.offset = start->loc.offset;
+         img.at<data_in_code_entry>(offset) = entry;
+      }
+      
+      static std::size_t size() { return sizeof(data_in_code_entry); }
+      static DataInCodeEntry<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env)
+      { return new DataInCodeEntry(img, offset, env); }
+      DataInCodeEntry<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new DataInCodeEntry<opposite<bits>>(*this, env);
+      }
+      
+   protected:
+      DataInCodeEntry(const Image& img, std::size_t offset, ParseEnv<bits>& env):
+         entry(img.at<data_in_code_entry>(offset))
+      {
+         env.offset_resolver.resolve(entry.offset, &start);
+      }
+      DataInCodeEntry(const DataInCodeEntry<opposite<bits>>& other,
+                      TransformEnv<opposite<bits>>& env): entry(other.entry) {
+         env.resolve(other.start, &start);
+      }
+      template <Bits> friend class DataInCodeEntry;
    };
 
    template <Bits bits>
@@ -59,6 +92,7 @@ namespace MachO {
 
       template <Bits b> friend class DataInCode;
    };
+   
 
    template <Bits bits>
    class FunctionStarts: public LinkeditData<bits> {
