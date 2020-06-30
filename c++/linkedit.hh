@@ -27,7 +27,8 @@ namespace MachO {
       LinkeditData(const Image& img, std::size_t offset, ParseEnv<bits>& env):
          LinkeditCommand<bits>(img, offset, env), linkedit(img.at<linkedit_data_command>(offset))
       {}
-      virtual const void *raw_data() const { return nullptr; }
+      
+      virtual void Emit_content(Image& img, std::size_t offset) const = 0;
    };
 
    template <Bits bits>
@@ -35,9 +36,8 @@ namespace MachO {
    public:
 #warning DataInCodeEntry not complete
       data_in_code_entry entry;
-      SectionBlob<bits> *start = nullptr;
+      const SectionBlob<bits> *start = nullptr;
 
-      void Build(BuildEnv<bits>& build) {}
       void Emit(Image& img, std::size_t offset) const {
          data_in_code_entry entry = this->entry;
          entry.offset = start->loc.offset;
@@ -67,12 +67,13 @@ namespace MachO {
    template <Bits bits>
    class DataInCode: public LinkeditData<bits> {
    public:
-      std::vector<data_in_code_entry> dices;
+      using Content = std::vector<DataInCodeEntry<bits> *>;
+      Content content;
 
       virtual std::size_t content_size() const override {
-         return dices.size() * sizeof(data_in_code_entry);
+         return content.size() * sizeof(DataInCodeEntry<bits>::size());
       }
-
+      
       static DataInCode<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
          return new DataInCode(img, offset, env);
       }
@@ -83,14 +84,30 @@ namespace MachO {
 
    private:
       DataInCode(const DataInCode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         LinkeditData<bits>(other, env), dices(other.dices) {}
+         LinkeditData<bits>(other, env)
+      {
+         for (auto elem : other.content) {
+            content.push_back(elem->Transform(env));
+         }
+      }
+      
       DataInCode(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         LinkeditData<bits>(img, offset, env),
-         dices(&img.at<data_in_code_entry>(this->linkedit.dataoff),
-               &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
-      virtual const void *raw_data() const override { return dices.data(); }
+         LinkeditData<bits>(img, offset, env) {
+         const std::size_t begin = this->linkedit.dataoff;
+         const std::size_t end = begin + this->linkedit.datasize;
+         for (std::size_t it = begin; it < end; it += DataInCodeEntry<bits>::size()) {
+            content.push_back(DataInCodeEntry<bits>::Parse(img, it, env));
+         }
+      }
 
-      template <Bits b> friend class DataInCode;
+      virtual void Emit_content(Image& img, std::size_t offset) const override {
+         for (auto elem : content) {
+            elem->Emit(img, offset);
+            offset += DataInCodeEntry<bits>::size();
+         }
+      }
+
+      template <Bits> friend class DataInCode;
    };
    
 
@@ -104,7 +121,6 @@ namespace MachO {
       const Segment<bits> *segment;
 
       virtual std::size_t content_size() const override;
-      virtual void Emit(Image& img, std::size_t offset) const override;
 
       static FunctionStarts<bits> *Parse(const Image& img, std::size_t offset,
                                          ParseEnv<bits>& env)
@@ -118,6 +134,8 @@ namespace MachO {
       FunctionStarts(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       FunctionStarts(const FunctionStarts<opposite<bits>>& other,
                      TransformEnv<opposite<bits>>& env);
+
+      virtual void Emit_content(Image& img, std::size_t offset) const override;
 
       template <Bits b> friend class FunctionStarts;
    };
@@ -143,7 +161,8 @@ namespace MachO {
             &img.at<uint8_t>(this->linkedit.dataoff + this->linkedit.datasize)) {}
       CodeSignature(const CodeSignature<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
          LinkeditData<bits>(other, env), cs(other.cs) {}
-      virtual const void *raw_data() const override { return &*cs.begin(); }
+
+      virtual void Emit_content(Image& img, std::size_t offset) const override;
 
       template <Bits b> friend class CodeSignature;
    };   

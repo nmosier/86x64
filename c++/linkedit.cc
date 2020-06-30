@@ -34,7 +34,7 @@ namespace MachO {
    template <Bits bits>
    void LinkeditData<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<linkedit_data_command>(offset) = linkedit;
-      img.copy(linkedit.dataoff, (const char *) raw_data(), linkedit.datasize);
+      Emit_content(img, linkedit.dataoff);
    }
 
    template <Bits bits>
@@ -72,13 +72,10 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void FunctionStarts<bits>::Emit(Image& img, std::size_t offset) const {
-      img.at<linkedit_data_command>(offset) = this->linkedit;
-
+   void FunctionStarts<bits>::Emit_content(Image& img, std::size_t offset) const {
       std::size_t refaddr = segment->loc().offset;
-      const std::size_t begin = this->linkedit.dataoff;
-      const std::size_t size = this->linkedit.datasize;
-      const std::size_t end = begin + size;
+      const std::size_t begin = offset;
+      const std::size_t end = begin + content_size();
       std::size_t it = begin;
       for (const SectionBlob<bits> *entry : entries) {
          it += leb128_encode(img, it, entry->loc.offset - refaddr);
@@ -96,6 +93,11 @@ namespace MachO {
          entries.push_back(entry->Transform(env));
       }
       env.resolve(other.segment, &segment);
+   }
+
+   template <Bits bits>
+   void CodeSignature<bits>::Emit_content(Image& img, std::size_t offset) const {
+      img.copy(offset, cs.begin(), cs.size());
    }
 
    template class LinkeditData<Bits::M32>;
