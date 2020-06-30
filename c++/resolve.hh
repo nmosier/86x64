@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include <map>
 #include <list>
 
@@ -14,7 +13,7 @@ namespace MachO {
       using FoundMap = std::map<T, U *>;
       typedef void (*Callback)(U *, Resolver<T, U>&);
       using TodoNode = std::pair<const U **, Callback>;
-      using TodoMap = std::unordered_map<T, std::list<TodoNode>>;
+      using TodoMap = std::map<T, std::list<TodoNode>>;
       
       void add(const T& key, U *pointee) {
          auto todo_it = todo.find(key);

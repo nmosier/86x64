@@ -18,41 +18,63 @@ namespace MachO {
       }
 
 #if 0
+      auto& found = env.vmaddr_resolver.found;
+      auto& todo = env.vmaddr_resolver.todo;
+      
       /* cleanup instructions */
-      for (ParseEnv<bits>::TodoMap::iterator todo_it = env.vmaddr_resolver.todo.begin();
-           todo_it != env.vmaddr_resolver.todo.end(); )
-         {
-            auto found_it = env.vmaddr_resolver.found.upper_bound(todo_it->first);
-            if (found_it == env.vmaddr_resolver.found.begin()) {
-               ++it;
-            } else {
-               --found_it;
-               assert(found_it->first < todo_it->first);
+      for (auto todo_it = todo.begin(); todo_it != todo.end(); ) {
+         auto found_it = found.upper_bound(todo_it->first);
+         if (found_it == found.begin()) {
+            ++todo_it;
+         } else {
+            --found_it;
+            assert(found_it->first < todo_it->first);
+            
+            /* patch section */
+            fprintf(stderr, "patching address (0x%zx,0x%zx)\n",
+                    found_it->first, todo_it->first);
+            
+            std::size_t inst_vmaddr = todo_it->first;
+            std::size_t inst_offset =
+               found_it->second->loc.offset + (inst_vmaddr - found_it->second.loc.vmaddr);
+            found_it->second->section
+            while (inst_vmaddr != found_it->first) {
+               while (found_it->first < inst_offset) {
+                  found_it = found.erase(found_it);
+               }
+               
+               if (found_it->first > inst_vmaddr) {
+                  Instruction<bits> *inst =
+                     Instruction::Parse(img, Location(inst_offset, inst_vmaddr), env);
+                  
+                  
+               }
+            }
+            
+            found_it = found.erase(found_it);
+            
+            
+            
+               
+               /* 
+                *
+                *
+                */
 
-               /* patch section */
 
-               // TODO
-               TODO
+               todo_it = env.vmaddr_resolver.todo.erase(todo_it);
             }
 
             
          }
+#else
+      for (auto segment : segments()) {
+         segment->Parse2(img, env);
+      }
 #endif
       
    }
 
-#if 0
-   template <Bits bits>
-   typename Archive<bits>::SectionMap Archive<bits>::section_vmaddr_map() {
-      SectionMap map;
-      for (auto segment : segments()) {
-         for (auto section : segment.sections) {
-            map.insert({section->loc().vmaddr, section->loc});
-         }
-      }
-   }
-#endif
-   
    template <Bits bits>
    Archive<bits>::~Archive() {
       for (LoadCommand<bits> *lc : load_commands) {

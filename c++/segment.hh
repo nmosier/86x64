@@ -34,6 +34,13 @@ namespace MachO {
       Section<bits> *section(const std::string& name);
 
       static Segment<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      void Parse2(const Image& img, ParseEnv<bits>& env) {
+         env.current_segment = this;
+         for (auto section : sections) {
+            section->Parse2(img, env);
+         }
+         env.current_segment = nullptr;
+      }
       
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }

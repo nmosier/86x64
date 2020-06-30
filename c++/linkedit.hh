@@ -55,7 +55,7 @@ namespace MachO {
          LinkeditData<bits>(img, offset, env),
          dices(&img.at<data_in_code_entry>(this->linkedit.dataoff),
                &img.at<data_in_code_entry>(this->linkedit.dataoff + this->linkedit.datasize)) {}
-      virtual const void *raw_data() const override { return nullptr; }
+      virtual const void *raw_data() const override { return dices.data(); }
 
       template <Bits b> friend class DataInCode;
    };

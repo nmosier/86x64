@@ -69,3 +69,8 @@ Two stages.
 Stage 1: transform each MachO node into other node of opposite bits. Add each node do (void *) map.
 Stage 2: bind all memebrs of MachO nodes using map.
 
+-----
+
+
+ParseEnv, 2nd pass?
+Each section checks for resolution requests within its address range. If one matches, then remap that area.

@@ -23,11 +23,11 @@ namespace MachO {
          return * (T *) ((char *) img + index);
       }
 
-      template <typename T>
-      void copy(std::size_t offset, const T *begin, std::size_t count) {
-         const std::size_t bytes = count * sizeof(T);
+      template <typename Iterator>
+      void copy(std::size_t offset, Iterator begin, std::size_t count) {
+         const std::size_t bytes = count * sizeof(*begin);
          grow(offset + bytes);
-         memcpy((char *) img + offset, begin, bytes);
+         memcpy((char *) img + offset, &*begin, bytes);
       }
 
       void memset(std::size_t offset, int c, std::size_t bytes);

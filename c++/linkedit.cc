@@ -82,7 +82,7 @@ namespace MachO {
       std::size_t it = begin;
       for (const SectionBlob<bits> *entry : entries) {
          it += leb128_encode(img, it, entry->loc.offset - refaddr);
-         // it += leb128_encode(&img.at<uint8_t>(it), img.size() - it, entry->loc.offset - refaddr);
+         refaddr = entry->loc.offset;
       }
       img.memset(it, 0, end - it);
    }

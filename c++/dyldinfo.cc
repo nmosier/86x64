@@ -96,9 +96,6 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
-      // DEBUG
-      fprintf(stderr, "do_rebase: vmaddr 0x%zx\n", vmaddr);
-      
       rebasees.push_back(RebaseNode<bits>::Parse(vmaddr, env, type));
       return vmaddr + sizeof(ptr_t);
    }
@@ -176,8 +173,6 @@ namespace MachO {
 
          case BIND_OPCODE_ADD_ADDR_ULEB:
             it += leb128_decode(img, it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            fprintf(stderr, "uleb=%zx\n", uleb);
             vmaddr += (ptr_t) uleb;
             break;
 

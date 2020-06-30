@@ -27,7 +27,7 @@ namespace MachO {
    class ParseEnv {
    public:
       Archive<bits>& archive;
-
+      
       Resolver<std::size_t, SectionBlob<bits>> vmaddr_resolver;
       Resolver<std::size_t, SectionBlob<bits>> offset_resolver;
       CountResolver<DylibCommand<bits>> dylib_resolver;

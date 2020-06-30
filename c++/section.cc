@@ -84,7 +84,8 @@ namespace MachO {
                   
                   /* resolve pointer */
                   env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
-                  
+
+#if 0
                   char pbuf[32];
                   xed_print_info_t pinfo;
                   xed_init_print_info(&pinfo);
@@ -94,6 +95,7 @@ namespace MachO {
                   pinfo.runtime_address = loc.vmaddr;
                   xed_format_generic(&pinfo);
                   fprintf(stderr, "%s\n", pbuf);
+#endif
                } else if (basereg == XED_REG_INVALID && indexreg == XED_REG_INVALID &&
                           xed_decoded_inst_get_memory_displacement_width(operands, i) ==
                           sizeof(uint32_t)) {
@@ -146,7 +148,7 @@ namespace MachO {
 
    template <Bits bits>
    SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env):
-      segment(env.current_segment)
+      segment(env.current_segment), loc(loc)
    {
       assert(segment);
       env.vmaddr_resolver.add(loc.vmaddr, this);
@@ -416,6 +418,61 @@ namespace MachO {
            prev = it, ++it)
          {}
       return prev;
+   }
+
+   template <Bits bits>
+   void Section<bits>::Parse2(const Image& img, ParseEnv<bits>& env) {
+      /* handle unresolved vmaddrs */
+      auto vmaddr_resolver = env.vmaddr_resolver; /* maintain local copy */
+      for (auto vmaddr_todo_it = vmaddr_resolver.todo.lower_bound(sect.addr);
+           vmaddr_todo_it != vmaddr_resolver.todo.end() &&
+              vmaddr_todo_it->first < sect.addr + sect.size;
+           ++vmaddr_todo_it)
+         {
+            /* find closest instruction in section content */
+            auto old_inst_it = content.begin();
+            while (old_inst_it != content.end() &&
+                   (*old_inst_it)->loc.vmaddr < vmaddr_todo_it->first) {
+               ++old_inst_it;
+            }
+            if (old_inst_it == content.begin()) {
+               continue;
+            }
+            --old_inst_it;
+            assert((*old_inst_it)->loc.vmaddr < vmaddr_todo_it->first);
+
+            /* instruction replacement loop */
+            Location old_loc((*old_inst_it)->loc);
+            Location new_loc = old_loc + (vmaddr_todo_it->first - old_loc.vmaddr);
+
+
+            while (old_loc != new_loc) {
+               std::clog << "old_loc=" << old_loc << " new_loc=" << new_loc << std::endl;
+               
+               if (old_loc < new_loc) {
+                  Location data_loc = old_loc;
+                  
+                  /* erase instruction */
+                  old_inst_it = content.erase(old_inst_it);
+                  assert(old_inst_it != content.end());
+                  old_loc = (*old_inst_it)->loc;
+
+                  /* populate with data */
+                  for (; data_loc != old_loc; ++data_loc) {
+                     content.insert(old_inst_it, DataBlob<bits>::Parse(img, data_loc, env));
+                  }
+               } else if(old_loc > new_loc) {
+                  /* parse and insert new instruction */
+                  SectionBlob<bits> *new_inst = TextParser(img, new_loc, env);
+                  // Instruction<bits> *new_inst = Instruction<bits>::Parse(img, new_loc, env);
+                  content.insert(old_inst_it, new_inst);
+                  new_loc += new_inst->size();
+               } else {
+                  throw std::logic_error(std::string(__FUNCTION__) +
+                                         ": locations not completely ordered");
+               }
+            }
+         }
    }
 
    template class Section<Bits::M32>;

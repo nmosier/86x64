@@ -34,7 +34,10 @@ namespace MachO {
       virtual ~Section();
       
       static std::size_t size() { return sizeof(section_t<bits>); }
+
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      void Parse2(const Image& img, ParseEnv<bits>& env);
+
       virtual void Build(BuildEnv<bits>& env);
       std::size_t content_size() const;
       void Emit(Image& img, std::size_t offset) const;
@@ -58,49 +61,11 @@ namespace MachO {
       template <Bits> friend class Section;
    };
 
-#if 0
-   template <Bits bits>
-   class TextSection: public Section<bits> {
-   public:
-      template <typename... Args>
-      static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
-
-      virtual TextSection<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
-      { return new TextSection<opposite<bits>>(*this, env); }
-      
-   private:
-      TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         Section<bits>(img, offset, env, BlobParser) {}
-      TextSection(const TextSection<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         Section<bits>(other, env) {}
-      template <Bits> friend class TextSection;
-   };
-
-   template <Bits bits>
-   class ZerofillSection: public Section<bits> {
-   public:
-      template <typename... Args>
-      static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
-      virtual void Build(BuildEnv<bits>& env) override;
-      virtual ZerofillSection<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
-         return new ZerofillSection<opposite<bits>>(*this, env);
-      }
-   private:
-      ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         Section<bits>(img, offset, env) {}
-      ZerofillSection(const ZerofillSection<opposite<bits>>& other,
-                      TransformEnv<opposite<bits>>& env): Section<bits>(other, env) {}
-      virtual void Emit_content(Image& img, std::size_t offset) const override {}
-
-      template <Bits b> friend class ZerofillSection;
-   };
-#endif
-
    template <Bits bits>
    class SectionBlob {
    public:
       const Segment<bits> *segment; /*!< containing segment */
-      Location loc; /*!< Post-build location */
+      Location loc; /*!< Post-build location, also used during parsing */
       
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}

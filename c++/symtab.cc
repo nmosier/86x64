@@ -42,9 +42,6 @@ namespace MachO {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
       }
       string = off2str.at(nlist.n_un.n_strx);
-      
-      fprintf(stderr, "nlist={name=%s,sect=0x%x,value=0x%zx}\n", string->str.c_str(), nlist.n_sect,
-              (std::size_t) nlist.n_value);
    }
 
    template <Bits bits>
@@ -134,14 +131,16 @@ namespace MachO {
    
    template <Bits bits>
    void String<bits>::Emit(Image& img, std::size_t offset) const {
-      memcpy(&img.at<char>(offset), str.c_str(), str.size() + 1);
+      img.copy(offset, str.c_str(), str.size() + 1);
+      // memcpy(&img.at<char>(offset), str.c_str(), str.size() + 1);
    }
 
    template <Bits bits>
    void Dysymtab<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<dysymtab_command>(offset) = dysymtab;
-      memcpy(&img.at<uint32_t>(dysymtab.indirectsymoff), &*indirectsyms.begin(),
-             indirectsyms.size() * sizeof(uint32_t));
+      img.copy(dysymtab.indirectsymoff, indirectsyms.begin(), indirectsyms.size());
+      // memcpy(&img.at<uint32_t>(dysymtab.indirectsymoff), &*indirectsyms.begin(),
+      // indirectsyms.size() * sizeof(uint32_t));
    }
 
    template <Bits bits>
