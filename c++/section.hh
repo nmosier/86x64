@@ -22,68 +22,45 @@ namespace MachO {
    template <Bits bits>
    class Section {
    public:
+      using Content = std::list<SectionBlob<bits> *>;
+      
       section_t<bits> sect;
+      Content content;
 
       std::string name() const;
       Location loc() const { return Location(sect.offset, sect.addr); }
       void loc(const Location& loc) { sect.offset = loc.offset; sect.addr = loc.vmaddr; }
 
-      virtual ~Section() {}
+      virtual ~Section();
       
       static std::size_t size() { return sizeof(section_t<bits>); }
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Build(BuildEnv<bits>& env);
-      virtual std::size_t content_size() const = 0;
+      std::size_t content_size() const;
       void Emit(Image& img, std::size_t offset) const;
-      virtual void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) = 0;
+      void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob);
 
-      virtual Section<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
-
-   protected:
-      Section(const Image& img, std::size_t offset): sect(img.at<section_t<bits>>(offset)) {}
-      Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env) {
-         env(other.sect, sect);
-      }
-      
-      virtual void Build_content(BuildEnv<bits>& env) = 0;
-      virtual void Emit_content(Image& img, std::size_t offset) const = 0;
-   };
-
-   template <Bits bits, template <Bits> typename Elem>
-   class SectionT: public Section<bits> {
-   public:
-      // static_assert(std::is_base_of<SectionT<bits, Elem, Self>, Self>());
-      using Content = std::vector<Elem<bits> *>;
-      Content content;
-
-      ~SectionT();
-      virtual std::size_t content_size() const override;
-      virtual void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) override;
-
-      static SectionT<bits, Elem> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env)
-      { return new SectionT(img, offset, env); }
-
-      SectionT<opposite<bits>, Elem> *Transform(TransformEnv<bits>& env) const override {
-         return new SectionT<opposite<bits>, Elem>(*this, env);
+      virtual Section<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new Section<opposite<bits>>(*this, env);
       }
 
+      typename Content::iterator find(std::size_t vmaddr); /* inclusive greatest lower bound */
+      typename Content::const_iterator find(std::size_t vmaddr) const;
+
    protected:
-      typedef Elem<bits> *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
-      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
-      SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT(img, offset, env,
-                  [](const Image& img, const Location& loc, ParseEnv<bits>& env) {
-                     return Elem<bits>::Parse(img, loc, env);
-                  }) {}
-      SectionT(const SectionT<opposite<bits>, Elem>& other, TransformEnv<opposite<bits>>& env);
-      virtual void Build_content(BuildEnv<bits>& env) override;
-      virtual void Emit_content(Image& img, std::size_t offset) const override;
-      template <Bits, template <Bits> typename> friend class SectionT;
-      
+      typedef SectionBlob<bits> *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
+      Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
+      Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      static SectionBlob<bits> *TextParser(const Image& img, const Location& loc,
+                                           ParseEnv<bits>& env);
+
+      template <Bits> friend class Section;
    };
 
+#if 0
    template <Bits bits>
-   class TextSection: public SectionT<bits, SectionBlob> {
+   class TextSection: public Section<bits> {
    public:
       template <typename... Args>
       static TextSection<bits> *Parse(Args&&... args) { return new TextSection(args...); }
@@ -92,17 +69,15 @@ namespace MachO {
       { return new TextSection<opposite<bits>>(*this, env); }
       
    private:
-      static SectionBlob<bits> *BlobParser(const Image& img, const Location& loc,
-                                           ParseEnv<bits>& env);
       TextSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT<bits, SectionBlob>(img, offset, env, BlobParser) {}
+         Section<bits>(img, offset, env, BlobParser) {}
       TextSection(const TextSection<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         SectionT<bits, SectionBlob>(other, env) {}
+         Section<bits>(other, env) {}
       template <Bits> friend class TextSection;
    };
 
    template <Bits bits>
-   class ZerofillSection: public SectionT<bits, ZeroBlob> {
+   class ZerofillSection: public Section<bits> {
    public:
       template <typename... Args>
       static ZerofillSection<bits> *Parse(Args&&... args) { return new ZerofillSection(args...); }
@@ -112,14 +87,14 @@ namespace MachO {
       }
    private:
       ZerofillSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT<bits, ZeroBlob>(img, offset, env) {}
+         Section<bits>(img, offset, env) {}
       ZerofillSection(const ZerofillSection<opposite<bits>>& other,
-                      TransformEnv<opposite<bits>>& env):
-         SectionT<bits, ZeroBlob>(other, env) {}
+                      TransformEnv<opposite<bits>>& env): Section<bits>(other, env) {}
       virtual void Emit_content(Image& img, std::size_t offset) const override {}
 
       template <Bits b> friend class ZerofillSection;
    };
+#endif
 
    template <Bits bits>
    class SectionBlob {
@@ -145,8 +120,11 @@ namespace MachO {
       uint8_t data;
       virtual std::size_t size() const override { return 1; }
       virtual void Emit(Image& img, std::size_t offset) const override;
-      template <typename... Args>
-      static DataBlob<bits> *Parse(Args&&... args) { return new DataBlob(args...); }
+
+      static SectionBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
+         return new DataBlob(img, loc, env);
+      }
+      
       virtual DataBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new DataBlob<opposite<bits>>(*this, env);
       }
@@ -166,7 +144,7 @@ namespace MachO {
       virtual std::size_t size() const override { return 1; }
       virtual void Emit(Image& img, std::size_t offset) const override {}
 
-      static ZeroBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
+      static SectionBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
       { return new ZeroBlob(img, loc, env); }
       virtual ZeroBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
       { return new ZeroBlob<opposite<bits>>(*this, env); }
@@ -179,12 +157,6 @@ namespace MachO {
       
       template <Bits b> friend class ZeroBlob;
    };
-
-   template <Bits bits>
-   using DataSection = SectionT<bits, DataBlob>;
-
-   template <Bits bits>
-   using LazySymbolPointerSection = SectionT<bits, LazySymbolPointer>;
 
    template <Bits bits>
    class SymbolPointer: public SectionBlob<bits> {
@@ -206,7 +178,7 @@ namespace MachO {
    public:
       const Instruction<bits> *pointee; /*!< initial pointee */
 
-      static LazySymbolPointer<bits> *Parse(const Image& img, const Location& loc,
+      static SectionBlob<bits> *Parse(const Image& img, const Location& loc,
                                             ParseEnv<bits>& env) {
          return new LazySymbolPointer(img, loc, env);
       }
@@ -229,7 +201,7 @@ namespace MachO {
    template <Bits bits>
    class NonLazySymbolPointer: public SymbolPointer<bits> {
    public:
-      static NonLazySymbolPointer<bits> *Parse(const Image& img, const Location& loc,
+      static SectionBlob<bits> *Parse(const Image& img, const Location& loc,
                                                ParseEnv<bits>& env) {
          return new NonLazySymbolPointer(img, loc, env);
       }
@@ -245,19 +217,6 @@ namespace MachO {
          SymbolPointer<bits>(other, env) {}
       virtual typename SymbolPointer<bits>::ptr_t raw_data() const override { return 0x0; }
       template <Bits> friend class NonLazySymbolPointer;
-   };
-
-   template <Bits bits>
-   class NonLazySymbolPointerSection: public SectionT<bits, NonLazySymbolPointer> {
-   public:
-      template <typename... Args>
-      static NonLazySymbolPointerSection<bits> *Parse(Args&&... args) {
-         return new NonLazySymbolPointerSection(args...);
-      }
-      
-   private:
-      NonLazySymbolPointerSection(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         SectionT<bits, NonLazySymbolPointer>(img, offset, env) {}
    };
 
    template <Bits bits>

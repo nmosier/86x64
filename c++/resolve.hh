@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
 #include <list>
 
 #include "util.hh"
@@ -10,7 +11,7 @@ namespace MachO {
    template <typename T, typename U>
    class Resolver {
    public:
-      using FoundMap = std::unordered_map<T, U *>;
+      using FoundMap = std::map<T, U *>;
       typedef void (*Callback)(U *, Resolver<T, U>&);
       using TodoNode = std::pair<const U **, Callback>;
       using TodoMap = std::unordered_map<T, std::list<TodoNode>>;
@@ -48,7 +49,6 @@ namespace MachO {
 
       static void CallbackNop(U *pointee, Resolver<T, U>& resolver) {}
 
-   private:
       FoundMap found;
       TodoMap todo;
 

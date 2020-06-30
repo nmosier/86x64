@@ -16,26 +16,43 @@ namespace MachO {
          load_commands.push_back(cmd);
          offset += cmd->size();
       }
+
+#if 0
+      /* cleanup instructions */
+      for (ParseEnv<bits>::TodoMap::iterator todo_it = env.vmaddr_resolver.todo.begin();
+           todo_it != env.vmaddr_resolver.todo.end(); )
+         {
+            auto found_it = env.vmaddr_resolver.found.upper_bound(todo_it->first);
+            if (found_it == env.vmaddr_resolver.found.begin()) {
+               ++it;
+            } else {
+               --found_it;
+               assert(found_it->first < todo_it->first);
+
+               /* patch section */
+
+               // TODO
+               TODO
+            }
+
+            
+         }
+#endif
+      
    }
-                                                                 
+
 #if 0
    template <Bits bits>
-   Archive<bits> *Archive<bits>::Parse(const Image& img, std::size_t offset) {
-      Archive<bits> *archive = new Archive<bits>();
-      ParseEnv<bits> env(*archive);
-      archive->header = img.at<mach_header_t<bits>>(offset);
-
-      offset += sizeof(archive->header);
-      for (int i = 0; i < archive->header.ncmds; ++i) {
-         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset, env);
-         archive->load_commands.push_back(cmd);
-         offset += cmd->size();
+   typename Archive<bits>::SectionMap Archive<bits>::section_vmaddr_map() {
+      SectionMap map;
+      for (auto segment : segments()) {
+         for (auto section : segment.sections) {
+            map.insert({section->loc().vmaddr, section->loc});
+         }
       }
-
-      return archive;
    }
 #endif
-
+   
    template <Bits bits>
    Archive<bits>::~Archive() {
       for (LoadCommand<bits> *lc : load_commands) {

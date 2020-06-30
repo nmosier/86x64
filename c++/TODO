@@ -4,7 +4,6 @@
 [X] Rebase doesn't work
 [X] Weak bind?
 [ ] Data in code problem
-[ ] Add new kind of section blob that is function start placeholder.
 [X] Add transformation routines.
 
 How to solve data-in-code problem?
@@ -29,5 +28,3 @@ How to solve data-in-code problem?
     push abs32 -> lea r11, [rip + off32] \ push r11
     jmp dword ptr [abs32] -> jmp qword ptr [rip + off32] (SAME OPCODE)
 
-
-[ ] 

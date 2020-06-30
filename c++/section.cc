@@ -1,4 +1,5 @@
 #include <string>
+#include <iterator>
 
 #include "section.hh"
 
@@ -14,18 +15,18 @@ namespace MachO {
                                                  SECT_SYMBOL_STUBS};
       for (const std::string& sectname : text_sectnames) {
          if (sectname == sect.sectname) {
-            return TextSection<bits>::Parse(img, offset, env);
+            return new Section<bits>(img, offset, env, TextParser);
          }
       }
       
       if (flags == S_LAZY_SYMBOL_POINTERS) {
-         return LazySymbolPointerSection<bits>::Parse(img, offset, env);
+         return new Section<bits>(img, offset, env, LazySymbolPointer<bits>::Parse);
       } else if (flags == S_NON_LAZY_SYMBOL_POINTERS) {
-         return NonLazySymbolPointerSection<bits>::Parse(img, offset, env);
+         return new Section<bits>(img, offset, env, NonLazySymbolPointer<bits>::Parse);
       } else if (flags == S_REGULAR || flags == S_CSTRING_LITERALS) {
-         return DataSection<bits>::Parse(img, offset, env);
+         return new Section<bits>(img, offset, env, DataBlob<bits>::Parse);
       } else if ((flags & S_ZEROFILL)) {
-         return ZerofillSection<bits>::Parse(img, offset, env);
+         return new Section<bits>(img, offset, env, ZeroBlob<bits>::Parse);
       }
 
       throw error("bad section flags (section %s)", sect.sectname);
@@ -134,7 +135,7 @@ namespace MachO {
    }
    
    template <Bits bits>
-   SectionBlob<bits> *TextSection<bits>::BlobParser(const Image& img, const Location& loc,
+   SectionBlob<bits> *Section<bits>::TextParser(const Image& img, const Location& loc,
                                                     ParseEnv<bits>& env) {
       try {
          return Instruction<bits>::Parse(img, loc, env);
@@ -163,22 +164,22 @@ namespace MachO {
       env.vmaddr_resolver.resolve(targetaddr, (const SectionBlob<bits> **) &pointee);
    }
 
-   template <Bits bits, template <Bits> typename Elem>
-   SectionT<bits, Elem>::~SectionT() {
-      for (Elem<bits> *elem : content) {
+   template <Bits bits>
+   Section<bits>:: ~Section() {
+      for (SectionBlob<bits> *elem : content) {
          delete elem;
       }
    }
-
-   template <Bits bits, template <Bits> typename Elem>
-   SectionT<bits, Elem>::SectionT(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                  Parser parser): Section<bits>(img, offset) {
+   
+   template <Bits bits>
+   Section<bits>::Section(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                          Parser parser): sect(img.at<section_t<bits>>(offset)) {
       const std::size_t begin = this->sect.offset;
       const std::size_t end = begin + this->sect.size;
       std::size_t it = begin;
       std::size_t vmaddr = this->sect.addr;
       while (it != end) {
-         Elem<bits> *elem = parser(img, Location(it, vmaddr), env);
+         SectionBlob<bits> *elem = parser(img, Location(it, vmaddr), env);
          content.push_back(elem);
          it += elem->size();
          vmaddr += elem->size();
@@ -199,30 +200,21 @@ namespace MachO {
    void Section<bits>::Build(BuildEnv<bits>& env) {
       env.align(sect.align);
       loc(env.loc);
-      Build_content(env);
+
+      for (SectionBlob<bits> *elem : content) {
+         elem->Build(env);
+      }
+
       sect.size = env.loc.offset - loc().offset;
-      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n", sect.segname,
-              sect.sectname, loc().offset, loc().vmaddr);
+
+      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n",
+              sect.segname, sect.sectname, loc().offset, loc().vmaddr);
    }
 
    template <Bits bits>
-   void ZerofillSection<bits>::Build(BuildEnv<bits>& env) {
-      // env.align(this->sect.align);
-      this->sect.size = this->content_size();
-      this->loc(Location(0, env.loc.vmaddr));
-   }
-
-   template <Bits bits, template <Bits> typename Elem>
-   void SectionT<bits, Elem>::Build_content(BuildEnv<bits>& env) {
-      for (Elem<bits> *elem : content) {
-         elem->Build(env);
-      }
-   }
-   
-   template <Bits bits, template <Bits> typename Elem>
-   std::size_t SectionT<bits, Elem>::content_size() const {
+   std::size_t Section<bits>::content_size() const {
       std::size_t size = 0;
-      for (const Elem<bits> *elem : content) {
+      for (const SectionBlob<bits> *elem : content) {
          size += elem->size();
       }
       return align<bits>(size);
@@ -231,14 +223,12 @@ namespace MachO {
    template <Bits bits>
    void Section<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<section_t<bits>>(offset) = sect;
-      Emit_content(img, sect.offset);
-   }
-   
-   template <Bits bits, template <Bits> typename Elem>
-   void SectionT<bits, Elem>::Emit_content(Image& img, std::size_t offset) const {
-      for (const Elem<bits> *elem : content) {
-         elem->Emit(img, offset);
-         offset += elem->size();
+
+      std::size_t sect_offset = sect.offset;
+      
+      for (const SectionBlob<bits> *elem : content) {
+         elem->Emit(img, sect_offset);
+         sect_offset += elem->size();
       }
    }
 
@@ -301,13 +291,16 @@ namespace MachO {
       }
    }
 
-   template <Bits bits, template <Bits> typename Elem>
-   void SectionT<bits, Elem>::Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) {
-      Elem<bits> *elem = dynamic_cast<Elem<bits> *>(blob);
+   template <Bits bits>
+   void Section<bits>::Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) {
+      SectionBlob<bits> *elem = dynamic_cast<SectionBlob<bits> *>(blob);
       if (elem == nullptr) {
          throw std::invalid_argument(std::string(__FUNCTION__) + ": blob is of incorrect type");
       }
-      content.insert(content.begin() + loc.index, elem);
+      auto it = content.begin();
+      std::advance(it, loc.index);
+      content.insert(it, elem);
+      // content.insert(content.begin() + loc.index, elem);
    }
 
    template <Bits bits>
@@ -348,10 +341,10 @@ namespace MachO {
       }
    }
 
-   template <Bits bits, template <Bits> typename Elem>
-   SectionT<bits, Elem>::SectionT(const SectionT<opposite<bits>, Elem>& other,
-                                  TransformEnv<opposite<bits>>& env): Section<bits>(other, env)
+   template <Bits bits>
+   Section<bits>::Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env)
    {
+      env(other.sect, sect);
       for (const auto elem : other.content) {
          content.push_back(elem->Transform(env));
       }
@@ -404,7 +397,27 @@ namespace MachO {
       }
       img.at<uint32_t>(offset) = value;
    }
-   
+
+   template <Bits bits>
+   typename Section<bits>::Content::iterator Section<bits>::find(std::size_t vmaddr) {
+      typename Content::iterator prev = content.end();
+      for (typename Content::iterator it = content.begin();
+           it != content.end() && (*it)->loc.vmaddr <= vmaddr;
+           prev = it, ++it)
+         {}
+      return prev;
+   }
+
+   template <Bits bits>
+   typename Section<bits>::Content::const_iterator Section<bits>::find(std::size_t vmaddr) const {
+      typename Content::const_iterator prev = content.end();
+      for (typename Content::const_iterator it = content.begin();
+           it != content.end() && (*it)->loc.vmaddr <= vmaddr;
+           prev = it, ++it)
+         {}
+      return prev;
+   }
+
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

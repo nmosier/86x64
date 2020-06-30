@@ -63,6 +63,11 @@ namespace MachO {
       Archive(const Image& img, std::size_t offset);
       Archive(const Archive<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
 
+#if 0
+      using SectionMap = std::map<std::size_t, Section<bits> *>;
+      SectionMap section_vmaddr_map();
+#endif
+      
       template <Bits> friend class Archive;
    };   
 
