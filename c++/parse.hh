@@ -8,7 +8,7 @@
 namespace MachO {
    
    template <Bits bits> class SectionBlob;
-
+   
    template <typename T>
    class CountResolver {
    public:

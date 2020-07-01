@@ -174,12 +174,11 @@ namespace MachO {
    }
    
    template <Bits bits>
-   Section<bits>::Section(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                          Parser parser): sect(img.at<section_t<bits>>(offset)) {
-      const std::size_t begin = this->sect.offset;
-      const std::size_t end = begin + this->sect.size;
+   void Section<bits>::Parse1(const Image& img, ParseEnv<bits>& env) {
+      const std::size_t begin = sect.offset;
+      const std::size_t end = begin + sect.size;
       std::size_t it = begin;
-      std::size_t vmaddr = this->sect.addr;
+      std::size_t vmaddr = sect.addr;
       while (it != end) {
          SectionBlob<bits> *elem = parser(img, Location(it, vmaddr), env);
          content.push_back(elem);
@@ -187,7 +186,7 @@ namespace MachO {
          vmaddr += elem->size();
       }
    }
-
+   
    template <Bits bits>
    std::string Section<bits>::name() const {
       return std::string(sect.sectname, strnlen(sect.sectname, sizeof(sect.sectname)));

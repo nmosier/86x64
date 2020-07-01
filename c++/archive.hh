@@ -21,6 +21,16 @@ namespace MachO {
       virtual uint32_t& magic() override { return header.magic; }
 
       template <class Subclass, int64_t cmdval = -1>
+      Subclass *subcommand() const {
+         static_assert(std::is_base_of<LoadCommand<bits>, Subclass>());
+         for (LoadCommand<bits> *lc : load_commands) {
+            Subclass *subcommand = dynamic_cast<Subclass *>(lc);
+            if (subcommand) { return subcommand; }
+         }
+         return nullptr;
+      }
+      
+      template <class Subclass, int64_t cmdval = -1>
       std::vector<Subclass *> subcommands() const {
          static_assert(std::is_base_of<LoadCommand<bits>, Subclass>());
          std::vector<Subclass *> cmds;

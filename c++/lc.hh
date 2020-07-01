@@ -21,6 +21,8 @@ namespace MachO {
       virtual std::size_t size() const = 0;
 
       static LoadCommand<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      virtual void Parse1(const Image& img, ParseEnv<bits>& env) {}
+      
       virtual void Build(BuildEnv<bits>& env) = 0;
       virtual ~LoadCommand() {}
       virtual void AssignID(BuildEnv<bits>& env) {} /*!< build pass 1 */

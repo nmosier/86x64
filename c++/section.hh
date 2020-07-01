@@ -36,6 +36,7 @@ namespace MachO {
       static std::size_t size() { return sizeof(section_t<bits>); }
 
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      void Parse1(const Image& img, ParseEnv<bits>& env);
       void Parse2(const Image& img, ParseEnv<bits>& env);
 
       virtual void Build(BuildEnv<bits>& env);
@@ -52,7 +53,10 @@ namespace MachO {
 
    protected:
       typedef SectionBlob<bits> *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
-      Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
+      Parser parser;
+      
+      Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser):
+         sect(img.at<section_t<bits>>(offset)), parser(parser) {}
       Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
 
       static SectionBlob<bits> *TextParser(const Image& img, const Location& loc,
