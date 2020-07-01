@@ -2,6 +2,7 @@
 #include "image.hh"
 #include "leb.hh"
 #include "archive.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 

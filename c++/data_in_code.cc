@@ -1,6 +1,6 @@
 #include "data_in_code.hh"
 #include "transform.hh"
-#include "section.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 

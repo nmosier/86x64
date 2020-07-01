@@ -6,9 +6,9 @@
 #include "image.hh"
 #include "dyldinfo.hh"
 #include "linkedit.hh"
-#include "macho.hh"
 #include "symtab.hh"
 #include "transform.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 

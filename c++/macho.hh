@@ -8,8 +8,6 @@
 
 namespace MachO {
 
-   template <Bits bits> using macho_addr_t = select_type<bits, uint32_t, uint64_t>;
-   template <Bits bits> using macho_size_t = macho_addr_t<bits>;
 
    void init();
 

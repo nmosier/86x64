@@ -1,8 +1,9 @@
 #include "linkedit.hh"
-#include "segment.hh"
 #include "leb.hh"
 #include "data_in_code.hh"
 #include "archive.hh"
+#include "section_blob.hh"
+#include "segment.hh"
 
 namespace MachO {
 
@@ -91,7 +92,10 @@ namespace MachO {
       LinkeditData<bits>(other, env)
    {
       for (const auto entry : other.entries) {
-         entries.push_back(entry->Transform(env));
+         entries.push_back(nullptr);         
+         const SectionBlob<bits> ** entryptr = &entries.back();
+         env.resolve(entry, entryptr);
+         // entries.push_back(entry->Transform(env));
       }
       env.resolve(other.segment, &segment);
    }

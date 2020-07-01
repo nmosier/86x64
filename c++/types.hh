@@ -22,6 +22,9 @@ namespace MachO {
    template <Bits bits>
    using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
+   template <Bits bits> using macho_addr_t = select_type<bits, uint32_t, uint64_t>;
+   template <Bits bits> using macho_size_t = macho_addr_t<bits>;
+
    class Image;
    
    template <Bits> class ParseEnv;
@@ -39,5 +42,7 @@ namespace MachO {
    
    template <Bits> class Instruction;
    template <Bits> class SectionBlob;
+
+   
    
 }
