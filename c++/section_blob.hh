@@ -132,27 +132,6 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class InstructionPointer: public SectionBlob<bits> {
-   public:
-      const SectionBlob<bits> *pointee;
-      virtual std::size_t size() const override { return bits == Bits::M32 ? 4 : 8; }
-
-      static InstructionPointer<bits> *Parse(const Image& img, const Location& loc,
-                                             ParseEnv<bits>& env)
-      { return new InstructionPointer(img, loc, env); }
-      
-      virtual void Emit(Image& img, std::size_t offset) const override;
-      virtual InstructionPointer<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
-      { return new InstructionPointer<opposite<bits>>(*this, env); }
-      
-   private:
-      InstructionPointer(const Image& img, const Location& loc, ParseEnv<bits>& env);
-      InstructionPointer(const InstructionPointer<opposite<bits>>& other,
-                         TransformEnv<opposite<bits>>& env);
-      template <Bits> friend class InstructionPointer;
-   };
-
-   template <Bits bits>
    class Immediate: public SectionBlob<bits> {
    public:
       uint32_t value;

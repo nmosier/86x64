@@ -240,27 +240,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   InstructionPointer<bits>::InstructionPointer(const Image& img, const Location& loc,
-                                                ParseEnv<bits>& env): SectionBlob<bits>(loc, env),
-                                                                      pointee(nullptr) {
-      const std::size_t vmaddr = img.at<uint32_t>(loc.offset);
-      env.vmaddr_resolver.resolve(vmaddr, &pointee);
-   }
-
-   template <Bits bits>
-   void InstructionPointer<bits>::Emit(Image& img, std::size_t offset) const {
-      img.at<uint32_t>(offset) = pointee->loc.vmaddr;
-   }
-
-   template <Bits bits>
-   InstructionPointer<bits>::InstructionPointer(const InstructionPointer<opposite<bits>>& other,
-                                                TransformEnv<opposite<bits>>& env):
-      SectionBlob<bits>(other, env), pointee(nullptr)
-   {
-      env.resolve(other.pointee, &pointee);
-   }
-
-   template <Bits bits>
    Immediate<bits>::Immediate(const Immediate<opposite<bits>>& other,
                               TransformEnv<opposite<bits>>& env):
       SectionBlob<bits>(other, env), value(other.value), pointee(nullptr)
