@@ -139,11 +139,20 @@ namespace MachO {
    template <Bits bits>
    SectionBlob<bits> *Section<bits>::TextParser(const Image& img, const Location& loc,
                                                     ParseEnv<bits>& env) {
+      /* check if data in code */
+      if (env.data_in_code.contains(loc.offset)) {
+         return DataBlob<bits>::Parse(img, loc, env);
+      } else {
+         return Instruction<bits>::Parse(img, loc, env);
+      }
+
+#if 0
       try {
          return Instruction<bits>::Parse(img, loc, env);
       } catch (...) {
          return DataBlob<bits>::Parse(img, loc, env);
       }
+#endif
    }
 
    template <Bits bits>

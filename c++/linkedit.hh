@@ -56,6 +56,7 @@ namespace MachO {
          entry(img.at<data_in_code_entry>(offset))
       {
          env.offset_resolver.resolve(entry.offset, &start);
+         env.data_in_code.insert(entry.offset, entry.length);
       }
       DataInCodeEntry(const DataInCodeEntry<opposite<bits>>& other,
                       TransformEnv<opposite<bits>>& env): entry(other.entry) {
@@ -99,7 +100,7 @@ namespace MachO {
             content.push_back(DataInCodeEntry<bits>::Parse(img, it, env));
          }
       }
-
+      
       virtual void Emit_content(Image& img, std::size_t offset) const override {
          for (auto elem : content) {
             elem->Emit(img, offset);

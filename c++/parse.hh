@@ -4,6 +4,7 @@
 #include "loc.hh"
 #include "archive.hh"
 #include "resolve.hh"
+#include "region.hh"
 
 namespace MachO {
    
@@ -33,6 +34,7 @@ namespace MachO {
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;
       Segment<bits> *current_segment;
+      Regions data_in_code;
       
       ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}
       

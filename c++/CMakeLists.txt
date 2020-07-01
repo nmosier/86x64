@@ -17,6 +17,7 @@ add_library(macho_cxx_objs
   section.cc
   archive.cc
   macho.cc
+  region.cc
   )
 
 target_link_libraries(macho_cxx_objs PRIVATE ${xed_LIBRARIES})
