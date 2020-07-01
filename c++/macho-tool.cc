@@ -4,6 +4,8 @@
 #include <scanopt.h>
 #include <unordered_set>
 #include <unordered_map>
+#include <string>
+#include <list>
 
 #include "macho.hh"
 #include "archive.hh"
@@ -25,13 +27,13 @@ static void usage(FILE *f = stderr) {
 struct Subcommand {
    const char *name;
 
-   virtual std::string subusage() const = 0;
-   void usage(FILE *f) const {
-      std::string subusage_;
-      if (!subusage().empty()) {
-         subusage_ = std::string(" ") + subusage();
+   virtual std::list<std::string> subusage() const = 0;
+   void usage(std::ostream& os) const {
+      std::string prefix = "usage: ";
+      for (std::string subusage : subusage()) {
+         os << prefix << progname << " " << name << (subusage.empty() ? "" : " ")
+            << subusage << std::endl;
       }
-      fprintf(stderr, "usage: %s %s%s\n", progname, name, subusage_.c_str());
    }
    
    virtual int handle(int argc, char *argv[]) = 0;
@@ -45,10 +47,10 @@ struct Subcommand {
 };
 
 struct HelpSubcommand: public Subcommand {
-   virtual std::string subusage() const override { return std::string(); }
+   virtual std::list<std::string> subusage() const override { return {std::string()}; }
    
    virtual int handle(int argc, char *argv[]) override {
-      usage(stdout);
+      usage(std::cout);
       return 0;
    }
    
@@ -59,25 +61,31 @@ struct RWSubcommand: public Subcommand {
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
 
-   virtual std::string subopts() const = 0;
-   virtual std::string subusage() const override {
-      std::string subopts_;
-      if (!subopts().empty()) {
-         subopts_ = subopts() + " ";
+   virtual std::list<std::string> subopts() const = 0;
+   virtual std::list<std::string> subusage() const override {
+      std::list<std::string> list;
+      for (std::string subopts : subopts()) {
+         if (!subopts.empty()) {
+            subopts += " ";
+         }
+         list.push_back(subopts + "inpath [outpath='a.out']");
       }
-      return subopts_ + "inpath [outpath='a.out']";
+      return list;
    }
    
    virtual int handle(int argc, char *argv[]) override {
       /* read options */
-      if (opts(argc, argv) < 0) {
+      int optstat = opts(argc, argv);
+      if (optstat < 0) {
          return -1;
+      } else if (optstat == 0) {
+         return 0;
       }
 
       /* open images */
       if (argc <= optind) {
          log("missing positional argument");
-         usage(stderr);
+         usage(std::cerr);
          return -1;
       }
       
@@ -89,7 +97,7 @@ struct RWSubcommand: public Subcommand {
 
       if (optind != argc) {
          log("excess positional arguments");
-         usage(stderr);
+         usage(std::cerr);
          return -1;
       }
 
@@ -111,18 +119,24 @@ struct RWSubcommand: public Subcommand {
 struct NoopSubcommand: public RWSubcommand {
    int help = 0;
 
-   virtual std::string subopts() const override { return "[-h]"; }
+   virtual std::list<std::string> subopts() const override { return {"[-h]"}; }
    
    virtual int opts(int argc, char *argv[]) override {
       if (scanopt(argc, argv, "h", &help) < 0) {
          return -1;
       }
-      return 0;
+
+      if (help) {
+         usage(std::cout);
+         return 0;
+      }
+         
+      return 1;
    }
    
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
       if (help) {
-         usage(stdout);
+         usage(std::cout);
          return 0;
       }
 
@@ -135,7 +149,6 @@ struct NoopSubcommand: public RWSubcommand {
 
    NoopSubcommand(): RWSubcommand("noop") {}
 };
-
 
 int main(int argc, char *argv[]) {
    progname = argv[0];
@@ -182,52 +195,5 @@ int main(int argc, char *argv[]) {
       return 0;
    }
 
-   
-#if 0
-   
-   if (subcommand == "help") {
-      usage(stdout);
-      return 0;
-   } else if (subcommand == "noop") {
-      int help = 0;
-      if (scanopt(argc, argv, "h", &help) < 0) {
-         return 1;
-      }
-
-      auto usage = [=] (FILE *f) {
-                      fprintf(f, "usage: %s %s inpath [outpath=a.out]\n",
-                              progname, subcommand.c_str());
-                   };
-
-      if (help) {
-         usage(stdout);
-         return 0;
-      }
-
-      if (argc < optind + 1) {
-         fprintf(stderr, "%s %s: missing arguments\n", progname, subcommand.c_str());
-         usage(stderr);
-         return 1;
-      }
-      const char *in_path = argv[optind++];
-
-      const char *out_path = "a.out";
-      if (argc < optind + 1) {
-         out_path = argv[optind++];
-      }
-
-      const MachO::Image in_img(in_path, O_RDONLY);
-      MachO::Image out_img(out_path, O_RDWR | O_CREAT | O_TRUNC);
-      MachO::init();
-      MachO::MachO *macho = MachO::MachO::Parse(in_img);
-      macho->Build();
-      macho->Emit(out_img);
-   } else {
-      fprintf(stderr, "%s: unrecognized subcommand\n", progname);
-      usage(stderr);
-      return 1;
-   }
-#endif
-   
    return 0;
 }
