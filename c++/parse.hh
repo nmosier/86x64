@@ -1,8 +1,7 @@
 #pragma once
 
-#include "macho-fwd.hh"
 #include "loc.hh"
-#include "archive.hh"
+#include "types.hh"
 #include "resolve.hh"
 #include "region.hh"
 

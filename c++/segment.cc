@@ -1,6 +1,8 @@
 #include "segment.hh"
 #include "util.hh"
-#include "macho.hh"
+#include "transform.hh"
+#include "archive.hh"
+#include "types.hh"
 
 namespace MachO {
 

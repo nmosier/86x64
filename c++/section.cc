@@ -2,6 +2,9 @@
 #include <iterator>
 
 #include "section.hh"
+#include "parse.hh"
+#include "build.hh"
+#include "transform.hh"
 
 namespace MachO {
 

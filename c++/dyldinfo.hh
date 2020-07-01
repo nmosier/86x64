@@ -4,7 +4,6 @@
 #include <vector>
 #include <list>
 
-#include "macho-fwd.hh"
 #include "lc.hh"
 #include "segment.hh"
 #include "parse.hh"

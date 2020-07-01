@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 
-#include "macho-fwd.hh"
+#include "bits.hh"
 
 namespace MachO {
    

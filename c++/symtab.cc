@@ -1,5 +1,6 @@
 #include "symtab.hh"
 #include "segment.hh"
+#include "transform.hh"
 
 namespace MachO {
 

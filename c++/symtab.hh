@@ -4,39 +4,34 @@
 #include <mach-o/nlist.h>
 
 #include "lc.hh"
+#include "types.hh"
 
 namespace MachO {
 
-   template <Bits bits> class String;
-
    template <Bits bits>
-   class Symtab: public LinkeditCommand<bits> {
+   class String {
    public:
-      using Nlists = std::vector<Nlist<bits> *>;
-      using Strings = std::vector<String<bits> *>;
-      
-      symtab_command symtab;
-      Nlists syms;
-      Strings strs;
-      
-      virtual uint32_t cmd() const override { return symtab.cmd; }
-      virtual std::size_t size() const override { return sizeof(symtab); }
-      virtual void Emit(Image& img, std::size_t offset) const override;
+      std::string str;
+      std::size_t offset; /*!< offset inside string table */
 
-      template <typename... Args>
-      static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
-      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
-      virtual std::size_t content_size() const override;
-      
-      virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
-         return new Symtab<opposite<bits>>(*this, env);
+      std::size_t size() const { return str.size() + 1; }
+
+      static String<bits> *Parse(const Image& img, std::size_t offset, std::size_t maxlen) {
+         return new String(img, offset, maxlen);
       }
 
-   private:
-      Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-      Symtab(const Symtab<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      void Build(BuildEnv<bits>& env);
+      void Emit(Image& img, std::size_t offset) const;
 
-      template <Bits b> friend class Symtab;
+      String<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new String<opposite<bits>>(*this, env);
+      }
+      
+   private:
+      String(const Image& img, std::size_t offset, std::size_t maxlen);
+      String(const String<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      template <Bits b> friend class String;
    };
 
    template <Bits bits>
@@ -68,30 +63,35 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class String {
+   class Symtab: public LinkeditCommand<bits> {
    public:
-      std::string str;
-      std::size_t offset; /*!< offset inside string table */
-
-      std::size_t size() const { return str.size() + 1; }
-
-      static String<bits> *Parse(const Image& img, std::size_t offset, std::size_t maxlen) {
-         return new String(img, offset, maxlen);
-      }
-
-      void Build(BuildEnv<bits>& env);
-      void Emit(Image& img, std::size_t offset) const;
-
-      String<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
-         return new String<opposite<bits>>(*this, env);
-      }
+      using Nlists = std::vector<Nlist<bits> *>;
+      using Strings = std::vector<String<bits> *>;
       
-   private:
-      String(const Image& img, std::size_t offset, std::size_t maxlen);
-      String(const String<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      symtab_command symtab;
+      Nlists syms;
+      Strings strs;
+      
+      virtual uint32_t cmd() const override { return symtab.cmd; }
+      virtual std::size_t size() const override { return sizeof(symtab); }
+      virtual void Emit(Image& img, std::size_t offset) const override;
 
-      template <Bits b> friend class String;
+      template <typename... Args>
+      static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
+      virtual std::size_t content_size() const override;
+      
+      virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Symtab<opposite<bits>>(*this, env);
+      }
+
+   private:
+      Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      Symtab(const Symtab<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+
+      template <Bits b> friend class Symtab;
    };
+
 
    template <Bits bits>
    class Dysymtab: public LinkeditCommand<bits> {

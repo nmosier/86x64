@@ -8,6 +8,7 @@
 #include "linkedit.hh"
 #include "macho.hh"
 #include "symtab.hh"
+#include "transform.hh"
 
 namespace MachO {
 

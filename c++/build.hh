@@ -2,9 +2,8 @@
 
 #include <cstdlib>
 
-#include "macho-fwd.hh"
+#include "types.hh"
 #include "loc.hh"
-#include "archive.hh"
 
 namespace MachO {
 

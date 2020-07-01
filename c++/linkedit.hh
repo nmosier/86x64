@@ -1,11 +1,12 @@
-#include <mach-o/loader.h>
+#pragma once
+
 #include <cstdio>
 #include <vector>
 
-#include "macho-fwd.hh"
 #include "image.hh"
 #include "util.hh"
 #include "lc.hh"
+#include "types.hh"
 
 namespace MachO {
 
@@ -31,85 +32,6 @@ namespace MachO {
       virtual void Emit_content(Image& img, std::size_t offset) const = 0;
    };
 
-   template <Bits bits>
-   class DataInCodeEntry {
-   public:
-#warning DataInCodeEntry not complete
-      data_in_code_entry entry;
-      const SectionBlob<bits> *start = nullptr;
-
-      void Emit(Image& img, std::size_t offset) const {
-         data_in_code_entry entry = this->entry;
-         entry.offset = start->loc.offset;
-         img.at<data_in_code_entry>(offset) = entry;
-      }
-      
-      static std::size_t size() { return sizeof(data_in_code_entry); }
-      static DataInCodeEntry<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env)
-      { return new DataInCodeEntry(img, offset, env); }
-      DataInCodeEntry<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
-         return new DataInCodeEntry<opposite<bits>>(*this, env);
-      }
-      
-   protected:
-      DataInCodeEntry(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         entry(img.at<data_in_code_entry>(offset))
-      {
-         env.offset_resolver.resolve(entry.offset, &start);
-         env.data_in_code.insert(entry.offset, entry.length);
-      }
-      DataInCodeEntry(const DataInCodeEntry<opposite<bits>>& other,
-                      TransformEnv<opposite<bits>>& env): entry(other.entry) {
-         env.resolve(other.start, &start);
-      }
-      template <Bits> friend class DataInCodeEntry;
-   };
-
-   template <Bits bits>
-   class DataInCode: public LinkeditData<bits> {
-   public:
-      using Content = std::vector<DataInCodeEntry<bits> *>;
-      Content content;
-
-      virtual std::size_t content_size() const override {
-         return content.size() * sizeof(DataInCodeEntry<bits>::size());
-      }
-      
-      static DataInCode<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-         return new DataInCode(img, offset, env);
-      }
-      
-      virtual DataInCode<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
-         return new DataInCode<opposite<bits>>(*this, env);
-      }
-
-   private:
-      DataInCode(const DataInCode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         LinkeditData<bits>(other, env)
-      {
-         for (auto elem : other.content) {
-            content.push_back(elem->Transform(env));
-         }
-      }
-      
-      DataInCode(const Image& img, std::size_t offset, ParseEnv<bits>& env):
-         LinkeditData<bits>(img, offset, env) {
-         const std::size_t begin = this->linkedit.dataoff;
-         const std::size_t end = begin + this->linkedit.datasize;
-         for (std::size_t it = begin; it < end; it += DataInCodeEntry<bits>::size()) {
-            content.push_back(DataInCodeEntry<bits>::Parse(img, it, env));
-         }
-      }
-      
-      virtual void Emit_content(Image& img, std::size_t offset) const override {
-         for (auto elem : content) {
-            elem->Emit(img, offset);
-            offset += DataInCodeEntry<bits>::size();
-         }
-      }
-
-      template <Bits> friend class DataInCode;
-   };
    
 
    template <Bits bits>

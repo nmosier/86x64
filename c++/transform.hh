@@ -9,7 +9,7 @@
 
 namespace MachO {
 
-   template <Bits b1, Bits b2 = opposite<b1>>
+   template <Bits b1, Bits b2>
    class TransformEnv {
    public:
       template <template<Bits> typename T>

@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include "macho-fwd.hh"
 #include "util.hh"
 #include "image.hh"
 #include "loc.hh"

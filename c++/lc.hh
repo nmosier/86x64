@@ -110,6 +110,18 @@ namespace MachO {
       template <Bits b> friend class UUID;
    };
 
+   class BuildToolVersion {
+   public:
+      build_tool_version tool;
+
+      static std::size_t size() { return sizeof(build_tool_version); }
+      void Emit(Image& img, std::size_t offset) const;
+      
+      BuildToolVersion(const Image& img, std::size_t offset):
+         tool(img.at<build_tool_version>(offset)) {}
+      BuildToolVersion(const build_tool_version& tool): tool(tool) {}
+   };
+
    template <Bits bits>
    class BuildVersion: public LoadCommand<bits> {
    public:
@@ -136,18 +148,6 @@ namespace MachO {
          LoadCommand<bits>(other, env), build_version(other.build_version), tools(other.tools) {}
 
       template <Bits b> friend class BuildVersion;
-   };
-
-   class BuildToolVersion {
-   public:
-      build_tool_version tool;
-
-      static std::size_t size() { return sizeof(build_tool_version); }
-      void Emit(Image& img, std::size_t offset) const;
-      
-      BuildToolVersion(const Image& img, std::size_t offset):
-         tool(img.at<build_tool_version>(offset)) {}
-      BuildToolVersion(const build_tool_version& tool): tool(tool) {}
    };
 
    template <Bits bits>

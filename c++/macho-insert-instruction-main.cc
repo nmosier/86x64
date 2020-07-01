@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "macho.hh"
+#include "archive.hh"
 #include "section.hh"
 #include "segment.hh"
 

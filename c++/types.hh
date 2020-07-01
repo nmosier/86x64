@@ -3,10 +3,10 @@
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
 
-#include "macho-fwd.hh"
+#include "util.hh"
 
 namespace MachO {
-
+   
    template <Bits bits>
    using mach_header_t = select_type<bits, mach_header, mach_header_64>;
 
@@ -21,5 +21,23 @@ namespace MachO {
 
    template <Bits bits>
    using ptr_t = select_type<bits, uint32_t, uint64_t>;
+
+   class Image;
+   
+   template <Bits> class ParseEnv;
+   template <Bits b1, Bits b2 = opposite<b1>> class TransformEnv;
+   template <Bits> class BuildEnv;
+   
+   class MachO;
+   class Fat;
+   template <Bits> class Archive;
+
+   template <Bits> class LoadCommand;
+   template <Bits> class DylibCommand;
+   template <Bits> class Segment;
+   template <Bits> class LinkeditCommand;
+   
+   template <Bits> class Instruction;
+   template <Bits> class SectionBlob;
    
 }

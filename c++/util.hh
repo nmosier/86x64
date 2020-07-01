@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "macho-fwd.hh"
+#include "bits.hh"
 
 #define SECT_STUBS "__stubs"
 #define SECT_STUB_HELPER "__stub_helper"

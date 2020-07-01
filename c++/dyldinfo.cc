@@ -1,7 +1,7 @@
 #include "dyldinfo.hh"
 #include "image.hh"
 #include "leb.hh"
-#include "macho.hh"
+#include "archive.hh"
 
 namespace MachO {
 

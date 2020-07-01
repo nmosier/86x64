@@ -1,7 +1,8 @@
 #include "linkedit.hh"
-#include "macho.hh"
-#include "leb.hh"
 #include "segment.hh"
+#include "leb.hh"
+#include "data_in_code.hh"
+#include "archive.hh"
 
 namespace MachO {
 

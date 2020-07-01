@@ -7,18 +7,13 @@ extern "C" {
 #include <xed-interface.h>
 }
 
-#include "macho-fwd.hh"
 #include "util.hh"
 #include "loc.hh"
-#include "parse.hh"
-#include "build.hh"
 #include "image.hh"
+#include "types.hh"
 
 namespace MachO {
 
-   template <Bits bits> class ZeroBlob;
-   template <Bits bits> class LazySymbolPointer;
-   
    template <Bits bits>
    class Section {
    public:

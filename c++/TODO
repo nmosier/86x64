@@ -28,3 +28,7 @@ How to solve data-in-code problem?
     push abs32 -> lea r11, [rip + off32] \ push r11
     jmp dword ptr [abs32] -> jmp qword ptr [rip + off32] (SAME OPCODE)
 
+
+
+[ ] macho-tool -- add 'data_in_code' command
+[ ] reorganize project for faster compilation
