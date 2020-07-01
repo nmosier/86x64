@@ -10,6 +10,7 @@ namespace MachO {
    class Image {
    public:
       Image(const char *path, int mode);
+      Image() {}
       ~Image();
 
       std::size_t size() const { return filesize; }
