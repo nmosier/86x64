@@ -2,8 +2,8 @@
 #include "leb.hh"
 #include "data_in_code.hh"
 #include "archive.hh"
-#include "section_blob.hh"
 #include "segment.hh"
+#include "section_blob.hh" // SectionBlob
 
 namespace MachO {
 

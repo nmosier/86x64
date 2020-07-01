@@ -2,10 +2,11 @@
 #include <iterator>
 
 #include "section.hh"
-#include "section_blob.hh"
 #include "parse.hh"
 #include "build.hh"
 #include "transform.hh"
+#include "section_blob.hh" // LazySymbolPointer
+#include "instruction.hh"
 
 namespace MachO {
 

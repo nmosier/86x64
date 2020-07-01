@@ -1,7 +1,7 @@
 #include "symtab.hh"
 #include "segment.hh"
 #include "transform.hh"
-#include "section_blob.hh"
+#include "section_blob.hh" // SectionBlob
 
 namespace MachO {
 

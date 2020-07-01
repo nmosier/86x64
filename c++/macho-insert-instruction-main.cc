@@ -6,9 +6,8 @@
 
 #include "macho.hh"
 #include "archive.hh"
-#include "section.hh"
+#include "instruction.hh"
 #include "segment.hh"
-#include "section_blob.hh"
 
 int main(int argc, char *argv[]) {
    const char *usagestr =
