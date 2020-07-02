@@ -61,6 +61,57 @@ struct HelpSubcommand: public Subcommand {
    HelpSubcommand(): Subcommand("help") {}
 };
 
+struct RSubcommand: public Subcommand {
+   virtual int work(const MachO::Image& img) = 0;
+   virtual int opts(int argc, char *argv[]) = 0;
+
+   virtual std::list<std::string> subopts() const = 0;
+   virtual std::list<std::string> subusage() const override {
+      std::list<std::string> list;
+      for (std::string subopts : subopts()) {
+         if (!subopts.empty()) {
+            subopts += " ";
+         }
+         list.push_back(subopts + "<path>");
+      }
+      return list;      
+   }
+
+   virtual int handle(int argc, char *argv[]) override {
+      int optstat = opts(argc, argv);
+      if (optstat < 0) {
+         return -1;
+      } else if (optstat == 0) {
+         return 0;
+      }
+
+      if (argc <= optind) {
+         log("missing positional argument");
+         usage(std::cerr);
+         return -1;
+      }
+
+      const char *path = argv[optind++];
+      if (optind != argc) {
+         log("excess positional arguments");
+         usage(std::cerr);
+         return -1;
+      }
+
+      const MachO::Image img(path, O_RDONLY);
+      MachO::init();
+
+      if (work(img) < 0) {
+         return -1;
+      }
+
+      return 0;
+   }
+
+   template <typename... Args>
+   RSubcommand(Args&&... args): Subcommand(args...) {}
+};
+
 struct RWSubcommand: public Subcommand {
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
@@ -268,6 +319,44 @@ struct InsertCommand: public RWSubcommand {
    InsertCommand(): RWSubcommand("insert") {}
 };
 
+struct TranslateCommand: public RSubcommand {
+public:
+   unsigned long offset = 0;
+
+   virtual std::list<std::string> subopts() const override { return {"[-h|-o <offset>]"}; }
+   
+   virtual int opts(int argc, char *argv[]) override {
+      int help = 0;
+      if (scanopt(argc, argv, "ho+", &help, &offset) < 0) {
+         return -1;
+      }
+      
+      if (help) {
+         usage(std::cout);
+         return 0;
+      }
+
+      return 1;
+   }
+
+   virtual int work(const MachO::Image& img) override {
+      MachO::MachO *macho = MachO::MachO::Parse(img);
+
+      auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+      if (archive == nullptr) {
+         log("only 64-bit archives supported");
+         return -1;
+      }
+      
+      if (offset) {
+         std::cout << std::hex << "0x" << archive->offset_to_vmaddr(offset) << std::endl;
+      }
+
+      return 0;
+   }
+
+   TranslateCommand(): RSubcommand("translate") {}
+};
 
 
 int main(int argc, char *argv[]) {
@@ -300,7 +389,8 @@ int main(int argc, char *argv[]) {
    std::unordered_map<std::string, std::shared_ptr<Subcommand>> subcommands
       {{"help", std::make_shared<HelpSubcommand>()},
        {"noop", std::make_shared<NoopSubcommand>()},
-       {"insert", std::make_shared<InsertCommand>()}
+       {"insert", std::make_shared<InsertCommand>()},
+       {"translate", std::make_shared<TranslateCommand>()},
       };
 
    auto it = subcommands.find(subcommand);
