@@ -198,7 +198,7 @@ namespace MachO {
       static EntryPoint<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
          return new EntryPoint(img, offset, env);
       }
-      virtual void Parse2(ParseEnv<bits>& env) override;
+      virtual void Parse1(const Image& img, ParseEnv<bits>& env) override;
 
       virtual EntryPoint<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new EntryPoint<opposite<bits>>(*this, env);

@@ -17,12 +17,14 @@ namespace MachO {
    }
    
    template <Bits bits>
-   SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env):
+   SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env, bool add_to_map):
       segment(env.current_segment), loc(loc)
    {
       // assert(segment);
-      env.vmaddr_resolver.add(loc.vmaddr, this);
-      env.offset_resolver.add(loc.offset, this);
+      if (add_to_map) {
+         env.vmaddr_resolver.add(loc.vmaddr, this);
+         env.offset_resolver.add(loc.offset, this);
+      }
    }
 
    template <Bits bits>

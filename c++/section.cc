@@ -238,6 +238,9 @@ namespace MachO {
                throw std::logic_error("plaecholder insertion error");
             }
 
+            assert((*content_it)->loc.vmaddr == placeholder_it->first);
+
+            placeholder_it->second->segment = env.current_segment;
             content.insert(content_it, placeholder_it->second);
          }
    }

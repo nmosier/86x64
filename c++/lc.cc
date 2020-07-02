@@ -217,12 +217,20 @@ namespace MachO {
    }
 
    template <Bits bits>
+   void EntryPoint<bits>::Parse1(const Image& img, ParseEnv<bits>& env) {
+      const std::size_t vmaddr = env.archive.offset_to_vmaddr(entry_point.entryoff);
+      entry = env.add_placeholder(vmaddr);
+   }
+
+#if 0
+   template <Bits bits>
    void EntryPoint<bits>::Parse2(ParseEnv<bits>& env) {
       Location loc(entry_point.entryoff, 0);
       Placeholder<bits> *entry = Placeholder<bits>::Parse(loc, env);
       env.archive.insert(entry, loc, Relation::BEFORE);
       this->entry = entry;
    }
+#endif
    
 
    template class LoadCommand<Bits::M32>;

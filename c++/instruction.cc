@@ -57,7 +57,8 @@ namespace MachO {
                   const std::size_t targetaddr = refaddr + memdisp;
                   
                   /* resolve pointer */
-                  env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
+                  this->memdisp = env.add_placeholder(targetaddr);
+                  // env.vmaddr_resolver.resolve(targetaddr, &this->memdisp);
 
 #if 0
                   char pbuf[32];
@@ -86,7 +87,8 @@ namespace MachO {
          const size_t targetaddr = refaddr + brdisp;
 
          /* resolve */
-         env.vmaddr_resolver.resolve(targetaddr, &this->brdisp);
+         this->brdisp = env.add_placeholder(targetaddr);
+         // env.vmaddr_resolver.resolve(targetaddr, &this->brdisp);
       }
 
       /* Check for other immediates */

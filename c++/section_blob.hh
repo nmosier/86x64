@@ -20,7 +20,7 @@ namespace MachO {
       virtual SectionBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
       
    protected:
-      SectionBlob(const Location& loc, ParseEnv<bits>& env);
+      SectionBlob(const Location& loc, ParseEnv<bits>& env, bool add_to_map = true);
       SectionBlob(Segment<bits> *segment): segment(segment) {}
       SectionBlob(const SectionBlob<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
    };
@@ -165,7 +165,7 @@ namespace MachO {
       virtual void Emit(Image& img, std::size_t offset) const override {}
       
    private:
-      Placeholder(const Location& loc, ParseEnv<bits>& env): SectionBlob<bits>(loc, env) {}
+      Placeholder(const Location& loc, ParseEnv<bits>& env): SectionBlob<bits>(loc, env, false) {}
       Placeholder(const Placeholder<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
          SectionBlob<bits>(other, env) {}
       template <Bits> friend class Placeholder;
