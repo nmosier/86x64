@@ -1,4 +1,5 @@
 #include "parse.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 
@@ -52,7 +53,18 @@ namespace MachO {
    }
 #endif
 
-
+   template <Bits bits>
+   Placeholder<bits> *ParseEnv<bits>::add_placeholder(std::size_t vmaddr) {
+      auto it = placeholders.find(vmaddr);
+      if (it == placeholders.end()) {
+         Placeholder<bits> *placeholder = Placeholder<bits>::Parse(Location(vmaddr, 0), *this);
+         placeholders.insert({vmaddr, placeholder});
+         return placeholder;
+      } else {
+         return it->second;
+      }
+   }
+   
    template class ParseEnv<Bits::M32>;
    template class ParseEnv<Bits::M64>;
    
