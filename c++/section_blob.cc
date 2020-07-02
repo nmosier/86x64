@@ -20,7 +20,7 @@ namespace MachO {
    SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env):
       segment(env.current_segment), loc(loc)
    {
-      assert(segment);
+      // assert(segment);
       env.vmaddr_resolver.add(loc.vmaddr, this);
       env.offset_resolver.add(loc.offset, this);
    }

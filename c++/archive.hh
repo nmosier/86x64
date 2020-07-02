@@ -67,6 +67,8 @@ namespace MachO {
          return Transform(env);
       }
 
+      void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
+
    private:
       std::size_t total_size;
 

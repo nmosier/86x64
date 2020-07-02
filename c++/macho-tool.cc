@@ -38,8 +38,11 @@ struct Subcommand {
    
    virtual int handle(int argc, char *argv[]) = 0;
 
-   void log(const char *str) const {
-      fprintf(stderr, "%s %s: %s\n", progname, name, str);
+   template <typename... Args>
+   constexpr void log(const char *str, Args&&... args) const {
+      fprintf(stderr, "%s %s: ", progname, name);
+      fprintf(stderr, str, args...);
+      fprintf(stderr, "\n");
    }
 
    Subcommand(const char *name): name(name) {}
@@ -135,19 +138,88 @@ struct NoopSubcommand: public RWSubcommand {
    }
    
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
+      MachO::MachO *macho = MachO::MachO::Parse(in_img);
+      macho->Build();
+      macho->Emit(out_img);
+      return 0;
+   }
+
+   NoopSubcommand(): RWSubcommand("noop") {}
+};
+
+struct InsertCommand: public RWSubcommand {
+   int help = 0;
+   // enum class LocationType {VMADDR, OFFSET};
+
+   struct InsertInstruction {
+      MachO::Location loc;
+      MachO::Relation relation;
+   };
+
+   virtual std::list<std::string> subopts() const override { return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),[before|after]]"}; }
+   virtual int opts(int argc, char *argv[]) override {
+      int optchar;
+      while ((optchar = getopt(argc, argv, "hi:")) >= 0) {
+         switch (optchar) {
+         case 'h':
+            usage(std::cout);
+            return 0;
+
+         case 'i':
+            {
+               InsertInstruction inst;
+               char * const keylist[] = {"vmaddr", "offset", "before", "after", nullptr};
+               char *value;
+               while (*optarg) {
+                  switch (getsubopt(&optarg, keylist, &value)) {
+                  case 0: // vmaddr
+                     inst.loc.vmaddr = std::stol(value, nullptr, 0);
+                     break;
+                  case 1: // offset
+                     inst.loc.offset = std::stol(value, nullptr, 0);
+                     break;
+                  case 2: // before
+                     inst.relation = MachO::Relation::BEFORE;
+                     break;
+                  case 3: // after
+                     inst.relation = MachO::Relation::AFTER;
+                     break;
+                  case -1:
+                     if (suboptarg) {
+                        log("-i: invalid suboption '%s'", suboptarg);
+                     } else {
+                        log("-i: missing suboption");
+                     }
+                     usage(std::cerr);
+                     return -1;
+                  }
+               }
+               // TODO
+            }
+
+         default:
+            usage(std::cerr);
+            return -1;
+         }
+
+      }
+      
       if (help) {
          usage(std::cout);
          return 0;
       }
 
+      return 1;
+   }
+
+   virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
       MachO::MachO *macho = MachO::MachO::Parse(in_img);
       macho->Build();
       macho->Emit(out_img);
-
       return 0;
    }
 
-   NoopSubcommand(): RWSubcommand("noop") {}
+   InsertCommand(): RWSubcommand("insert") {}
 };
 
 int main(int argc, char *argv[]) {
@@ -179,7 +251,8 @@ int main(int argc, char *argv[]) {
 
    std::unordered_map<std::string, std::shared_ptr<Subcommand>> subcommands
       {{"help", std::make_shared<HelpSubcommand>()},
-       {"noop", std::make_shared<NoopSubcommand>()}
+       {"noop", std::make_shared<NoopSubcommand>()},
+       {"insert", std::make_shared<InsertCommand>()}
       };
 
    auto it = subcommands.find(subcommand);

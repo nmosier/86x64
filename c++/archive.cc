@@ -2,6 +2,7 @@
 #include "parse.hh"
 #include "build.hh"
 #include "segment.hh"
+#include "types.hh"
 
 namespace MachO {
 
@@ -19,6 +20,10 @@ namespace MachO {
 
       for (LoadCommand<bits> *cmd : load_commands) {
          cmd->Parse1(img, env);
+      }
+
+      for (LoadCommand<bits> *cmd : load_commands) {
+         cmd->Parse2(env);
       }
    }
 
@@ -89,6 +94,34 @@ namespace MachO {
       for (const auto lc : other.load_commands) {
          load_commands.push_back(lc->Transform(env));
       }
+   }
+
+   template <Bits bits>
+   void Archive<bits>::insert(SectionBlob<bits> *blob, const Location& loc, Relation rel) {
+      macho_addr_t<bits> segment_command_t<bits>::*segloc;
+      macho_addr_t<bits> segment_command_t<bits>::*segsize;
+      std::size_t locval;
+      if (loc.offset) {
+         segloc = &segment_command_t<bits>::fileoff;
+         segsize = &segment_command_t<bits>::filesize;
+         locval = loc.offset;
+      } else if (loc.vmaddr) {
+         segloc = &segment_command_t<bits>::vmaddr;
+         segsize = &segment_command_t<bits>::vmsize;
+         locval = loc.vmaddr;
+      } else {
+         throw std::invalid_argument("location offset and vmaddr are both 0");
+      }
+
+      for (Segment<bits> *segment : segments()) {
+         std::size_t segloc_ = segment->segment_command.*segloc;
+         if (locval >= segloc_ && locval < segloc_ + segment->segment_command.*segsize) {
+            segment->insert(blob, loc, rel);
+            return;
+         }
+      }
+
+      throw std::invalid_argument("location not in any segment");
    }
 
    template class Archive<Bits::M32>;

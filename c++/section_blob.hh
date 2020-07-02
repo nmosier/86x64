@@ -149,12 +149,34 @@ namespace MachO {
       Immediate(const Immediate<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       template <Bits> friend class Immediate;
    };
-   
+
    template <Bits bits>
-   class EntryPointBlob: public SectionBlob<bits> {
+   class Placeholder: public SectionBlob<bits> {
+   public:
+      static Placeholder<bits> *Parse(const Location& loc, ParseEnv<bits>& env) {
+         return new Placeholder(loc, env);
+      }
+
+      virtual Placeholder<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new Placeholder<opposite<bits>>(*this, env);
+      }
+
+      virtual std::size_t size() const override { return 0; }
+      virtual void Emit(Image& img, std::size_t offset) const override {}
+      
+   private:
+      Placeholder(const Location& loc, ParseEnv<bits>& env): SectionBlob<bits>(loc, env) {}
+      Placeholder(const Placeholder<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         SectionBlob<bits>(other, env) {}
+      template <Bits> friend class Placeholder;
+   };
+   
+#if 0
+   template <Bits bits>
+   class FunctionStart: public SectionBlob<bits> {
    public:
       template <typename... Args>
-      EntryPointBlob<bits> *Create(Args&&... args) { return new EntryPointBlob(args...); }
+      FunctionStart<bits> *Create(Args&&... args) { return new EntryPointBlob(args...); }
 
       virtual std::size_t size() const override { return 0; }
       virtual void Emit(Image& img, std::size_t offset) const override {}
@@ -163,5 +185,6 @@ namespace MachO {
       template <typename... Args>
       EntryPointBlob(Args&&... args): SectionBlob<bits>(args...) {}
    };
+#endif
 
 }

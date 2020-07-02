@@ -218,6 +218,40 @@ namespace MachO {
          }
    }
 
+   template <Bits bits>
+   void Section<bits>::insert(SectionBlob<bits> *blob, const Location& loc, Relation rel) {
+      std::size_t Location::*locptr;
+      std::size_t sectloc;
+      if (loc.offset) {
+         locptr = &Location::offset;
+         sectloc = sect.offset;
+      } else if (loc.vmaddr) {
+         locptr = &Location::vmaddr;
+         sectloc = sect.addr;
+      } else {
+         throw std::invalid_argument("location offset and vmaddr are both 0");
+      }
+
+      if (loc.*locptr >= sectloc && loc.*locptr < sectloc + sect.size) {
+         /* find blob with given offset/address */
+         auto it = std::upper_bound(content.begin(), content.end(), loc.*locptr,
+                                    [=] (std::size_t loc, SectionBlob<bits> *blob) {
+                                       return loc < blob->loc.*locptr;
+                                    });
+         switch (rel) {
+         case Relation::BEFORE:
+            --it;
+            break;
+         case Relation::AFTER:
+            break;
+         }
+         content.insert(it, blob);
+      } else {
+         throw std::invalid_argument("location not in section");
+      }
+   }
+   
+
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;
    

@@ -52,4 +52,5 @@ target_compile_options(macho+insert+instruction PRIVATE -pedantic -Wall -Wno-for
 
 target_link_libraries(macho-tool PRIVATE ${xed_LIBRARIES} scanopt)
 target_include_directories(macho-tool PRIVATE ${xed_INCLUDE_DIRS})
-target_compile_options(macho-tool PRIVATE -pedantic -Wall -Wno-format-security)
+target_compile_options(macho-tool PRIVATE -pedantic -Wall -Wno-format-security
+  -Wno-writable-strings)

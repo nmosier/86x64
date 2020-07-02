@@ -41,6 +41,8 @@ namespace MachO {
          }
          env.current_segment = nullptr;
       }
+
+#if 0
       void Parse2(const Image& img, ParseEnv<bits>& env) {
          env.current_segment = this;
          for (auto section : sections) {
@@ -48,6 +50,7 @@ namespace MachO {
          }
          env.current_segment = nullptr;
       }
+#endif
       
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }
@@ -57,7 +60,9 @@ namespace MachO {
       void Insert(const SectionLocation<bits>& loc, Args&&... args) {
          loc.section->Insert(loc, args...);
       }
-      
+
+      void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
+
    protected:
       Segment(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       Segment(const Segment<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);

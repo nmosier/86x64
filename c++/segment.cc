@@ -3,6 +3,7 @@
 #include "transform.hh"
 #include "archive.hh"
 #include "types.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 
@@ -149,6 +150,38 @@ namespace MachO {
       for (const auto other_section : other.sections) {
          sections.push_back(other_section->Transform(env));
       }
+   }
+
+   template <Bits bits>
+   void Segment<bits>::insert(SectionBlob<bits> *blob, const Location& loc, Relation rel) {
+      std::size_t locval;
+      if (loc.offset) {
+         locval = loc.offset;
+      } else if (loc.vmaddr) {
+         locval = loc.vmaddr;
+      } else {
+         throw std::invalid_argument("vmaddr and offsets are both 0");
+      }
+
+      auto sectloc = [=] (const Section<bits> *section) -> std::size_t {
+                        if (loc.offset) {
+                           return section->sect.offset;
+                        } else {
+                           return section->sect.addr;
+                        }
+
+                     };
+      
+      for (Section<bits> *section : sections) {
+         std::size_t start = sectloc(section);
+         if (start <= locval && locval < start + section->sect.size) {
+            blob->segment = this;
+            section->insert(blob, loc, rel);
+            return;
+         }
+      }
+
+      throw std::invalid_argument("location not found");
    }
 
    template class Segment<Bits::M32>;

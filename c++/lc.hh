@@ -22,6 +22,7 @@ namespace MachO {
 
       static LoadCommand<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Parse1(const Image& img, ParseEnv<bits>& env) {}
+      virtual void Parse2(ParseEnv<bits>& env) {}
       
       virtual void Build(BuildEnv<bits>& env) = 0;
       virtual ~LoadCommand() {}
@@ -187,15 +188,17 @@ namespace MachO {
    class EntryPoint: public LoadCommand<bits> {
    public:
       entry_point_command entry_point;
-      const SectionBlob<bits> *entry;
+      const Placeholder<bits> *entry = nullptr;
 
       virtual uint32_t cmd() const override { return entry_point.cmd; }            
       virtual std::size_t size() const override { return sizeof(entry_point); }
       virtual void Build(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
-      
-      template <typename... Args>
-      static EntryPoint<bits> *Parse(Args&&... args) { return new EntryPoint(args...); }
+
+      static EntryPoint<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new EntryPoint(img, offset, env);
+      }
+      virtual void Parse2(ParseEnv<bits>& env) override;
 
       virtual EntryPoint<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new EntryPoint<opposite<bits>>(*this, env);

@@ -9,6 +9,7 @@
 #include "symtab.hh"
 #include "transform.hh"
 #include "section_blob.hh" // SectionBlob
+#include "archive.hh" // Archive::Insert
 
 namespace MachO {
 
@@ -112,7 +113,7 @@ namespace MachO {
    EntryPoint<bits>::EntryPoint(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       LoadCommand<bits>(img, offset, env), entry_point(img.at<entry_point_command>(offset))
    {
-      env.offset_resolver.resolve(entry_point.entryoff, &entry);
+      // env.offset_resolver.resolve(entry_point.entryoff, &entry);
    }
 
    template <Bits bits>
@@ -213,6 +214,14 @@ namespace MachO {
       LoadCommand<bits>(other, env), entry_point(other.entry_point), entry(nullptr)
    {
       env.resolve(other.entry, &entry);
+   }
+
+   template <Bits bits>
+   void EntryPoint<bits>::Parse2(ParseEnv<bits>& env) {
+      Location loc(entry_point.entryoff, 0);
+      Placeholder<bits> *entry = Placeholder<bits>::Parse(loc, env);
+      env.archive.insert(entry, loc, Relation::BEFORE);
+      this->entry = entry;
    }
    
 

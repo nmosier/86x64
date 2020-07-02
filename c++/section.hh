@@ -39,6 +39,8 @@ namespace MachO {
          return new Section<opposite<bits>>(*this, env);
       }
 
+      void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
+      
       typename Content::iterator find(std::size_t vmaddr); /* inclusive greatest lower bound */
       typename Content::const_iterator find(std::size_t vmaddr) const;
 
