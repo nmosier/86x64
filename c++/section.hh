@@ -28,7 +28,7 @@ namespace MachO {
 
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       void Parse1(const Image& img, ParseEnv<bits>& env);
-      void Parse2(const Image& img, ParseEnv<bits>& env);
+      void Parse2(ParseEnv<bits>& env);
 
       virtual void Build(BuildEnv<bits>& env);
       std::size_t content_size() const;

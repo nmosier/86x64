@@ -162,6 +162,7 @@ namespace MachO {
       return prev;
    }
 
+#if 0
    template <Bits bits>
    void Section<bits>::Parse2(const Image& img, ParseEnv<bits>& env) {
       /* handle unresolved vmaddrs */
@@ -215,6 +216,29 @@ namespace MachO {
                                          ": locations not completely ordered");
                }
             }
+         }
+   }
+#endif
+
+   template <Bits bits>
+   void Section<bits>::Parse2(ParseEnv<bits>& env) {
+      auto content_it = content.begin();
+      for (auto placeholder_it = env.placeholders.lower_bound(sect.addr);
+           placeholder_it != env.placeholders.end() &&
+              placeholder_it->first < sect.addr + sect.size;
+           ++placeholder_it)
+         {
+            content_it = std::lower_bound(content_it, content.end(), placeholder_it->first,
+                                          [] (const SectionBlob<bits> *blob, std::size_t vmaddr) {
+                                             return blob->loc.vmaddr < vmaddr;
+                                          });
+            if (content_it == content.end()) {
+               fprintf(stderr, "failed to insert placeholder at 0x%zx: past end of section\n",
+                       placeholder_it->first);
+               throw std::logic_error("plaecholder insertion error");
+            }
+
+            content.insert(content_it, placeholder_it->second);
          }
    }
 
