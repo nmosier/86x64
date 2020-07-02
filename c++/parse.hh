@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "loc.hh"
 #include "types.hh"
 #include "resolve.hh"
@@ -35,8 +37,11 @@ namespace MachO {
       Segment<bits> *current_segment;
       Regions data_in_code;
 
-      // using TodoPlaceholders = std::unordered_map<Location, Placeholder<bits> *>;
-      // TodoPlaceholders placeholders;
+      /* vmaddr-to-placeholder map */
+      using TodoPlaceholders = std::map<std::size_t, Placeholder<bits> *>;
+      TodoPlaceholders placeholders;
+
+      Placeholder<bits> *add_placeholder(std::size_t vmaddr);
       
       
       ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}
