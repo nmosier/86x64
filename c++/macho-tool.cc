@@ -9,6 +9,7 @@
 
 #include "macho.hh"
 #include "archive.hh"
+#include "instruction.hh"
 
 static const char *progname = nullptr;
 static const char *usagestr =
@@ -149,14 +150,79 @@ struct NoopSubcommand: public RWSubcommand {
 
 struct InsertCommand: public RWSubcommand {
    int help = 0;
-   // enum class LocationType {VMADDR, OFFSET};
+   bool good = true;
 
-   struct InsertInstruction {
+   struct Operation {
+      virtual void operator()(MachO::MachO *macho) = 0;
+      virtual ~Operation() {}
+   };
+   
+   struct InsertInstruction: public Operation {
       MachO::Location loc;
-      MachO::Relation relation;
+      MachO::Relation relation = MachO::Relation::BEFORE;
+      int bytes = 0;
+
+      virtual void operator()(MachO::MachO *macho) override {
+         MachO::Archive<MachO::Bits::M64> *archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+         if (!archive) {
+            throw std::logic_error("only 64-bit archives currently supported");
+         }
+
+         /* read bytes */
+         char *buf = new char[bytes];
+         assert(fread(buf, 1, bytes, stdin) == bytes);
+         
+         
+         archive->insert(new MachO::Instruction<MachO::Bits::M64>(archive->segment(SEG_TEXT), buf, buf + bytes),
+                         loc, relation);
+      }
+
+      InsertInstruction(char *option, InsertCommand& cmd) {
+         char * const keylist[] = {"vmaddr", "offset", "before", "after", "bytes", nullptr};
+         char *value;
+         while (*optarg) {
+            switch (getsubopt(&optarg, keylist, &value)) {
+            case 0: // vmaddr
+               loc.vmaddr = std::stoul(value, nullptr, 0);
+               break;
+            case 1: // offset
+               loc.offset = std::stoul(value, nullptr, 0);
+               break;
+            case 2: // before
+               relation = MachO::Relation::BEFORE;
+               break;
+            case 3: // after
+               relation = MachO::Relation::AFTER;
+               break;
+            case 4: // bytes
+               bytes = std::stoi(value, nullptr, 0);
+               break;
+            case -1:
+               if (suboptarg) {
+                  cmd.log("-i: invalid suboption '%s'", suboptarg);
+               } else {
+                  cmd.log("-i: missing suboption");
+               }
+               cmd.usage(std::cerr);
+               cmd.good = false;
+               break;
+            }
+         }
+
+         if (bytes == 0) {
+            cmd.log("-i: specify byte length with 'bytes'");
+            cmd.good = false;
+         }
+      }
+
    };
 
-   virtual std::list<std::string> subopts() const override { return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),[before|after]]"}; }
+   std::list<std::unique_ptr<Operation>> operations;
+
+   virtual std::list<std::string> subopts() const override {
+      return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]"};
+   }
+   
    virtual int opts(int argc, char *argv[]) override {
       int optchar;
       while ((optchar = getopt(argc, argv, "hi:")) >= 0) {
@@ -166,42 +232,13 @@ struct InsertCommand: public RWSubcommand {
             return 0;
 
          case 'i':
-            {
-               InsertInstruction inst;
-               char * const keylist[] = {"vmaddr", "offset", "before", "after", nullptr};
-               char *value;
-               while (*optarg) {
-                  switch (getsubopt(&optarg, keylist, &value)) {
-                  case 0: // vmaddr
-                     inst.loc.vmaddr = std::stol(value, nullptr, 0);
-                     break;
-                  case 1: // offset
-                     inst.loc.offset = std::stol(value, nullptr, 0);
-                     break;
-                  case 2: // before
-                     inst.relation = MachO::Relation::BEFORE;
-                     break;
-                  case 3: // after
-                     inst.relation = MachO::Relation::AFTER;
-                     break;
-                  case -1:
-                     if (suboptarg) {
-                        log("-i: invalid suboption '%s'", suboptarg);
-                     } else {
-                        log("-i: missing suboption");
-                     }
-                     usage(std::cerr);
-                     return -1;
-                  }
-               }
-               // TODO
-            }
+            operations.push_back(std::make_unique<InsertInstruction>(optarg, *this));
+            break;
 
          default:
             usage(std::cerr);
             return -1;
          }
-
       }
       
       if (help) {
@@ -209,11 +246,20 @@ struct InsertCommand: public RWSubcommand {
          return 0;
       }
 
+      if (!good) {
+         return -1;
+      }
+      
       return 1;
    }
 
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
       MachO::MachO *macho = MachO::MachO::Parse(in_img);
+
+      for (auto& op : operations) {
+         (*op)(macho);
+      }
+      
       macho->Build();
       macho->Emit(out_img);
       return 0;
