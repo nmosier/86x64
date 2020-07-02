@@ -34,6 +34,10 @@ namespace MachO {
       CountResolver<Segment<bits>> segment_resolver;
       Segment<bits> *current_segment;
       Regions data_in_code;
+
+      // using TodoPlaceholders = std::unordered_map<Location, Placeholder<bits> *>;
+      // TodoPlaceholders placeholders;
+      
       
       ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}
       

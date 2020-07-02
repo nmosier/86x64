@@ -170,21 +170,21 @@ namespace MachO {
          SectionBlob<bits>(other, env) {}
       template <Bits> friend class Placeholder;
    };
-   
+
 #if 0
    template <Bits bits>
-   class FunctionStart: public SectionBlob<bits> {
+   class InterposeBlob: public SectionBlob<bits> {
    public:
-      template <typename... Args>
-      FunctionStart<bits> *Create(Args&&... args) { return new EntryPointBlob(args...); }
+      S
 
-      virtual std::size_t size() const override { return 0; }
-      virtual void Emit(Image& img, std::size_t offset) const override {}
+      static Interpose<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
+         return new InterposeBlob(loc, env);
+      }
       
    private:
-      template <typename... Args>
-      EntryPointBlob(Args&&... args): SectionBlob<bits>(args...) {}
+      Interpose(const Image& img, const Location& loc, ParseEnv<bits>& env):
+         SectionBlob<bits>(loc, env) { /* TODO */ }
    };
 #endif
-
+   
 }

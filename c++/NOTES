@@ -78,3 +78,33 @@ Each section checks for resolution requests within its address range. If one mat
 
 Create a scripting langauge.
 Keywords: vmaddr, offset, offset, insert, read, write
+
+
+------
+
+Getting all addresses within a restricted range.
+
+- Write a mmap() wrapper that adds a fixed mask.
+- Write a mmap()
+
+
+-------
+
+STACK:     can memory-map new region and point $rsp to it.
+HEAP:      interposer.
+MMAP, ETC: interposer.
+SYSLIBS:   OK as long as they're in the non-lazy symbols section?
+USRLIBS:   OK
+
+-- or, for the time being --
+use segfault-driven method.
+
+Next goal: translate 32-bit instructions to 64-bit equivalents
+e.g.
+push abs32 -> lea r11, [rip + off32] \ push r11
+jmp dword ptr
+
+
+
+2 PROJECTS:
+Write program that given 64-bit executable, is able to get all addresses in given address range.

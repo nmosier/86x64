@@ -124,6 +124,18 @@ namespace MachO {
       throw std::invalid_argument("location not in any segment");
    }
 
+   template <Bits bits>
+   std::size_t Archive<bits>::offset_to_vmaddr(std::size_t offset) const {
+      for (Segment<bits> *segment : segments()) {
+         if (offset >= segment->segment_command.fileoff &&
+             offset < segment->segment_command.fileoff + segment->segment_command.filesize) {
+            return segment->offset_to_vmaddr(offset);
+         }
+      }
+      throw std::invalid_argument(std::string("offset" ) + std::to_string(offset) +
+                                  " not in any segment");
+   }
+
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

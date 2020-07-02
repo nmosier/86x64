@@ -184,6 +184,18 @@ namespace MachO {
       throw std::invalid_argument("location not found");
    }
 
+   template <Bits bits>
+   std::size_t Segment<bits>::offset_to_vmaddr(std::size_t offset) const {
+      for (Section<bits> *section : sections) {
+         if (offset >= section->sect.offset &&
+             offset < section->sect.offset + section->sect.size) {
+            return offset - (std::size_t) section->sect.offset + (std::size_t) section->sect.addr;
+         }
+      }
+      throw std::invalid_argument(std::string("offset ") + std::to_string(offset) +
+                                  " not in any section");
+   }
+
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 

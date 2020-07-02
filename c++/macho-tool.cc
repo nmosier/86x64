@@ -268,6 +268,8 @@ struct InsertCommand: public RWSubcommand {
    InsertCommand(): RWSubcommand("insert") {}
 };
 
+
+
 int main(int argc, char *argv[]) {
    progname = argv[0];
 

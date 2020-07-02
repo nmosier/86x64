@@ -44,6 +44,7 @@ namespace MachO {
       }
 
       std::vector<Segment<bits> *> segments() { return subcommands<Segment<bits>>(); }
+      std::vector<Segment<bits> *> segments() const { return subcommands<Segment<bits>>(); }
       Segment<bits> *segment(std::size_t index) { return segments().at(index); }
       Segment<bits> *segment(const std::string& name);
 
@@ -58,6 +59,8 @@ namespace MachO {
       void Insert(const SectionLocation<bits>& loc, Args&&... args) {
          loc.segment->Insert(loc, args...);
       }
+
+      std::size_t offset_to_vmaddr(std::size_t offset) const;
 
       Archive<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new Archive<opposite<bits>>(*this, env);
