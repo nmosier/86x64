@@ -38,7 +38,7 @@ namespace MachO {
    class FunctionStarts: public LinkeditData<bits> {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
-      using Entries = std::list<const SectionBlob<bits> *>;
+      using Entries = std::list<const Placeholder<bits> *>;
 
       Entries entries;
       const Segment<bits> *segment;

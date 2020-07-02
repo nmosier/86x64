@@ -53,9 +53,8 @@ namespace MachO {
          it += leb128_decode(img, it, uleb);
          // it += leb128_decode(&img.at<uint8_t>(it), img.size() - it, uleb);
          if (uleb != 0 || refaddr == segment->loc().offset) {
-            entries.push_back(nullptr);
             refaddr += uleb;
-            env.offset_resolver.resolve(refaddr, &entries.back());
+            entries.push_back(env.add_placeholder(env.archive.offset_to_vmaddr(refaddr)));
          }
       }
    }
@@ -93,7 +92,7 @@ namespace MachO {
    {
       for (const auto entry : other.entries) {
          entries.push_back(nullptr);         
-         const SectionBlob<bits> ** entryptr = &entries.back();
+         const Placeholder<bits> **entryptr = &entries.back();
          env.resolve(entry, entryptr);
          // entries.push_back(entry->Transform(env));
       }
