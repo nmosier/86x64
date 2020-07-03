@@ -310,20 +310,10 @@ namespace MachO {
             auto imm = dynamic_cast<Immediate<bits> *>(blob);
             if (imm) {
                imm->pointee = env.add_placeholder(imm->value);
-               // resolver.resolve(imm->value, &imm->pointee);
             }
          }
       };
-
-#if 0
-      const auto callback =
-         [] (SectionBlob<bits> *blob, Resolver<std::size_t, SectionBlob<bits>>& resolver) {
-            auto imm = dynamic_cast<Immediate<bits> *>(blob);
-            if (imm) {
-               resolver.resolve(imm->value, &imm->pointee);
-            }
-         };
-#endif
+      
       env.vmaddr_resolver.resolve(vmaddr, &blob, std::make_shared<callback>(env));
    }
 

@@ -91,10 +91,9 @@ namespace MachO {
       LinkeditData<bits>(other, env)
    {
       for (const auto entry : other.entries) {
-         entries.push_back(nullptr);         
+         entries.push_back(nullptr);
          const Placeholder<bits> **entryptr = &entries.back();
          env.resolve(entry, entryptr);
-         // entries.push_back(entry->Transform(env));
       }
       env.resolve(other.segment, &segment);
    }
