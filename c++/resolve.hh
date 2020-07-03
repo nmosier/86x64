@@ -2,6 +2,7 @@
 
 #include <map>
 #include <list>
+#include <memory>
 
 #include "util.hh"
 
@@ -10,9 +11,18 @@ namespace MachO {
    template <typename T, typename U>
    class Resolver {
    public:
+      struct functor {
+         virtual void operator()(U *val) = 0;
+         virtual ~functor() {}
+      };
+
+      struct noop: public functor {
+         virtual void operator()(U *val) override {}
+      };
+      
       using FoundMap = std::map<T, U *>;
-      typedef void (*Callback)(U *, Resolver<T, U>&);
-      using TodoNode = std::pair<const U **, Callback>;
+      // typedef void (*Callback)(U *, Resolver<T, U>&);
+      using TodoNode = std::pair<const U **, std::shared_ptr<functor>>;
       using TodoMap = std::map<T, std::list<TodoNode>>;
       
       void add(const T& key, U *pointee) {
@@ -20,18 +30,19 @@ namespace MachO {
          if (todo_it != todo.end()) {
             for (const TodoNode& node : todo_it->second) {
                *node.first = pointee;
-               node.second(pointee, *this);
+               (*node.second)(pointee);
             }
             todo.erase(todo_it);
          }
          found.insert({key, pointee});
       }
-      
-      void resolve(const T& key, const U **pointer, Callback callback = CallbackNop) {
+
+      void resolve(const T& key, const U **pointer,
+                   std::shared_ptr<functor> callback = std::make_shared<noop>()) {
          auto found_it = found.find(key);
          if (found_it != found.end()) {
             *pointer = found_it->second;
-            callback(found_it->second, *this);
+            (*callback)(found_it->second);
          } else {
             todo[key].emplace_back(pointer, callback);
          }
@@ -45,8 +56,6 @@ namespace MachO {
             }
          }
       }
-
-      static void CallbackNop(U *pointee, Resolver<T, U>& resolver) {}
 
       FoundMap found;
       TodoMap todo;

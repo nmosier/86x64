@@ -13,6 +13,14 @@
 
 namespace MachO {
 
+   struct functor {
+      virtual void operator()() = 0;
+   };
+
+   struct functor_nop: functor {
+      virtual void operator()() override {}
+   };
+
    namespace {
       template <Bits bits, typename T32, typename T64>
       auto select_type_func() {

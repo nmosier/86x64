@@ -301,6 +301,21 @@ namespace MachO {
    RebaseNode<bits>::RebaseNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type):
       type(type), blob(nullptr)
    {
+      struct callback: decltype(env.vmaddr_resolver)::functor {
+         ParseEnv<bits>& env;
+
+         callback(ParseEnv<bits>& env): env(env) {}
+         
+         virtual void operator()(SectionBlob<bits> *blob) override {
+            auto imm = dynamic_cast<Immediate<bits> *>(blob);
+            if (imm) {
+               imm->pointee = env.add_placeholder(imm->value);
+               // resolver.resolve(imm->value, &imm->pointee);
+            }
+         }
+      };
+
+#if 0
       const auto callback =
          [] (SectionBlob<bits> *blob, Resolver<std::size_t, SectionBlob<bits>>& resolver) {
             auto imm = dynamic_cast<Immediate<bits> *>(blob);
@@ -308,7 +323,8 @@ namespace MachO {
                resolver.resolve(imm->value, &imm->pointee);
             }
          };
-      env.vmaddr_resolver.resolve(vmaddr, &blob, callback);
+#endif
+      env.vmaddr_resolver.resolve(vmaddr, &blob, std::make_shared<callback>(env));
    }
 
    template <Bits bits>
