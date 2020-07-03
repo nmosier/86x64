@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <list>
+#include <getopt.h>
 
 #include "macho.hh"
 #include "archive.hh"
@@ -44,6 +45,11 @@ struct Subcommand {
       fprintf(stderr, "%s %s: ", progname, name);
       fprintf(stderr, str, args...);
       fprintf(stderr, "\n");
+   }
+
+   template <typename... Args>
+   constexpr void log(const std::string& str, Args&&... args) const {
+      log(str.c_str(), args...);
    }
 
    Subcommand(const char *name): name(name) {}
@@ -199,16 +205,15 @@ struct NoopSubcommand: public RWSubcommand {
    NoopSubcommand(): RWSubcommand("noop") {}
 };
 
-struct InsertCommand: public RWSubcommand {
+struct ModifyCommand: public RWSubcommand {
    int help = 0;
-   bool good = true;
 
    struct Operation {
       virtual void operator()(MachO::MachO *macho) = 0;
       virtual ~Operation() {}
    };
-   
-   struct InsertInstruction: public Operation {
+
+   struct Insert: public Operation {
       MachO::Location loc;
       MachO::Relation relation = MachO::Relation::BEFORE;
       int bytes = 0;
@@ -228,7 +233,7 @@ struct InsertCommand: public RWSubcommand {
                          loc, relation);
       }
 
-      InsertInstruction(char *option, InsertCommand& cmd) {
+      Insert(char *option, bool& good) {
          char * const keylist[] = {"vmaddr", "offset", "before", "after", "bytes", nullptr};
          char *value;
          while (*optarg) {
@@ -250,22 +255,17 @@ struct InsertCommand: public RWSubcommand {
                break;
             case -1:
                if (suboptarg) {
-                  cmd.log("-i: invalid suboption '%s'", suboptarg);
+                  throw std::string("invalid suboption '") + suboptarg + "'";
                } else {
-                  cmd.log("-i: missing suboption");
+                  throw std::string("missing suboption");
                }
-               cmd.usage(std::cerr);
-               cmd.good = false;
-               break;
             }
          }
 
          if (bytes == 0) {
-            cmd.log("-i: specify byte length with 'bytes'");
-            cmd.good = false;
+            throw std::string("specify byte length with 'bytes'");
          }
       }
-
    };
 
    std::list<std::unique_ptr<Operation>> operations;
@@ -273,37 +273,52 @@ struct InsertCommand: public RWSubcommand {
    virtual std::list<std::string> subopts() const override {
       return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]"};
    }
-   
+
    virtual int opts(int argc, char *argv[]) override {
+      bool good = true;
       int optchar;
-      while ((optchar = getopt(argc, argv, "hi:")) >= 0) {
-         switch (optchar) {
-         case 'h':
-            usage(std::cout);
-            return 0;
+      const char *optstring = "hi:";
+      struct option longopts[] =
+         {{"help", no_argument, nullptr, 'h'},
+          {"insert", required_argument, nullptr, 'i'},
+          {0}
+         };
+      int longindex = -1;
 
-         case 'i':
-            operations.push_back(std::make_unique<InsertInstruction>(optarg, *this));
-            break;
-
-         default:
-            usage(std::cerr);
-            return -1;
+      try {
+         while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
+            switch (optchar) {
+            case 'h':
+               usage(std::cout);
+               return 0;
+               
+            case 'i':
+               operations.push_back(std::make_unique<Insert>(optarg, good));
+               break;
+               
+            default:
+               usage(std::cerr);
+               return -1;
+            }
+            
+            longindex = -1;
          }
-      }
-      
-      if (help) {
-         usage(std::cout);
-         return 0;
-      }
-
-      if (!good) {
+      } catch (const std::string& s) {
+         std::string prefix;
+         if (longindex >= 0) {
+            prefix = std::string("--") + longopts[longindex].name;
+         } else {
+            prefix = std::string("-");
+            prefix.push_back(optchar);
+         }
+         log(prefix + ": " + s);
+         usage(std::cerr);
          return -1;
       }
-      
-      return 1;
-   }
 
+      return 0;
+   }
+   
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
       MachO::MachO *macho = MachO::MachO::Parse(in_img);
 
@@ -316,7 +331,7 @@ struct InsertCommand: public RWSubcommand {
       return 0;
    }
 
-   InsertCommand(): RWSubcommand("insert") {}
+   ModifyCommand(): RWSubcommand("modify") {}
 };
 
 struct TranslateCommand: public RSubcommand {
@@ -389,7 +404,7 @@ int main(int argc, char *argv[]) {
    std::unordered_map<std::string, std::shared_ptr<Subcommand>> subcommands
       {{"help", std::make_shared<HelpSubcommand>()},
        {"noop", std::make_shared<NoopSubcommand>()},
-       {"insert", std::make_shared<InsertCommand>()},
+       {"modify", std::make_shared<ModifyCommand>()},
        {"translate", std::make_shared<TranslateCommand>()},
       };
 

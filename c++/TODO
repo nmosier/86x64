@@ -1,1 +1,5 @@
-[ ] operator() function functor
+[X] operator() function functor
+[ ] delete instructions
+[ ] smart pointers
+[ ] support for fat archives -- test jtool2
+

@@ -1,1 +1,1 @@
-complete -W "help noop insert translate" macho-tool
+complete -W "help noop modify translate" macho-tool
