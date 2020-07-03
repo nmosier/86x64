@@ -37,9 +37,7 @@ namespace MachO {
       value(nullptr)
    {
       nlist = img.at<nlist_t<bits>>(offset);
-      if (nlist.n_value != 0) {
-         env.vmaddr_resolver.resolve(nlist.n_value, &value);
-      }
+      value = env.add_placeholder(nlist.n_value);
       if (off2str.find(nlist.n_un.n_strx) == off2str.end()) {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
       }

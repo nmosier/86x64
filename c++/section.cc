@@ -124,7 +124,6 @@ namespace MachO {
       }
    }
 
-
    template <Bits bits>
    void Section<bits>::Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob) {
       SectionBlob<bits> *elem = dynamic_cast<SectionBlob<bits> *>(blob);

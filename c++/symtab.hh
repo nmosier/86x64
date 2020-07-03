@@ -40,8 +40,8 @@ namespace MachO {
       static std::size_t size() { return sizeof(nlist_t<bits>); }
 
       nlist_t<bits> nlist;
-      const String<bits> *string;
-      const SectionBlob<bits> *value;
+      const String<bits> *string = nullptr;
+      const Placeholder<bits> *value = nullptr;
 
       static Nlist<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
                                 const std::unordered_map<std::size_t, String<bits> *>& off2str) {

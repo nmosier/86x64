@@ -55,6 +55,10 @@ namespace MachO {
 
    template <Bits bits>
    Placeholder<bits> *ParseEnv<bits>::add_placeholder(std::size_t vmaddr) {
+      if (vmaddr == 0) {
+         return nullptr;
+      }
+      
       auto it = placeholders.find(vmaddr);
       if (it == placeholders.end()) {
          Placeholder<bits> *placeholder = Placeholder<bits>::Parse(Location(0, vmaddr), *this);
