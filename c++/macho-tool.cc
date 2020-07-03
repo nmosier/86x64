@@ -261,7 +261,7 @@ struct ModifyCommand: public RWSubcommand {
                }
             }
          }
-
+         
          if (bytes == 0) {
             throw std::string("specify byte length with 'bytes'");
          }

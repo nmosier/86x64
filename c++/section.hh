@@ -40,6 +40,8 @@ namespace MachO {
       }
 
       void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
+      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
+      bool contains_vmaddr(std::size_t vmaddr) const;
       
       typename Content::iterator find(std::size_t vmaddr); /* inclusive greatest lower bound */
       typename Content::const_iterator find(std::size_t vmaddr) const;

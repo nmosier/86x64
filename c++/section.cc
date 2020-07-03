@@ -1,3 +1,4 @@
+#include <sstream>
 #include <string>
 #include <iterator>
 
@@ -276,6 +277,30 @@ namespace MachO {
       } else {
          throw std::invalid_argument("location not in section");
       }
+   }
+
+   template <Bits bits>
+   SectionBlob<bits> *Section<bits>::find_blob(std::size_t vmaddr) const {
+      auto it = std::lower_bound(content.begin(), content.end(), vmaddr,
+                                 [] (const SectionBlob<bits> *blob, std::size_t vmaddr) {
+                                    return blob->loc.vmaddr < vmaddr;
+                                 });
+      if (it == content.end()) {
+         std::stringstream ss;
+         ss << "vmaddr " << std::hex << vmaddr << " not in section " << sect.sectname;
+         throw std::invalid_argument(ss.str());
+      } else if ((*it)->loc.vmaddr == vmaddr) {
+         std::stringstream ss;
+         ss << "vmaddr " << std::hex << vmaddr << " not aligned with blob start";
+         throw std::invalid_argument(ss.str());
+      } else {
+         return *it;
+      }
+   }
+
+   template <Bits bits>
+   bool Section<bits>::contains_vmaddr(std::size_t vmaddr) const {
+      return vmaddr >= sect.addr && vmaddr < sect.addr + sect.size;
    }
    
 

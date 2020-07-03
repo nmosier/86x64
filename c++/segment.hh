@@ -34,6 +34,8 @@ namespace MachO {
       Section<bits> *section(const std::string& name);
 
       std::size_t offset_to_vmaddr(std::size_t offset) const;
+      bool contains_vmaddr(std::size_t offset) const;
+      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
 
       static Segment<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Parse1(const Image& img, ParseEnv<bits>& env) override {

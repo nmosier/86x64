@@ -71,6 +71,7 @@ namespace MachO {
       }
 
       void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
+      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
 
    private:
       std::size_t total_size;

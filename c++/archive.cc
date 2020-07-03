@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "archive.hh"
 #include "parse.hh"
 #include "build.hh"
@@ -134,6 +136,19 @@ namespace MachO {
       }
       throw std::invalid_argument(std::string("offset" ) + std::to_string(offset) +
                                   " not in any segment");
+   }
+
+   template <Bits bits>
+   SectionBlob<bits> *Archive<bits>::find_blob(std::size_t vmaddr) const {
+      for (Segment<bits> *segment : segments()) {
+         if (segment->contains_vmaddr(vmaddr)) {
+            return segment->find_blob(vmaddr);
+         }
+      }
+
+      std::stringstream ss;
+      ss << "vmaddr " << std::hex << vmaddr << " not in any segment";
+      throw std::invalid_argument(ss.str());
    }
 
    template class Archive<Bits::M32>;

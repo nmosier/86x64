@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <sstream>
 
 #include "types.hh"
 #include "linkedit.hh"
