@@ -7,6 +7,7 @@
 #include <string>
 #include <list>
 #include <getopt.h>
+#include <sstream>
 
 #include "macho.hh"
 #include "archive.hh"
@@ -213,60 +214,8 @@ struct ModifyCommand: public RWSubcommand {
       virtual ~Operation() {}
    };
 
-   struct Insert: public Operation {
-      MachO::Location loc;
-      MachO::Relation relation = MachO::Relation::BEFORE;
-      int bytes = 0;
-
-      virtual void operator()(MachO::MachO *macho) override {
-         MachO::Archive<MachO::Bits::M64> *archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
-         if (!archive) {
-            throw std::logic_error("only 64-bit archives currently supported");
-         }
-
-         /* read bytes */
-         char *buf = new char[bytes];
-         assert(fread(buf, 1, bytes, stdin) == bytes);
-         
-         
-         archive->insert(new MachO::Instruction<MachO::Bits::M64>(archive->segment(SEG_TEXT), buf, buf + bytes),
-                         loc, relation);
-      }
-
-      Insert(char *option, bool& good) {
-         char * const keylist[] = {"vmaddr", "offset", "before", "after", "bytes", nullptr};
-         char *value;
-         while (*optarg) {
-            switch (getsubopt(&optarg, keylist, &value)) {
-            case 0: // vmaddr
-               loc.vmaddr = std::stoul(value, nullptr, 0);
-               break;
-            case 1: // offset
-               loc.offset = std::stoul(value, nullptr, 0);
-               break;
-            case 2: // before
-               relation = MachO::Relation::BEFORE;
-               break;
-            case 3: // after
-               relation = MachO::Relation::AFTER;
-               break;
-            case 4: // bytes
-               bytes = std::stoi(value, nullptr, 0);
-               break;
-            case -1:
-               if (suboptarg) {
-                  throw std::string("invalid suboption '") + suboptarg + "'";
-               } else {
-                  throw std::string("missing suboption");
-               }
-            }
-         }
-         
-         if (bytes == 0) {
-            throw std::string("specify byte length with 'bytes'");
-         }
-      }
-   };
+   struct Insert;
+   struct Delete;
 
    std::list<std::unique_ptr<Operation>> operations;
 
@@ -274,50 +223,7 @@ struct ModifyCommand: public RWSubcommand {
       return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]"};
    }
 
-   virtual int opts(int argc, char *argv[]) override {
-      bool good = true;
-      int optchar;
-      const char *optstring = "hi:";
-      struct option longopts[] =
-         {{"help", no_argument, nullptr, 'h'},
-          {"insert", required_argument, nullptr, 'i'},
-          {0}
-         };
-      int longindex = -1;
-
-      try {
-         while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
-            switch (optchar) {
-            case 'h':
-               usage(std::cout);
-               return 0;
-               
-            case 'i':
-               operations.push_back(std::make_unique<Insert>(optarg, good));
-               break;
-               
-            default:
-               usage(std::cerr);
-               return -1;
-            }
-            
-            longindex = -1;
-         }
-      } catch (const std::string& s) {
-         std::string prefix;
-         if (longindex >= 0) {
-            prefix = std::string("--") + longopts[longindex].name;
-         } else {
-            prefix = std::string("-");
-            prefix.push_back(optchar);
-         }
-         log(prefix + ": " + s);
-         usage(std::cerr);
-         return -1;
-      }
-
-      return 0;
-   }
+   virtual int opts(int argc, char *argv[]) override;
    
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
       MachO::MachO *macho = MachO::MachO::Parse(in_img);
@@ -333,6 +239,156 @@ struct ModifyCommand: public RWSubcommand {
 
    ModifyCommand(): RWSubcommand("modify") {}
 };
+
+struct ModifyCommand::Insert: public ModifyCommand::Operation {
+   MachO::Location loc;
+   MachO::Relation relation = MachO::Relation::BEFORE;
+   int bytes = 0;
+
+   virtual void operator()(MachO::MachO *macho) override {
+      MachO::Archive<MachO::Bits::M64> *archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+      if (!archive) {
+         throw std::logic_error("only 64-bit archives currently supported");
+      }
+         
+      /* read bytes */
+      char *buf = new char[bytes];
+      assert(fread(buf, 1, bytes, stdin) == bytes);
+         
+         
+      archive->insert(new MachO::Instruction<MachO::Bits::M64>(archive->segment(SEG_TEXT), buf, buf + bytes),
+                      loc, relation);
+   }
+
+   Insert(char *option) {
+      char * const keylist[] = {"vmaddr", "offset", "before", "after", "bytes", nullptr};
+      char *value;
+      while (*optarg) {
+         switch (getsubopt(&optarg, keylist, &value)) {
+         case 0: // vmaddr
+            loc.vmaddr = std::stoul(value, nullptr, 0);
+            break;
+         case 1: // offset
+            loc.offset = std::stoul(value, nullptr, 0);
+            break;
+         case 2: // before
+            relation = MachO::Relation::BEFORE;
+            break;
+         case 3: // after
+            relation = MachO::Relation::AFTER;
+            break;
+         case 4: // bytes
+            bytes = std::stoi(value, nullptr, 0);
+            break;
+         case -1:
+            if (suboptarg) {
+               throw std::string("invalid suboption '") + suboptarg + "'";
+            } else {
+               throw std::string("missing suboption");
+            }
+         }
+      }
+         
+      if (bytes == 0) {
+         throw std::string("specify byte length with 'bytes'");
+      }
+   }
+};
+
+struct ModifyCommand::Delete: ModifyCommand::Operation {
+   enum class LocationKind {OFFSET, VMADDR} kind;
+   std::size_t loc;
+
+   Delete(char *option) {
+      char * const keylist[] = {"vmaddr", "offset", nullptr};
+      char *value;
+
+      while (*optarg) {
+         switch (getsubopt(&optarg, keylist, &value)) {
+         case 0: // vmaddr
+            kind = LocationKind::VMADDR;
+            loc = std::stoul(value, nullptr, 0);
+            break;
+         case 1: // offset
+            kind = LocationKind::OFFSET;
+            loc = std::stoul(value, nullptr, 0);
+            break;
+         case -1:
+            if (suboptarg) {
+               throw std::string("invalid suboption `") + suboptarg + "'";
+            } else {
+               throw std::string("missing suboption `vmaddr' or `offset'");
+            }
+         }
+      }
+   }
+
+   virtual void operator()(MachO::MachO *macho) override {
+      auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+      if (archive) {
+         if (kind == LocationKind::OFFSET) {
+            loc = archive->offset_to_vmaddr(loc);
+         }
+         auto blob = archive->find_blob(loc);
+         blob->active = false;
+      } else {
+         std::stringstream ss;
+         ss << "no blob found at vmaddr " << std::hex << loc;
+         throw ss.str();
+      }
+   }
+};
+
+
+int ModifyCommand::opts(int argc, char *argv[]) {
+   int optchar;
+   const char *optstring = "hi:d:";
+   struct option longopts[] =
+      {{"help", no_argument, nullptr, 'h'},
+       {"insert", required_argument, nullptr, 'i'},
+       {"delete", required_argument, nullptr, 'd'},
+       {0}
+      };
+   int longindex = -1;
+
+   try {
+      while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
+         switch (optchar) {
+         case 'h':
+            usage(std::cout);
+            return 0;
+               
+         case 'i':
+            operations.push_back(std::make_unique<Insert>(optarg));
+            break;
+
+         case 'd':
+            operations.push_back(std::make_unique<Delete>(optarg));
+            break;
+               
+         default:
+            usage(std::cerr);
+            return -1;
+         }
+            
+         longindex = -1;
+      }
+   } catch (const std::string& s) {
+      std::string prefix;
+      if (longindex >= 0) {
+         prefix = std::string("--") + longopts[longindex].name;
+      } else {
+         prefix = std::string("-");
+         prefix.push_back(optchar);
+      }
+      log(prefix + ": " + s);
+      usage(std::cerr);
+      return -1;
+   }
+
+   return 1;
+}
+
 
 struct TranslateCommand: public RSubcommand {
 public:

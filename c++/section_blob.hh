@@ -10,6 +10,7 @@ namespace MachO {
    template <Bits bits>
    class SectionBlob {
    public:
+      bool active = true;
       const Segment<bits> *segment; /*!< containing segment */
       Location loc; /*!< Post-build location, also used during parsing */
       

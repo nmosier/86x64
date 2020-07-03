@@ -14,7 +14,6 @@ namespace MachO {
    template <Bits bits>
    class Instruction: public SectionBlob<bits> {
    public:
-      bool active = true;
       static const xed_state_t dstate;
       
       std::vector<uint8_t> instbuf;
