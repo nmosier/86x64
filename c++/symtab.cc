@@ -177,7 +177,7 @@ namespace MachO {
       env.resolve(other.string, &string);
       env.resolve(other.value, &value);
    }
-
+   
    template <Bits bits>
    String<bits>::String(const String<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
       str(other.str), offset(0)

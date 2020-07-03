@@ -284,6 +284,8 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t BindNode<bits>::size() const {
+      if (!active()) { return 0; }
+      
       /* 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
        * 1   BIND_OPCODE_SET_TYPE_IMM
        * 1+a   [BIND_OPCODE_SET_ADDEND_SLEB]
@@ -319,6 +321,10 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t RebaseNode<bits>::size() const {
+      if (!active()) {
+         return 0;
+      }
+      
       /* 1   REBASE_OPCODE_SET_TYPE_IMM
        * 1+a REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
        * 1   REBASE_OPCODE_DO_REBASE_IMM_TIMES
@@ -353,6 +359,10 @@ namespace MachO {
 
    template <Bits bits>
    void RebaseNode<bits>::Emit(Image& img, std::size_t offset) const {
+      if (!active()) {
+         return;
+      }
+      
       /* REBASE_OPCODE_SET_TYPE_IMM
        * REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
        * REBASE_OPCODE_DO_REBASE_IMM_TIMES
@@ -378,6 +388,10 @@ namespace MachO {
 
    template <Bits bits>
    void BindNode<bits>::Emit(Image& img, std::size_t offset) const {
+      if (!active()) {
+         return;
+      }
+      
       /* BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
        * BIND_OPCODE_SET_TYPE_IMM
        * BIND_OPCODE_SET_ADDEND_SLEB

@@ -59,6 +59,8 @@ namespace MachO {
       std::size_t size() const;
       void Emit(Image& img, std::size_t offset) const;
 
+      bool active() const { return blob == nullptr ? false : blob->active; }
+
       static RebaseNode<bits> *Parse(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
          return new RebaseNode(vmaddr, env, type);
       }
@@ -116,6 +118,7 @@ namespace MachO {
 
       std::size_t size() const;
       void Emit(Image& img, std::size_t offset) const;
+      bool active() const { return blob == nullptr ? false : blob->active; }
 
       static BindNode<bits> *Parse(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend, std::size_t dylib, const char *sym, uint8_t flags) {
          return new BindNode(vmaddr, env, type, addend, dylib, sym, flags);
