@@ -103,9 +103,11 @@ namespace MachO {
    std::size_t Section<bits>::content_size() const {
       std::size_t size = 0;
       for (const SectionBlob<bits> *elem : content) {
-         size += elem->size();
+         if (elem->active) {
+            size += elem->size();
+         }
       }
-      return align<bits>(size);
+      return align_up<std::size_t>(size, 1 << sect.align);
    }
 
    template <Bits bits>
