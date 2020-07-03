@@ -35,8 +35,19 @@ namespace MachO {
 
       std::size_t offset_to_vmaddr(std::size_t offset) const;
       bool contains_vmaddr(std::size_t offset) const;
-      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
 
+      template <template <Bits> class Blob>
+      Blob<bits> *find_blob(std::size_t vmaddr) const {
+         for (Section<bits> *section : sections) {
+            if (section->contains_vmaddr(vmaddr)) {
+               return section->template find_blob<Blob>(vmaddr);
+            }
+         }
+         std::stringstream ss;
+         ss << "no section blob at " << std::hex << vmaddr;
+         throw std::invalid_argument(ss.str());
+      }
+      
       static Segment<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       virtual void Parse1(const Image& img, ParseEnv<bits>& env) override {
          env.current_segment = this;

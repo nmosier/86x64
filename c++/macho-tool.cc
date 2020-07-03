@@ -329,7 +329,7 @@ struct ModifyCommand::Delete: ModifyCommand::Operation {
          if (kind == LocationKind::OFFSET) {
             loc = archive->offset_to_vmaddr(loc);
          }
-         auto blob = archive->find_blob(loc);
+         auto blob = archive->find_blob<MachO::Instruction>(loc);
          blob->active = false;
       } else {
          std::stringstream ss;

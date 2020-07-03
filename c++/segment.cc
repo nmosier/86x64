@@ -199,19 +199,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   SectionBlob<bits> *Segment<bits>::find_blob(std::size_t vmaddr) const {
-      for (Section<bits> *section : sections) {
-         if (section->contains_vmaddr(vmaddr)) {
-            return section->find_blob(vmaddr);
-         }
-      }
-      
-      std::stringstream ss;
-      ss << "no section blob at " << std::hex << vmaddr;
-      throw std::invalid_argument(ss.str());
-   }
-
-   template <Bits bits>
    bool Segment<bits>::contains_vmaddr(std::size_t vmaddr) const {
       return vmaddr >= segment_command.vmaddr &&
          vmaddr < segment_command.vmaddr + segment_command.vmsize;

@@ -138,19 +138,6 @@ namespace MachO {
                                   " not in any segment");
    }
 
-   template <Bits bits>
-   SectionBlob<bits> *Archive<bits>::find_blob(std::size_t vmaddr) const {
-      for (Segment<bits> *segment : segments()) {
-         if (segment->contains_vmaddr(vmaddr)) {
-            return segment->find_blob(vmaddr);
-         }
-      }
-
-      std::stringstream ss;
-      ss << "vmaddr " << std::hex << vmaddr << " not in any segment";
-      throw std::invalid_argument(ss.str());
-   }
-
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

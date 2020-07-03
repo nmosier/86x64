@@ -40,7 +40,7 @@ namespace MachO {
 
    template <Bits bits>
    void SectionBlob<bits>::Build(BuildEnv<bits>& env) {
-      env.allocate(size(), loc);
+      env.allocate(active ? size() : 0, loc);
    }
 
    template <Bits bits>

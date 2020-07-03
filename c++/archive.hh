@@ -1,11 +1,13 @@
 #pragma once
 
 #include <vector>
+#include <sstream>
 #include <mach-o/loader.h>
 
 #include "macho.hh"
 #include "transform.hh"
 #include "types.hh"
+#include "segment.hh"
 
 namespace MachO {
 
@@ -71,7 +73,18 @@ namespace MachO {
       }
 
       void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
-      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
+
+      template <template <Bits> class Blob>
+      Blob<bits> *find_blob(std::size_t vmaddr) const {
+         for (Segment<bits> *segment : segments()) {
+            if (segment->contains_vmaddr(vmaddr)) {
+               return segment->template find_blob<Blob>(vmaddr);
+            }
+         }
+         std::stringstream ss;
+         ss << "vmaddr " << std::hex << vmaddr << " not in any segment";
+         throw std::invalid_argument(ss.str());
+      }
 
    private:
       std::size_t total_size;

@@ -115,8 +115,10 @@ namespace MachO {
       std::size_t sect_offset = sect.offset;
       
       for (const SectionBlob<bits> *elem : content) {
-         elem->Emit(img, sect_offset);
-         sect_offset += elem->size();
+         if (elem->active) {
+            elem->Emit(img, sect_offset);
+            sect_offset += elem->size();
+         }
       }
    }
 
@@ -276,25 +278,6 @@ namespace MachO {
          content.insert(it, blob);
       } else {
          throw std::invalid_argument("location not in section");
-      }
-   }
-
-   template <Bits bits>
-   SectionBlob<bits> *Section<bits>::find_blob(std::size_t vmaddr) const {
-      auto it = std::lower_bound(content.begin(), content.end(), vmaddr,
-                                 [] (const SectionBlob<bits> *blob, std::size_t vmaddr) {
-                                    return blob->loc.vmaddr < vmaddr;
-                                 });
-      if (it == content.end()) {
-         std::stringstream ss;
-         ss << "vmaddr " << std::hex << vmaddr << " not in section " << sect.sectname;
-         throw std::invalid_argument(ss.str());
-      } else if ((*it)->loc.vmaddr == vmaddr) {
-         std::stringstream ss;
-         ss << "vmaddr " << std::hex << vmaddr << " not aligned with blob start";
-         throw std::invalid_argument(ss.str());
-      } else {
-         return *it;
       }
    }
 

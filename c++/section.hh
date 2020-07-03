@@ -2,6 +2,7 @@
 
 #include <list>
 #include <vector>
+#include <sstream>
 
 #include "util.hh"
 #include "loc.hh"
@@ -40,7 +41,37 @@ namespace MachO {
       }
 
       void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
-      SectionBlob<bits> *find_blob(std::size_t vmaddr) const;
+
+      template <template <Bits> class Blob>
+      Blob<bits> *find_blob(std::size_t vmaddr) const {
+         auto it = std::lower_bound(content.begin(), content.end(), vmaddr,
+                                    [] (const SectionBlob<bits> *blob, std::size_t vmaddr) {
+                                       return blob->loc.vmaddr < vmaddr;
+                                    });
+         if (it == content.end()) {
+            std::stringstream ss;
+            ss << "vmaddr " << std::hex << vmaddr << " not in section " << sect.sectname;
+            throw std::invalid_argument(ss.str());
+         } else if ((*it)->loc.vmaddr != vmaddr) {
+            std::stringstream ss;
+            ss << "vmaddr " << std::hex << vmaddr << " not aligned with blob start";
+            throw std::invalid_argument(ss.str());
+         } else {
+            Blob<bits> *blob = nullptr;
+            while (it != content.end() &&
+                   (*it)->loc.vmaddr == vmaddr &&
+                   (blob = dynamic_cast<Blob<bits> *>(*it)) == nullptr) {
+               ++it;
+            }
+            
+            if (blob == nullptr) {
+               throw std::invalid_argument("blob at vmaddr is not of correct type");
+            } else {
+               return blob;
+            }
+         }
+      }
+
       bool contains_vmaddr(std::size_t vmaddr) const;
       
       typename Content::iterator find(std::size_t vmaddr); /* inclusive greatest lower bound */
