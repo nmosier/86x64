@@ -6,6 +6,8 @@ extern "C" {
 }
 
 #include "archive.hh"
+#include "fat.hh"
+#include "error.hh"
 
 namespace MachO {
    
@@ -15,20 +17,21 @@ namespace MachO {
 
    MachO *MachO::Parse(const Image& img) {
       switch (img.at<uint32_t>(0)) {
-      case MH_MAGIC:    return Archive<Bits::M32>::Parse(img);
-      case MH_MAGIC_64: return Archive<Bits::M64>::Parse(img);
+      case MH_MAGIC:     return Archive<Bits::M32>::Parse(img);
+      case MH_MAGIC_64:  return Archive<Bits::M64>::Parse(img);
+                         
+      case FAT_MAGIC:    return Fat<Bits::M32>::Parse(img);
+      case FAT_MAGIC_64: return Fat<Bits::M64>::Parse(img);
          
       case MH_CIGAM:
       case MH_CIGAM_64:
-      case FAT_MAGIC:
       case FAT_CIGAM:
-      case FAT_MAGIC_64:
       case FAT_CIGAM_64:
-      default:
-         throw error("opposite endianness unsupported");
-      }
+         throw unsupported_format("archive endianness differs from host endianness");
 
-      return NULL;
+      default:
+         throw unrecognized_format("bad magic number 0x%x", (std::size_t) img.at<uint32_t>(0));
+      }
    }
    
 }

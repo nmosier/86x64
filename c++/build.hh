@@ -10,7 +10,7 @@ namespace MachO {
    template <Bits bits>
    class BuildEnv {
    public:
-      Archive<bits>& archive;
+      Archive<bits> *archive = nullptr;
 
       /**
        * Allocates given number of bytes and returns offset of beginning of allocated region.
@@ -34,8 +34,9 @@ namespace MachO {
       unsigned dylib_counter() { return dylib_counter_++; }
 
       Location loc;      
-      
-      BuildEnv(Archive<bits>& archive, const Location& loc): archive(archive), loc(loc) {}
+
+      BuildEnv() {}
+      BuildEnv(Archive<bits> *archive, const Location& loc): archive(archive), loc(loc) {}
       
    private:
       unsigned segment_counter_ = 0;

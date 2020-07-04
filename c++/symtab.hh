@@ -74,12 +74,13 @@ namespace MachO {
       
       virtual uint32_t cmd() const override { return symtab.cmd; }
       virtual std::size_t size() const override { return sizeof(symtab); }
+      virtual std::size_t content_size() const override;
+      
       virtual void Emit(Image& img, std::size_t offset) const override;
 
       template <typename... Args>
       static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
-      virtual std::size_t content_size() const override;
       
       virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Symtab<opposite<bits>>(*this, env);

@@ -39,9 +39,9 @@ namespace MachO {
    template <Bits bits>
    class LinkeditCommand: public LoadCommand<bits> {
    public:
-      virtual std::size_t content_size() const = 0;
       virtual void Build_LINKEDIT(BuildEnv<bits>& env) = 0;
       virtual void Build(BuildEnv<bits>& env) override {}
+      virtual std::size_t content_size() const = 0;
 
    protected:
       LinkeditCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env):

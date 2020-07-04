@@ -20,6 +20,9 @@ namespace MachO {
    using section_t = select_type<bits, struct section, struct section_64>;
 
    template <Bits bits>
+   using fat_arch_t = select_type<bits, struct fat_arch, struct fat_arch_64>;
+
+   template <Bits bits>
    using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
    template <Bits bits> using macho_addr_t = select_type<bits, uint32_t, uint64_t>;
@@ -32,7 +35,7 @@ namespace MachO {
    template <Bits> class BuildEnv;
    
    class MachO;
-   class Fat;
+   template <Bits> class Fat;
    template <Bits> class Archive;
 
    template <Bits> class LoadCommand;

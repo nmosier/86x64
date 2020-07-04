@@ -1,4 +1,5 @@
 #include <sstream>
+#include <stdexcept>
 
 #include "archive.hh"
 #include "parse.hh"
@@ -47,9 +48,9 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void Archive<bits>::Build() {
-      BuildEnv<bits> env(*this, Location(0, 0));
-
+   std::size_t Archive<bits>::Build(std::size_t offset) {
+      BuildEnv<bits> env(this, Location(offset, 0));
+      
       env.allocate(sizeof(header));
       
       /* count number of load commands */
@@ -73,7 +74,8 @@ namespace MachO {
          lc->Build(env);
       }
 
-      total_size = env.loc.offset;
+      total_size = env.loc.offset - offset;
+      return total_size;
    }
 
    template <Bits bits>
@@ -136,6 +138,28 @@ namespace MachO {
       }
       throw std::invalid_argument(std::string("offset" ) + std::to_string(offset) +
                                   " not in any segment");
+   }
+
+   AbstractArchive *AbstractArchive::Parse(const Image& img, std::size_t offset) {
+      uint32_t magic = img.at<uint32_t>(offset);
+      switch (magic) {
+      case MH_CIGAM:
+      case MH_CIGAM_64:
+         throw std::invalid_argument("archive has opposite endianness");
+
+      case MH_MAGIC:
+         return Archive<Bits::M32>::Parse(img, offset);
+         
+      case MH_MAGIC_64:
+         return Archive<Bits::M64>::Parse(img, offset);
+
+      default:
+         {
+            std::stringstream ss;
+            ss << "invalid magic number 0x" << std::hex << magic;
+            throw std::invalid_argument(ss.str());
+         }
+      }
    }
 
    template class Archive<Bits::M32>;

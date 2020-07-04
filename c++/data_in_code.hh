@@ -11,7 +11,6 @@ namespace MachO {
    template <Bits bits>
    class DataInCodeEntry {
    public:
-#warning DataInCodeEntry not complete
       data_in_code_entry entry;
       const SectionBlob<bits> *start = nullptr; /*!< first data entry */
       const SectionBlob<bits> *end = nullptr; /*!< last data entry */

@@ -108,7 +108,7 @@ namespace MachO {
       this->segment_command.fileoff = env.loc.offset = align_up(env.loc.offset, PAGESIZE);
       this->segment_command.vmaddr = env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
       
-      linkedits = env.archive.template subcommands<LinkeditCommand<bits>>();
+      linkedits = env.archive->template subcommands<LinkeditCommand<bits>>();
       for (LinkeditCommand<bits> *linkedit : linkedits) {
          linkedit->Build_LINKEDIT(env);
       }
