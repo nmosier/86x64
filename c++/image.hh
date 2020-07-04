@@ -30,18 +30,18 @@ namespace MachO {
          grow(offset + bytes);
          memcpy((char *) img + offset, &*begin, bytes);
       }
-
+      
       void memset(std::size_t offset, int c, std::size_t bytes);
       
       Image(const Image&) = delete;
-
+      
    private:
       int fd;
       int prot;
       std::size_t filesize;
       std::size_t mapsize;
       void *img;
- 
+      
       void resize(std::size_t newsize);
       void grow(std::size_t size);
    };

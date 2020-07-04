@@ -20,15 +20,18 @@ namespace MachO {
       case MH_MAGIC:     return Archive<Bits::M32>::Parse(img);
       case MH_MAGIC_64:  return Archive<Bits::M64>::Parse(img);
                          
-      case FAT_MAGIC:    return Fat<Bits::M32>::Parse(img);
-      case FAT_MAGIC_64: return Fat<Bits::M64>::Parse(img);
+      case FAT_CIGAM:
+      case FAT_MAGIC:
+         return Fat<Bits::M32>::Parse(img);
+
+      case FAT_CIGAM_64:
+      case FAT_MAGIC_64:
+         return Fat<Bits::M64>::Parse(img);
          
       case MH_CIGAM:
       case MH_CIGAM_64:
-      case FAT_CIGAM:
-      case FAT_CIGAM_64:
          throw unsupported_format("archive endianness differs from host endianness");
-
+         
       default:
          throw unrecognized_format("bad magic number 0x%x", (std::size_t) img.at<uint32_t>(0));
       }

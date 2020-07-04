@@ -121,4 +121,15 @@ namespace MachO {
    
 #define case_log(label) case label: fprintf(stderr, xstr(label)  "\n");
 
+   template <typename T>
+   constexpr void big_endian(const T& in, T& out) {
+      static_assert(std::is_integral<T>());
+      const uint8_t *data = (const uint8_t *) &in;
+      out = 0;
+      for (std::size_t i = 0; i < sizeof(T); ++i, ++data) {
+         out <<= 8;
+         out += *data;
+      }
+   }
+ 
 }

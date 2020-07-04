@@ -49,13 +49,11 @@ namespace MachO {
 
          case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
             it += leb128_decode(img, it, vmaddr);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->vmaddr();
             break;
 
          case REBASE_OPCODE_ADD_ADDR_ULEB:
             it += leb128_decode(img, it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr += uleb;
             break;
 
@@ -69,13 +67,11 @@ namespace MachO {
             
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
             it += leb128_decode(img, it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr = do_rebase_times(uleb, vmaddr, env, type);
             break;
 
          case REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
             it += leb128_decode(img, it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr = do_rebase(vmaddr, env, type);
             vmaddr += uleb;
             break;
@@ -83,8 +79,6 @@ namespace MachO {
          case REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
             it += leb128_decode(img, it, uleb);
             it += leb128_decode(img, it, uleb2);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb2);
             vmaddr = do_rebase_times(uleb, vmaddr, env, type, uleb2);
             break;
             
@@ -97,6 +91,7 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
+      std::cerr << "[PARSE] REBASE @ 0x" << std::hex << vmaddr << std::endl;
       rebasees.push_back(RebaseNode<bits>::Parse(vmaddr, env, type));
       return vmaddr + sizeof(ptr_t);
    }
@@ -215,7 +210,9 @@ namespace MachO {
    std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
                                        ssize_t addend, std::size_t dylib, const char *sym,
                                        uint8_t flags) {
-      bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+      if (vmaddr != 0 && sym != nullptr) {
+         bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+      }
       return vmaddr + sizeof(ptr_t);
    }
 
