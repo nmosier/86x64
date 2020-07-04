@@ -6,6 +6,7 @@
 
 #include "image.hh"
 #include "util.hh"
+#include "types.hh"
 
 namespace MachO {
 
@@ -20,7 +21,7 @@ namespace MachO {
          throw cerror("fstat");
       }
       filesize = st.st_size;
-      mapsize = std::max(filesize, PAGESIZE);
+      mapsize = std::max<std::size_t>(filesize, getpagesize());
 
       if ((mode & O_RDWR)) {
          prot = PROT_READ | PROT_WRITE;

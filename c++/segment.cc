@@ -122,12 +122,10 @@ namespace MachO {
 
    template <Bits bits>
    void Segment<bits>::Build_PAGEZERO(BuildEnv<bits>& env) {
-      assert(env.loc.vmaddr == 0);
       segment_command.vmaddr = 0;
-      segment_command.vmsize = vmaddr_start<bits>;
+      segment_command.vmsize = env.loc.vmaddr;
       segment_command.fileoff = 0;
       segment_command.filesize = 0;
-      env.loc.vmaddr += vmaddr_start<bits>;
    }
 
    template <Bits bits>

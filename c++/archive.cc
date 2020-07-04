@@ -48,8 +48,8 @@ namespace MachO {
    }
 
    template <Bits bits>
-   std::size_t Archive<bits>::Build(std::size_t offset) {
-      BuildEnv<bits> env(this, Location(offset, 0));
+   std::size_t Archive<bits>::Build(std::size_t offset, std::size_t vmaddr) {
+      BuildEnv<bits> env(this, Location(offset, vmaddr));
       
       env.allocate(sizeof(header));
       

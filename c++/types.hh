@@ -49,4 +49,9 @@ namespace MachO {
 
    enum class Relation {BEFORE, AFTER};   
    
+   constexpr std::size_t PAGESIZE = 0x1000;
+
+   template <Bits bits>
+   constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x1000 : 0x100000000;
+
 }

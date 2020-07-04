@@ -14,8 +14,9 @@ namespace MachO {
    class AbstractArchive: public MachO {
    public:
       static AbstractArchive *Parse(const Image& img, std::size_t offset);
-      virtual std::size_t Build(std::size_t offset) = 0;
       virtual void Build() override { Build(0); }
+      virtual std::size_t Build(std::size_t offset) = 0;
+      virtual std::size_t Build(std::size_t offset, std::size_t vmaddr) = 0;
    };
    
    template <Bits bits>
@@ -60,7 +61,11 @@ namespace MachO {
       static Archive<bits> *Parse(const Image& img, std::size_t offset = 0) {
          return new Archive(img, offset);
       }
-      virtual std::size_t Build(std::size_t loc) override;
+
+      virtual std::size_t Build(std::size_t offset) override {
+         return Build(offset, vmaddr_start<bits>);
+      }
+      virtual std::size_t Build(std::size_t offset, std::size_t vmaddr) override;
       virtual void Emit(Image& img) const override;
       virtual ~Archive() override;
 

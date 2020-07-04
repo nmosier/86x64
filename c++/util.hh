@@ -97,10 +97,6 @@ namespace MachO {
       return div_down(a, b) * b;
    }
 
-   constexpr std::size_t PAGESIZE = 0x1000;
-
-   template <Bits bits>
-   constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x1000 : 0x100000000;
 
    namespace {
       template <Bits bits>
