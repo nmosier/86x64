@@ -13,6 +13,7 @@
 %define MAP_PRIVATE 0x2
 %define PAGEMASK 0xfff
 %define PAGESIZE 0x1000
+%define MAP_FAILED -1
    
 _main:
    push rbp
@@ -25,8 +26,8 @@ _main:
    mov r8, -1
    mov r9, 0
    call _mmap
-   or rax, rax
-   jz mmap_error
+   cmp rax, MAP_FAILED
+   je mmap_error
    
    mov [rsp + 8], rax           ; save new stack pointer
    mov rdi, rax
@@ -55,7 +56,7 @@ _main:
 mmap_error:
    lea rdi, [rel mmap_errstr]
    call _perror
-   jmp _abort
+   call _abort
    
 
    segment .data

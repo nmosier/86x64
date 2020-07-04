@@ -18,7 +18,7 @@ static const char *usagestr =
    "usage: %1$s subcommand [options...] [args...]\n"                    \
    "       %1$s -h\n"                                                   \
    "\n"                                                                 \
-   "Subcommands:\n"                                                     \
+   "Commands:\n"                                                     \
    "  %1$s help                                  print help dialog\n"   \
    "  %1$s noop [-h] inpath [outpath='a.out']    read in mach-o and write back out\n" \
    ;
@@ -27,16 +27,14 @@ static void usage(FILE *f = stderr) {
    fprintf(f, usagestr, progname);
 }
 
-struct Subcommand {
+struct Command {
    const char *name;
 
-   virtual std::list<std::string> subusage() const = 0;
+   virtual std::string subusage() const = 0;
    void usage(std::ostream& os) const {
       std::string prefix = "usage: ";
-      for (std::string subusage : subusage()) {
-         os << prefix << progname << " " << name << (subusage.empty() ? "" : " ")
-            << subusage << std::endl;
-      }
+      os << prefix << progname << " " << name << (subusage().empty() ? "" : " ")
+         << subusage() << std::endl;
    }
    
    virtual int handle(int argc, char *argv[]) = 0;
@@ -53,35 +51,28 @@ struct Subcommand {
       log(str.c_str(), args...);
    }
 
-   Subcommand(const char *name): name(name) {}
-   virtual ~Subcommand() {}
+   Command(const char *name): name(name) {}
+   virtual ~Command() {}
 };
 
-struct HelpSubcommand: public Subcommand {
-   virtual std::list<std::string> subusage() const override { return {std::string()}; }
+struct HelpCommand: Command {
+   virtual std::string subusage() const override { return ""; }
    
    virtual int handle(int argc, char *argv[]) override {
       usage(std::cout);
       return 0;
    }
    
-   HelpSubcommand(): Subcommand("help") {}
+   HelpCommand(): Command("help") {}
 };
 
-struct RSubcommand: public Subcommand {
+struct RCommand: public Command {
    virtual int work(const MachO::Image& img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
 
-   virtual std::list<std::string> subopts() const = 0;
-   virtual std::list<std::string> subusage() const override {
-      std::list<std::string> list;
-      for (std::string subopts : subopts()) {
-         if (!subopts.empty()) {
-            subopts += " ";
-         }
-         list.push_back(subopts + "<path>");
-      }
-      return list;      
+   virtual std::string subopts() const = 0;
+   virtual std::string subusage() const override {
+      return subopts() + (subopts().empty() ? "" : " ") + "<path>";
    }
 
    virtual int handle(int argc, char *argv[]) override {
@@ -116,23 +107,16 @@ struct RSubcommand: public Subcommand {
    }
 
    template <typename... Args>
-   RSubcommand(Args&&... args): Subcommand(args...) {}
+   RCommand(Args&&... args): Command(args...) {}
 };
 
-struct RWSubcommand: public Subcommand {
+struct RWCommand: public Command {
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
 
-   virtual std::list<std::string> subopts() const = 0;
-   virtual std::list<std::string> subusage() const override {
-      std::list<std::string> list;
-      for (std::string subopts : subopts()) {
-         if (!subopts.empty()) {
-            subopts += " ";
-         }
-         list.push_back(subopts + "inpath [outpath='a.out']");
-      }
-      return list;
+   virtual std::string subopts() const = 0;
+   virtual std::string subusage() const override {
+      return subopts() + (subopts().empty() ? "" : " ") + "<inpath> [<outpath>='a.out']";
    }
    
    virtual int handle(int argc, char *argv[]) override {
@@ -175,13 +159,13 @@ struct RWSubcommand: public Subcommand {
       return 0;
    }
 
-   RWSubcommand(const char *name): Subcommand(name) {}
+   RWCommand(const char *name): Command(name) {}
 };
    
-struct NoopSubcommand: public RWSubcommand {
+struct NoopCommand: public RWCommand {
    int help = 0;
 
-   virtual std::list<std::string> subopts() const override { return {"[-h]"}; }
+   virtual std::string subopts() const override { return "[-h]"; }
    
    virtual int opts(int argc, char *argv[]) override {
       if (scanopt(argc, argv, "h", &help) < 0) {
@@ -203,10 +187,10 @@ struct NoopSubcommand: public RWSubcommand {
       return 0;
    }
 
-   NoopSubcommand(): RWSubcommand("noop") {}
+   NoopCommand(): RWCommand("noop") {}
 };
 
-struct ModifyCommand: public RWSubcommand {
+struct ModifyCommand: public RWCommand {
    int help = 0;
 
    struct Operation {
@@ -220,8 +204,8 @@ struct ModifyCommand: public RWSubcommand {
 
    std::list<std::unique_ptr<Operation>> operations;
 
-   virtual std::list<std::string> subopts() const override {
-      return {"[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]"};
+   virtual std::string subopts() const override {
+      return "[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]";
    }
 
    virtual int opts(int argc, char *argv[]) override;
@@ -238,7 +222,7 @@ struct ModifyCommand: public RWSubcommand {
       return 0;
    }
 
-   ModifyCommand(): RWSubcommand("modify") {}
+   ModifyCommand(): RWCommand("modify") {}
 };
 
 struct ModifyCommand::Insert: public ModifyCommand::Operation {
@@ -416,11 +400,11 @@ int ModifyCommand::opts(int argc, char *argv[]) {
    return 1;
 }
 
-struct TranslateCommand: public RSubcommand {
+struct TranslateCommand: public RCommand {
 public:
    unsigned long offset = 0;
 
-   virtual std::list<std::string> subopts() const override { return {"[-h|-o <offset>]"}; }
+   virtual std::string subopts() const override { return "[-h|-o <offset>]"; }
    
    virtual int opts(int argc, char *argv[]) override {
       int help = 0;
@@ -452,9 +436,67 @@ public:
       return 0;
    }
 
-   TranslateCommand(): RSubcommand("translate") {}
+   TranslateCommand(): RCommand("translate") {}
 };
 
+
+struct InplaceCommand: public Command {
+public:
+   virtual int work(MachO::Image& img) = 0;
+   virtual int opts(int argc, char *argv[]) = 0;
+
+   virtual std::string  subopts() const = 0;
+   virtual std::string subusage() const override {
+      return subopts() + (subopts().empty() ? "" : " ") + "<path>";
+   }
+
+   virtual int handle(int argc, char *argv[]) override {
+      int optstat = opts(argc, argv);
+      if (optstat < 0) {
+         return -1;
+      } else if (optstat == 0) {
+         return 0;
+      }
+
+      if (argc <= optind) {
+         log("missing positional argument");
+         usage(std::cerr);
+         return -1;
+      }
+
+      const char *path = argv[optind++];
+      if (optind != argc) {
+         log("excess positional arguments");
+         usage(std::cerr);
+         return -1;
+      }
+
+      MachO::Image img(path, O_RDWR);
+      MachO::init();
+      
+      if (work(img) < 0) {
+         return -1;
+      }
+
+      return 0;
+   }
+};
+
+#if 0
+struct ModifyInplace: InplaceCommand {
+   virtual int opts(int argc, char *argv[]) override {
+      int optchar;
+      const char *optstring = "hp:";
+      struct option longopts[] =
+         {{"help", no_argument, nullptr, 'h'},
+          {"pie", required_argument, nullptr, 'p'},
+         };
+      int longindex = -1;
+
+      
+   }
+};
+#endif
 
 int main(int argc, char *argv[]) {
    progname = argv[0];
@@ -483,9 +525,9 @@ int main(int argc, char *argv[]) {
 
    const char *subcommand = argv[optind++];
 
-   std::unordered_map<std::string, std::shared_ptr<Subcommand>> subcommands
-      {{"help", std::make_shared<HelpSubcommand>()},
-       {"noop", std::make_shared<NoopSubcommand>()},
+   std::unordered_map<std::string, std::shared_ptr<Command>> subcommands
+      {{"help", std::make_shared<HelpCommand>()},
+       {"noop", std::make_shared<NoopCommand>()},
        {"modify", std::make_shared<ModifyCommand>()},
        {"translate", std::make_shared<TranslateCommand>()},
       };
@@ -496,7 +538,7 @@ int main(int argc, char *argv[]) {
       usage(stderr);
       return 1;
    } else {
-      std::shared_ptr<Subcommand> cmd = it->second;
+      std::shared_ptr<Command> cmd = it->second;
       if (cmd->handle(argc, argv) < 0) {
          return 1;
       }
