@@ -30,11 +30,13 @@ static void usage(FILE *f = stderr) {
 struct Command {
    const char *name;
 
+   virtual std::string optusage() const = 0;
    virtual std::string subusage() const = 0;
+   
    void usage(std::ostream& os) const {
       std::string prefix = "usage: ";
-      os << prefix << progname << " " << name << (subusage().empty() ? "" : " ")
-         << subusage() << std::endl;
+      os << "usage: " << progname << " " << name << (optusage().empty() ? "" : " ")
+         << optusage() << (subusage().empty() ? "" : " ") << subusage() << std::endl;
    }
    
    virtual int handle(int argc, char *argv[]) = 0;
@@ -56,6 +58,7 @@ struct Command {
 };
 
 struct HelpCommand: Command {
+   virtual std::string optusage() const override { return ""; }
    virtual std::string subusage() const override { return ""; }
    
    virtual int handle(int argc, char *argv[]) override {
@@ -70,10 +73,7 @@ struct RCommand: public Command {
    virtual int work(const MachO::Image& img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
 
-   virtual std::string subopts() const = 0;
-   virtual std::string subusage() const override {
-      return subopts() + (subopts().empty() ? "" : " ") + "<path>";
-   }
+   virtual std::string subusage() const override { return "<path>"; }
 
    virtual int handle(int argc, char *argv[]) override {
       int optstat = opts(argc, argv);
@@ -114,10 +114,7 @@ struct RWCommand: public Command {
    virtual int work(const MachO::Image& in_img, MachO::Image& out_img) = 0;
    virtual int opts(int argc, char *argv[]) = 0;
 
-   virtual std::string subopts() const = 0;
-   virtual std::string subusage() const override {
-      return subopts() + (subopts().empty() ? "" : " ") + "<inpath> [<outpath>='a.out']";
-   }
+   virtual std::string subusage() const override { return "<inpath> [<outpath>='a.out']"; }
    
    virtual int handle(int argc, char *argv[]) override {
       /* read options */
@@ -165,7 +162,7 @@ struct RWCommand: public Command {
 struct NoopCommand: public RWCommand {
    int help = 0;
 
-   virtual std::string subopts() const override { return "[-h]"; }
+   virtual std::string optusage() const override { return "[-h]"; }
    
    virtual int opts(int argc, char *argv[]) override {
       if (scanopt(argc, argv, "h", &help) < 0) {
@@ -204,7 +201,7 @@ struct ModifyCommand: public RWCommand {
 
    std::list<std::unique_ptr<Operation>> operations;
 
-   virtual std::string subopts() const override {
+   virtual std::string optusage() const override {
       return "[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]";
    }
 
@@ -404,7 +401,7 @@ struct TranslateCommand: public RCommand {
 public:
    unsigned long offset = 0;
 
-   virtual std::string subopts() const override { return "[-h|-o <offset>]"; }
+   virtual std::string optusage() const override { return "[-h|-o <offset>]"; }
    
    virtual int opts(int argc, char *argv[]) override {
       int help = 0;
