@@ -216,6 +216,7 @@ struct ModifyCommand: public RWSubcommand {
 
    struct Insert;
    struct Delete;
+   struct Start;
 
    std::list<std::unique_ptr<Operation>> operations;
 
@@ -339,14 +340,36 @@ struct ModifyCommand::Delete: ModifyCommand::Operation {
    }
 };
 
+struct ModifyCommand::Start: ModifyCommand::Operation {
+   std::size_t vmaddr;
+
+   Start(char *option) {
+      if (option == nullptr) {
+         throw std::string("missing argument");
+      }
+      
+      vmaddr = std::stoll(option, 0, 0);
+   }
+
+   virtual void operator()(MachO::MachO *macho) override {
+      auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+      if (archive) {
+         archive->vmaddr = this->vmaddr;
+      } else {
+         throw std::string("binary is not an archive");
+      }
+   }
+};
+
 
 int ModifyCommand::opts(int argc, char *argv[]) {
    int optchar;
-   const char *optstring = "hi:d:";
+   const char *optstring = "hi:d:s:";
    struct option longopts[] =
       {{"help", no_argument, nullptr, 'h'},
        {"insert", required_argument, nullptr, 'i'},
        {"delete", required_argument, nullptr, 'd'},
+       {"start", required_argument, nullptr, 's'},
        {0}
       };
    int longindex = -1;
@@ -364,6 +387,10 @@ int ModifyCommand::opts(int argc, char *argv[]) {
 
          case 'd':
             operations.push_back(std::make_unique<Delete>(optarg));
+            break;
+
+         case 's':
+            operations.push_back(std::make_unique<Start>(optarg));
             break;
                
          default:
@@ -388,7 +415,6 @@ int ModifyCommand::opts(int argc, char *argv[]) {
 
    return 1;
 }
-
 
 struct TranslateCommand: public RSubcommand {
 public:
