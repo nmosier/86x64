@@ -1,0 +1,14 @@
+STACK
+   Interpose
+
+
+
+Problem: When you call a natively 64-bit library function, how to convert 32-bit ABI to 64-bit ABI? (1) Learn 32-bit and 64-bit function signatures, then generate custom routine to convert between the two. This can be done by utilizing the __DATA,__interpose section; interpose all calls to external library function with generated wrapper.
+ (2) Convert all dylib dependencies from 32-bit to 64-bit in similar fashion to preserve ABI.
+
+How to ensure that system libraries are loaded to the correct location?
+(1) Tweak dyld to map libraries within range.
+
+------
+07/05
+Demonstrated that using `chroot' and a sandbox, you can get ALL dylibs mapped to lower-32-bit address using interposition. Black magic! This means that the only nontrivial task is to generate conversion functions. Fuckin' A!
