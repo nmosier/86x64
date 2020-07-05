@@ -24,6 +24,7 @@ namespace MachO::Tweak {
 
    class AbstractArchive: public MachO {
    public:
+      virtual uint32_t& flags() const = 0;
    protected:
       AbstractArchive(Image& img): MachO(img) {}
    };
@@ -33,6 +34,8 @@ namespace MachO::Tweak {
    public:
       mach_header_t<bits>& header;
 
+      virtual uint32_t& flags() const override { return header.flags; }
+      
       static Archive<bits> *Parse(Image& img, std::size_t offset = 0) {
          return new Archive(img, offset);
       }

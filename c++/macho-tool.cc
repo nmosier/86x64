@@ -484,24 +484,59 @@ public:
    TranslateCommand(): InplaceCommand("translate", O_RDONLY) {}
 };
 
-
+#define MH_FLAG(flag) {#flag + 3, flag}
 
 /* change flags, etc. in-place */
 struct TweakCommand: InplaceCommand {
+   template <typename Flag>
+   using Flags = std::unordered_map<Flag, bool>;
+   
+   Flags<uint32_t> mach_header_flags;
+   
    int pie = -1;
    
-   virtual std::string optusage() const override { return "[-h|-p <bool>]"; }
-   virtual const char *optstring() const override { return "hp:"; }
+   virtual std::string optusage() const override { return "[-h|-f <flag>[,<flag>]*]"; }
+   virtual const char *optstring() const override { return "hf:"; }
    virtual std::vector<option> longopts() const override {
       return {{"help", no_argument, nullptr, 'h'},
-              {"pie", required_argument, nullptr, 'p'},
+              {"flags", required_argument, nullptr, 'f'},
               {0}};
    }
 
    virtual int opthandler(int optchar) override {
       switch (optchar) {
-      case 'p':
-         pie = stobool(optarg);
+      case 'f': /* mach_header_t flags */
+         parse_flags(optarg,
+                     {MH_FLAG(MH_NOUNDEFS),
+                      MH_FLAG(MH_INCRLINK),
+                      MH_FLAG(MH_DYLDLINK),
+                      MH_FLAG(MH_BINDATLOAD),
+                      MH_FLAG(MH_PREBOUND),
+                      MH_FLAG(MH_SPLIT_SEGS),
+                      MH_FLAG(MH_LAZY_INIT),
+                      MH_FLAG(MH_TWOLEVEL),
+                      MH_FLAG(MH_FORCE_FLAT),
+                      MH_FLAG(MH_NOMULTIDEFS),
+                      MH_FLAG(MH_NOFIXPREBINDING),
+                      MH_FLAG(MH_PREBINDABLE),
+                      MH_FLAG(MH_ALLMODSBOUND),
+                      MH_FLAG(MH_SUBSECTIONS_VIA_SYMBOLS),
+                      MH_FLAG(MH_CANONICAL),
+                      MH_FLAG(MH_WEAK_DEFINES),
+                      MH_FLAG(MH_BINDS_TO_WEAK),
+                      MH_FLAG(MH_ALLOW_STACK_EXECUTION),
+                      MH_FLAG(MH_ROOT_SAFE),
+                      MH_FLAG(MH_SETUID_SAFE),
+                      MH_FLAG(MH_NO_REEXPORTED_DYLIBS),
+                      MH_FLAG(MH_PIE),
+                      MH_FLAG(MH_DEAD_STRIPPABLE_DYLIB),
+                      MH_FLAG(MH_HAS_TLV_DESCRIPTORS),
+                      MH_FLAG(MH_NO_HEAP_EXECUTION),
+                      MH_FLAG(MH_APP_EXTENSION_SAFE),
+                      MH_FLAG(MH_NLIST_OUTOFSYNC_WITH_DYLDINFO),
+                      MH_FLAG(MH_SIM_SUPPORT),
+                     },
+                     mach_header_flags);
          return 1;
          
       case 'h':
@@ -516,20 +551,55 @@ struct TweakCommand: InplaceCommand {
       auto macho = MachO::Tweak::MachO::Parse(*img);
       auto archive = dynamic_cast<MachO::Tweak::Archive<MachO::Bits::M64> *>(macho);
 
-      if (pie >= 0) {
+      if (!mach_header_flags.empty()) {
          if (archive == nullptr) {
-            log("modifying PIE flags only supported for 64-bit archives");
+            log("--flags: modifying mach header flags  only supported for 64-bit archives");
             return -1;
          }
-         
-         if (pie == 0) {
-            archive->header.flags &= ~ (uint32_t) MH_PIE;
-         } else if (pie == 1) {
-            archive->header.flags |= MH_PIE;
+
+         for (auto pair : mach_header_flags) {
+            if (pair.second) {
+               /* add flag */
+               archive->header.flags |= pair.first;
+            } else {
+               archive->header.flags &= ~pair.first;
+            }
          }
       }
 
       return 0;
+   }
+
+   template <typename Flag>
+   static void parse_flags(char *optarg, const std::unordered_map<std::string, Flag>& flagset,
+                           Flags<Flag>& flags) {
+      const char *token;
+      bool mask;
+      while ((token = strsep(&optarg, ",")) != nullptr) {
+         /* get mask */
+         switch (*token) {
+         case '\0':
+            throw std::string("empty flag");
+         case '-':
+            ++token;
+            mask = false;
+            break;
+         case '+':
+            ++token;
+         default:
+            mask = true;
+         }
+
+         /* parse flag */
+         std::string flagstr(token);
+         auto flagset_it = flagset.find(flagstr);
+         if (flagset_it == flagset.end()) {
+            std::stringstream ss;
+            ss << "invalid flag `" << token << "'";
+            throw std::string(ss.str());
+         }
+         flags.insert({flagset_it->second, mask});
+      }
    }
 
    TweakCommand(): InplaceCommand("tweak", O_RDWR) {}
