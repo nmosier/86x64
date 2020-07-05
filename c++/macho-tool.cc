@@ -276,7 +276,7 @@ struct ModifyCommand: public InOutCommand {
    std::list<std::unique_ptr<Operation>> operations;
 
    virtual std::string optusage() const override {
-      return "[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]";
+      return "[-h | -i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after] | -d (vmaddr=<vmaddr>|offset=<offset>) | -s <vmaddr>]";
    }
 
    virtual int work() override {
