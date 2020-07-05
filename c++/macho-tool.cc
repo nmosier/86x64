@@ -38,7 +38,24 @@ struct Command {
    virtual const char *optstring() const = 0;
    virtual std::vector<option> longopts() const = 0;
    virtual int opthandler(int optchar) = 0;
-   virtual int handle(int argc, char *argv[]) = 0;
+   virtual void arghandler(int argc, char *argv[]) = 0;
+   virtual int work() = 0;
+   virtual int handle(int argc, char *argv[]) {
+      int optstat = parseopts(argc, argv);
+      if (optstat <= 0) {
+         return optstat;
+      }
+
+      try {
+         arghandler(argc, argv);
+      } catch (const std::string& s) {
+         log(s);
+         usage(std::cerr);
+         return -1;
+      }
+      
+      return work();
+   }
    
    void usage(std::ostream& os) const {
       std::string prefix = "usage: ";
@@ -101,6 +118,23 @@ struct Command {
       log(str.c_str(), args...);
    }
 
+   template <>
+   constexpr void log(const std::string& s) const {
+      log(s.c_str());
+   }
+   
+   const char *getarg(int argc, char *argv[], const char *init = nullptr) const {
+      if (optind >= argc) {
+         if (init) {
+            return init;
+         } else {
+            throw std::string("missing positional argument");
+         }
+      } else {
+         return argv[optind++];
+      }
+   }
+   
    Command(const char *name): name(name) {}
    virtual ~Command() {}
 };
@@ -112,106 +146,47 @@ struct HelpCommand: Command {
    virtual const char *optstring() const override { return ""; }
    virtual std::vector<option> longopts() const override { return {}; }
    virtual int opthandler(int optchar) override { return 1; }
-   
-   virtual int handle(int argc, char *argv[]) override {
+   virtual void arghandler(int argc, char *argv[]) override {}
+
+   virtual int work() override {
       usage(std::cout);
       return 0;
    }
-   
+
    HelpCommand(): Command("help") {}
 };
 
-struct RCommand: public Command {
-   virtual int work(const MachO::Image& img) = 0;
-   virtual int opts(int argc, char *argv[]) = 0;
-
+struct InplaceCommand: public Command {
+   int mode;
+   std::unique_ptr<MachO::Image> img;
+   
    virtual std::string subusage() const override { return "<path>"; }
 
-   virtual int handle(int argc, char *argv[]) override {
-      int optstat = opts(argc, argv);
-      if (optstat < 0) {
-         return -1;
-      } else if (optstat == 0) {
-         return 0;
-      }
-
-      if (argc <= optind) {
-         log("missing positional argument");
-         usage(std::cerr);
-         return -1;
-      }
-
-      const char *path = argv[optind++];
-      if (optind != argc) {
-         log("excess positional arguments");
-         usage(std::cerr);
-         return -1;
-      }
-
-      const MachO::Image img(path, O_RDONLY);
-      MachO::init();
-
-      if (work(img) < 0) {
-         return -1;
-      }
-
-      return 0;
+   virtual void arghandler(int argc, char *argv[]) override {
+      const char *path = getarg(argc, argv);
+      img = std::make_unique<MachO::Image>(path, mode);
    }
-
-   template <typename... Args>
-   RCommand(Args&&... args): Command(args...) {}
+   
+   InplaceCommand(const char *name, int mode): Command(name), mode(mode) {}
 };
 
-struct RWCommand: public Command {
-   virtual int work(const MachO::Image& in_img, MachO::Image& out_img) = 0;
-   virtual int opts(int argc, char *argv[]) = 0;
-
+struct InOutCommand: Command {
+   std::unique_ptr<MachO::Image> in_img;
+   std::unique_ptr<MachO::Image> out_img;
+   
    virtual std::string subusage() const override { return "<inpath> [<outpath>='a.out']"; }
-   
-   virtual int handle(int argc, char *argv[]) override {
-      /* read options */
-      int optstat = opts(argc, argv);
-      if (optstat < 0) {
-         return -1;
-      } else if (optstat == 0) {
-         return 0;
-      }
 
-      /* open images */
-      if (argc <= optind) {
-         log("missing positional argument");
-         usage(std::cerr);
-         return -1;
-      }
-      
-      const char *in_path = argv[optind++];
-      const char *out_path = "a.out";
-      if (optind < argc) {
-         out_path = argv[optind++];
-      }
+   virtual void arghandler(int argc, char *argv[]) override {
+      const char *in_path = getarg(argc, argv);
+      const char *out_path = getarg(argc, argv, "a.out");
+      in_img = std::make_unique<MachO::Image>(in_path, O_RDONLY);
+      out_img = std::make_unique<MachO::Image>(out_path, O_RDWR | O_CREAT | O_TRUNC);
+   }   
 
-      if (optind != argc) {
-         log("excess positional arguments");
-         usage(std::cerr);
-         return -1;
-      }
-
-      const MachO::Image in_img(in_path, O_RDONLY);
-      MachO::Image out_img(out_path, O_RDWR | O_CREAT | O_TRUNC);
-
-      MachO::init();
-      
-      if (work(in_img, out_img) < 0) {
-         return -1;
-      }
-
-      return 0;
-   }
-
-   RWCommand(const char *name): Command(name) {}
+   InOutCommand(const char *name): Command(name) {}
 };
    
-struct NoopCommand: public RWCommand {
+struct NoopCommand: InOutCommand {
    int help = 0;
 
    virtual std::string optusage() const override { return "[-h]"; }
@@ -231,30 +206,17 @@ struct NoopCommand: public RWCommand {
       }
    }
    
-   virtual int opts(int argc, char *argv[]) override {
-      if (scanopt(argc, argv, "h", &help) < 0) {
-         return -1;
-      }
-
-      if (help) {
-         usage(std::cout);
-         return 0;
-      }
-         
-      return 1;
-   }
-   
-   virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
-      MachO::MachO *macho = MachO::MachO::Parse(in_img);
+   virtual int work() override {
+      MachO::MachO *macho = MachO::MachO::Parse(*in_img);
       macho->Build();
-      macho->Emit(out_img);
+      macho->Emit(*out_img);
       return 0;
    }
 
-   NoopCommand(): RWCommand("noop") {}
+   NoopCommand(): InOutCommand("noop") {}
 };
 
-struct ModifyCommand: public RWCommand {
+struct ModifyCommand: public InOutCommand {
    int help = 0;
 
    struct Operation {
@@ -282,21 +244,19 @@ struct ModifyCommand: public RWCommand {
       return "[-h|-i (vmaddr=<vmaddr>|offset=<offset>),bytes=<count>,[before|after]]";
    }
 
-   virtual int opts(int argc, char *argv[]) override;
-   
-   virtual int work(const MachO::Image& in_img, MachO::Image& out_img) override {
-      MachO::MachO *macho = MachO::MachO::Parse(in_img);
+   virtual int work() override {
+      MachO::MachO *macho = MachO::MachO::Parse(*in_img);
 
       for (auto& op : operations) {
          (*op)(macho);
       }
       
       macho->Build();
-      macho->Emit(out_img);
+      macho->Emit(*out_img);
       return 0;
    }
 
-   ModifyCommand(): RWCommand("modify") {}
+   ModifyCommand(): InOutCommand("modify") {}
 };
 
 struct ModifyCommand::Insert: public ModifyCommand::Operation {
@@ -419,60 +379,6 @@ struct ModifyCommand::Start: ModifyCommand::Operation {
    }
 };
 
-
-int ModifyCommand::opts(int argc, char *argv[]) {
-   int optchar;
-   const char *optstring = "hi:d:s:";
-   struct option longopts[] =
-      {{"help", no_argument, nullptr, 'h'},
-       {"insert", required_argument, nullptr, 'i'},
-       {"delete", required_argument, nullptr, 'd'},
-       {"start", required_argument, nullptr, 's'},
-       {0}
-      };
-   int longindex = -1;
-
-   try {
-      while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
-         switch (optchar) {
-         case 'h':
-            usage(std::cout);
-            return 0;
-               
-         case 'i':
-            operations.push_back(std::make_unique<Insert>(optarg));
-            break;
-
-         case 'd':
-            operations.push_back(std::make_unique<Delete>(optarg));
-            break;
-
-         case 's':
-            operations.push_back(std::make_unique<Start>(optarg));
-            break;
-               
-         default:
-            usage(std::cerr);
-            return -1;
-         }
-            
-         longindex = -1;
-      }
-   } catch (const std::string& s) {
-      std::string prefix;
-      if (longindex >= 0) {
-         prefix = std::string("--") + longopts[longindex].name;
-      } else {
-         prefix = std::string("-");
-         prefix.push_back(optchar);
-      }
-      log(prefix + ": " + s);
-      usage(std::cerr);
-      return -1;
-   }
-   return 1;
-}
-
 int ModifyCommand::opthandler(int optchar) {
    switch (optchar) {
    case 'h':
@@ -493,7 +399,7 @@ int ModifyCommand::opthandler(int optchar) {
 }
 
 
-struct TranslateCommand: public RCommand {
+struct TranslateCommand: public InplaceCommand {
 public:
    unsigned long offset = 0;
 
@@ -524,23 +430,9 @@ public:
       }
    }
    
-   virtual int opts(int argc, char *argv[]) override {
-      int help = 0;
-      if (scanopt(argc, argv, "ho+", &help, &offset) < 0) {
-         return -1;
-      }
+   virtual int work() override {
+      MachO::MachO *macho = MachO::MachO::Parse(*img);
       
-      if (help) {
-         usage(std::cout);
-         return 0;
-      }
-
-      return 1;
-   }
-
-   virtual int work(const MachO::Image& img) override {
-      MachO::MachO *macho = MachO::MachO::Parse(img);
-
       auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
       if (archive == nullptr) {
          log("only 64-bit archives supported");
@@ -554,81 +446,8 @@ public:
       return 0;
    }
 
-   TranslateCommand(): RCommand("translate") {}
+   TranslateCommand(): InplaceCommand("translate", O_RDONLY) {}
 };
-
-#if 0
-struct InplaceCommand: public Command {
-public:
-   virtual int work(MachO::Image& img) = 0;
-   virtual int opts(int argc, char *argv[]) = 0;
-
-   virtual std::string  subopts() const = 0;
-   virtual std::string subusage() const override {
-      return subopts() + (subopts().empty() ? "" : " ") + "<path>";
-   }
-   virtual const char *optstring() const override { return "h"; }
-   virtual std::vector<option> longopts() const override {
-      return {{"help", no_argument, nullptr, 'h'},
-              {0}};
-   }
-
-   virtual int opthandler(int optchar) override {
-      switch (optchar) {
-      case 'h':
-         usage(std::cout);
-         return 0;
-         
-      default: abort();
-      }
-   }
-
-   virtual int handle(int argc, char *argv[]) override {
-      int optstat = opts(argc, argv);
-      if (optstat < 0) {
-         return -1;
-      } else if (optstat == 0) {
-         return 0;
-      }
-
-      if (argc <= optind) {
-         log("missing positional argument");
-         usage(std::cerr);
-         return -1;
-      }
-
-      const char *path = argv[optind++];
-      if (optind != argc) {
-         log("excess positional arguments");
-         usage(std::cerr);
-         return -1;
-      }
-
-      MachO::Image img(path, O_RDWR);
-      MachO::init();
-      
-      if (work(img) < 0) {
-         return -1;
-      }
-
-      return 0;
-   }
-};
-
-struct ModifyInplace: InplaceCommand {
-   virtual int opts(int argc, char *argv[]) override {
-      int optchar;
-      const char *optstring = "hp:";
-      struct option longopts[] =
-         {{"help", no_argument, nullptr, 'h'},
-          {"pie", required_argument, nullptr, 'p'},
-         };
-      int longindex = -1;
-
-      
-   }
-};
-#endif
 
 int main(int argc, char *argv[]) {
    progname = argv[0];
@@ -647,6 +466,8 @@ int main(int argc, char *argv[]) {
       usage(stdout);
       return 0;
    }
+
+   MachO::init();
 
    /* prepare for subcommand */
    if (optind == argc) {
