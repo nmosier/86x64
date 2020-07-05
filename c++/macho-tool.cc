@@ -12,6 +12,7 @@
 #include "macho.hh"
 #include "archive.hh"
 #include "instruction.hh"
+#include "tweak.hh"
 
 static const char *progname = nullptr;
 static const char *usagestr =
@@ -25,6 +26,40 @@ static const char *usagestr =
 
 static void usage(FILE *f = stderr) {
    fprintf(f, usagestr, progname);
+}
+
+static bool stobool(const std::string& s_) {
+   std::string s = s_;
+   for (char& c : s) {
+      c = tolower(c);
+   }
+   
+   std::unordered_map<std::string, bool> map =
+      {{"t", true},
+       {"f", false},
+       {"true", true},
+       {"false", false},
+      };
+
+   const auto it = map.find(s);
+   if (it != map.end()) {
+      return it->second;
+   } else {
+      /* try to convert to integer */
+      char *end;
+      long tmp = std::strtol(s.c_str(), &end, 0);
+      if (s == "" || *end != '\0') {
+         std::stringstream ss;
+         ss << "invalid boolean `" << s << "'";
+         throw ss.str();
+      }
+
+      switch (tmp) {
+      case 0:  return false;
+      case 1:  return true;
+      default: throw std::string("boolean value must be 0 or 1");
+      }
+   }
 }
 
 struct Command {
@@ -449,6 +484,58 @@ public:
    TranslateCommand(): InplaceCommand("translate", O_RDONLY) {}
 };
 
+
+
+/* change flags, etc. in-place */
+struct TweakCommand: InplaceCommand {
+   int pie = -1;
+   
+   virtual std::string optusage() const override { return "[-h|-p <bool>]"; }
+   virtual const char *optstring() const override { return "hp:"; }
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {"pie", required_argument, nullptr, 'p'},
+              {0}};
+   }
+
+   virtual int opthandler(int optchar) override {
+      switch (optchar) {
+      case 'p':
+         pie = stobool(optarg);
+         return 1;
+         
+      case 'h':
+         usage(std::cout);
+         return 0;
+
+      default: abort();
+      }
+   }
+
+   virtual int work() override {
+      auto macho = MachO::Tweak::MachO::Parse(*img);
+      auto archive = dynamic_cast<MachO::Tweak::Archive<MachO::Bits::M64> *>(macho);
+
+      if (pie >= 0) {
+         if (archive == nullptr) {
+            log("modifying PIE flags only supported for 64-bit archives");
+            return -1;
+         }
+         
+         if (pie == 0) {
+            archive->header.flags &= ~ (uint32_t) MH_PIE;
+         } else if (pie == 1) {
+            archive->header.flags |= MH_PIE;
+         }
+      }
+
+      return 0;
+   }
+
+   TweakCommand(): InplaceCommand("tweak", O_RDWR) {}
+   
+};
+
 int main(int argc, char *argv[]) {
    progname = argv[0];
 
@@ -483,6 +570,7 @@ int main(int argc, char *argv[]) {
        {"noop", std::make_shared<NoopCommand>()},
        {"modify", std::make_shared<ModifyCommand>()},
        {"translate", std::make_shared<TranslateCommand>()},
+       {"tweak", std::make_shared<TweakCommand>()},
       };
 
    auto it = subcommands.find(subcommand);
