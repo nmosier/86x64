@@ -30,16 +30,64 @@ static void usage(FILE *f = stderr) {
 struct Command {
    const char *name;
 
+   /* usage functions */
    virtual std::string optusage() const = 0;
    virtual std::string subusage() const = 0;
+
+   /* option parsers */
+   virtual const char *optstring() const = 0;
+   virtual std::vector<option> longopts() const = 0;
+   virtual int opthandler(int optchar) = 0;
+   virtual int handle(int argc, char *argv[]) = 0;
    
    void usage(std::ostream& os) const {
       std::string prefix = "usage: ";
       os << "usage: " << progname << " " << name << (optusage().empty() ? "" : " ")
          << optusage() << (subusage().empty() ? "" : " ") << subusage() << std::endl;
    }
+
+   int parseopts(int argc, char *argv[]) {
+      int optchar;
+      int longindex = -1;
+      const struct option *longopts = this->longopts().data();
+
+      try {
+         while ((optchar = getopt_long(argc, argv, optstring(), longopts, nullptr)) >= 0) {
+            if (optchar == '?') {
+               std::stringstream ss;
+               ss << "invalid option `";
+               if (longindex < 0) {
+                  ss << (char) optchar;
+               } else {
+                  ss << longopts[longindex].name;
+               }
+               ss << "'";
+               log(ss.str());
+               return -1;
+            } else {
+               int optstat = opthandler(optchar);
+               if (optstat <= 0) {
+                  return optstat;
+               }
+            }
+            longindex = -1;
+         }
+      } catch (const std::string& s) { 
+         std::string prefix;
+         if (longindex >= 0) {
+            prefix = std::string("--") + longopts[longindex].name;
+         } else {
+            prefix = std::string("-");
+            prefix.push_back(optchar);
+         }
+         log(prefix + ": " + s);
+         usage(std::cerr);
+         return -1;        
+      }
+
+      return 1;
+   }
    
-   virtual int handle(int argc, char *argv[]) = 0;
 
    template <typename... Args>
    constexpr void log(const char *str, Args&&... args) const {
@@ -60,6 +108,10 @@ struct Command {
 struct HelpCommand: Command {
    virtual std::string optusage() const override { return ""; }
    virtual std::string subusage() const override { return ""; }
+
+   virtual const char *optstring() const override { return ""; }
+   virtual std::vector<option> longopts() const override { return {}; }
+   virtual int opthandler(int optchar) override { return 1; }
    
    virtual int handle(int argc, char *argv[]) override {
       usage(std::cout);
@@ -163,6 +215,21 @@ struct NoopCommand: public RWCommand {
    int help = 0;
 
    virtual std::string optusage() const override { return "[-h]"; }
+
+   virtual const char *optstring() const override { return "h"; }
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {0}};
+   }
+
+   virtual int opthandler(int optchar) override {
+      switch (optchar) {
+      case 'h':
+         usage(std::cout);
+         return 0;
+      default: abort();
+      }
+   }
    
    virtual int opts(int argc, char *argv[]) override {
       if (scanopt(argc, argv, "h", &help) < 0) {
@@ -198,6 +265,16 @@ struct ModifyCommand: public RWCommand {
    struct Insert;
    struct Delete;
    struct Start;
+
+   virtual const char *optstring() const override { return "hi:d:s:"; }
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {"insert", required_argument, nullptr, 'i'},
+              {"delete", required_argument, nullptr, 'd'},
+              {"start", required_argument, nullptr, 's'},
+              {0}};
+   }
+   virtual int opthandler(int optchar) override;
 
    std::list<std::unique_ptr<Operation>> operations;
 
@@ -393,15 +470,59 @@ int ModifyCommand::opts(int argc, char *argv[]) {
       usage(std::cerr);
       return -1;
    }
-
    return 1;
 }
+
+int ModifyCommand::opthandler(int optchar) {
+   switch (optchar) {
+   case 'h':
+      usage(std::cout);
+      return 0;         
+   case 'i':
+      operations.push_back(std::make_unique<Insert>(optarg));
+      return 1;
+   case 'd':
+      operations.push_back(std::make_unique<Delete>(optarg));
+      return 1;
+   case 's':
+      operations.push_back(std::make_unique<Start>(optarg));
+      return 1;
+   default:
+      abort();
+   }
+}
+
 
 struct TranslateCommand: public RCommand {
 public:
    unsigned long offset = 0;
 
    virtual std::string optusage() const override { return "[-h|-o <offset>]"; }
+   virtual const char *optstring() const override { return "ho:"; }
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {"offset", required_argument, nullptr, 'o'},
+              {0}};
+   }
+
+   virtual int opthandler(int optchar) override {
+      switch (optchar) {
+      case 'h':
+         usage(std::cout);
+         return 0;
+      case 'o':
+         {
+            char *endptr;
+            offset = std::strtoul(optarg, &endptr, 0);
+            if (*optarg == '\0' || *endptr) {
+               throw std::string("invalid offset");
+            }
+         }
+         return 1;
+         
+      default: abort();
+      }
+   }
    
    virtual int opts(int argc, char *argv[]) override {
       int help = 0;
@@ -436,7 +557,7 @@ public:
    TranslateCommand(): RCommand("translate") {}
 };
 
-
+#if 0
 struct InplaceCommand: public Command {
 public:
    virtual int work(MachO::Image& img) = 0;
@@ -445,6 +566,21 @@ public:
    virtual std::string  subopts() const = 0;
    virtual std::string subusage() const override {
       return subopts() + (subopts().empty() ? "" : " ") + "<path>";
+   }
+   virtual const char *optstring() const override { return "h"; }
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {0}};
+   }
+
+   virtual int opthandler(int optchar) override {
+      switch (optchar) {
+      case 'h':
+         usage(std::cout);
+         return 0;
+         
+      default: abort();
+      }
    }
 
    virtual int handle(int argc, char *argv[]) override {
@@ -479,7 +615,6 @@ public:
    }
 };
 
-#if 0
 struct ModifyInplace: InplaceCommand {
    virtual int opts(int argc, char *argv[]) override {
       int optchar;
