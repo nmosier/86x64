@@ -37,7 +37,7 @@ namespace MachO {
       void Parse2(ParseEnv<bits>& env);
 
       virtual void Build(BuildEnv<bits>& env);
-      std::size_t content_size() const;
+      // std::size_t content_size() const;
       void Emit(Image& img, std::size_t offset) const;
       void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob);
 
@@ -99,7 +99,7 @@ namespace MachO {
    class RelocationInfo {
    public:
       relocation_info info;
-      const RelocBlob<bits> *relocee = nullptr;
+      RelocBlob<bits> *relocee = nullptr;
       
       static std::size_t size() { return sizeof(info); }
       
@@ -107,6 +107,8 @@ namespace MachO {
                                          const Location& baseloc) {
          return new RelocationInfo(img, offset, env, baseloc);
       }
+      void Emit(Image& img, std::size_t offset, const Location& baseloc) const;
+      
       
    private:
       RelocationInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env,

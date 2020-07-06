@@ -81,30 +81,16 @@ namespace MachO {
       env.align(sect.align);
       loc(env.loc);
 
-      Location relloc;
-      sect.nreloc = relocs.size();
-      env.allocate(sect.nreloc * RelocationInfo<bits>::size(), relloc);
-      sect.reloff = relloc.offset;
-      
       for (SectionBlob<bits> *elem : content) {
          elem->Build(env);
       }
 
       sect.size = env.loc.offset - loc().offset;
 
-      fprintf(stderr, "[BUILD] segment %s, section %s @ offset 0x%zx, vmaddr 0x%zx\n",
-              sect.segname, sect.sectname, loc().offset, loc().vmaddr);
-   }
-
-   template <Bits bits>
-   std::size_t Section<bits>::content_size() const {
-      std::size_t size = 0;
-      for (const SectionBlob<bits> *elem : content) {
-         if (elem->active) {
-            size += elem->size();
-         }
-      }
-      return align_up<std::size_t>(size, 1 << sect.align);
+      Location relloc;
+      sect.nreloc = relocs.size();
+      env.allocate(sect.nreloc * RelocationInfo<bits>::size(), relloc);
+      sect.reloff = relloc.offset;
    }
 
    template <Bits bits>
@@ -118,6 +104,11 @@ namespace MachO {
             elem->Emit(img, sect_offset);
             sect_offset += elem->size();
          }
+      }
+
+      for (const RelocationInfo<bits> *reloc : relocs) {
+         reloc->Emit(img, sect_offset, loc());
+         sect_offset += RelocationInfo<bits>::size();
       }
    }
 
@@ -301,8 +292,15 @@ namespace MachO {
    {
       /* create reloc blob */
       const Location relocloc = baseloc + info.r_address;
-      env.relocs.insert({relocloc.vmaddr,
-                         RelocBlob<bits>::Parse(img, relocloc, env, info.r_type)});
+      relocee = RelocBlob<bits>::Parse(img, relocloc, env, info.r_type);
+      env.relocs.insert({relocloc.vmaddr, relocee});
+   }
+
+   template <Bits bits>
+   void RelocationInfo<bits>::Emit(Image& img, std::size_t offset, const Location& baseloc) const {
+      relocation_info info = this->info;
+      info.r_address = relocee->loc.vmaddr - baseloc.vmaddr;
+      img.at<relocation_info>(offset) = info;
    }
 
    template class Section<Bits::M32>;
