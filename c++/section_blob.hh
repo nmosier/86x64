@@ -172,20 +172,42 @@ namespace MachO {
       template <Bits> friend class Placeholder;
    };
 
-#if 0
    template <Bits bits>
-   class InterposeBlob: public SectionBlob<bits> {
+   class RelocBlob: public SectionBlob<bits> {
    public:
-      S
-
-      static Interpose<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env) {
-         return new InterposeBlob(loc, env);
+      virtual RelocBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         throw error("transforming relocation blobs unsupported");
       }
       
-   private:
-      Interpose(const Image& img, const Location& loc, ParseEnv<bits>& env):
-         SectionBlob<bits>(loc, env) { /* TODO */ }
+      static RelocBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env,
+                                    uint8_t type);
+      
+   protected:
+      RelocBlob(const Location& loc, ParseEnv<bits>& env): SectionBlob<bits>(loc, env) {}
    };
-#endif
-   
+
+   template <Bits bits, typename T>
+   class RelocBlobT: public RelocBlob<bits> {
+   public:
+      static_assert(std::is_integral<T>());
+
+      T data;
+
+      virtual std::size_t size() const override { return sizeof(T); }
+
+      virtual void Emit(Image& img, std::size_t offset) const override;
+
+      static RelocBlobT<bits, T> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
+      { return new RelocBlobT(img, loc, env); }
+      
+   private:
+      RelocBlobT(const Image& img, const Location& loc, ParseEnv<bits>& env);
+   };
+
+   template <Bits bits>
+   using RelocUnsignedBlob = RelocBlobT<bits, macho_addr_t<bits>>;
+
+   template <Bits bits>
+   using RelocBranchBlob = RelocBlobT<bits, int32_t>;
+
 }

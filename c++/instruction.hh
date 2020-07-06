@@ -19,9 +19,11 @@ namespace MachO {
       std::vector<uint8_t> instbuf;
       xed_decoded_inst_t xedd;
       unsigned memidx;
-      const SectionBlob<bits> *memdisp; /*!< memory displacement pointee */
-      Immediate<bits> *imm;
-      const SectionBlob<bits> *brdisp;  /*!< branch displacement pointee */
+      const SectionBlob<bits> *memdisp = nullptr; /*!< memory displacement pointee */
+      Immediate<bits> *imm = nullptr;
+      const SectionBlob<bits> *brdisp = nullptr;  /*!< branch displacement pointee */
+
+      RelocBlob<bits> *reloc = nullptr; /*!< relocation pointee (owned) */
       
       virtual std::size_t size() const override { return instbuf.size(); }
       virtual void Emit(Image& img, std::size_t offset) const override;

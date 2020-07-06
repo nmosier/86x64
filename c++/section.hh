@@ -3,6 +3,7 @@
 #include <list>
 #include <vector>
 #include <sstream>
+#include <mach-o/reloc.h>
 
 #include "util.hh"
 #include "loc.hh"
@@ -11,13 +12,17 @@
 
 namespace MachO {
 
+   template <Bits> class RelocationInfo;
+   
    template <Bits bits>
    class Section {
    public:
       using Content = std::list<SectionBlob<bits> *>;
+      using Relocations = std::list<RelocationInfo<bits> *>;
       
       section_t<bits> sect;
       Content content;
+      Relocations relocs;
 
       std::string name() const;
       Location loc() const { return Location(sect.offset, sect.addr); }
@@ -81,14 +86,31 @@ namespace MachO {
       typedef SectionBlob<bits> *(*Parser)(const Image&, const Location&, ParseEnv<bits>&);
       Parser parser;
       
-      Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser):
-         sect(img.at<section_t<bits>>(offset)), parser(parser) {}
+      Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser);
       Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
 
       static SectionBlob<bits> *TextParser(const Image& img, const Location& loc,
                                            ParseEnv<bits>& env);
 
       template <Bits> friend class Section;
+   };
+
+   template <Bits bits>
+   class RelocationInfo {
+   public:
+      relocation_info info;
+      const RelocBlob<bits> *relocee = nullptr;
+      
+      static std::size_t size() { return sizeof(info); }
+      
+      static RelocationInfo<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                         std::size_t baseaddr) {
+         return new RelocationInfo(img, offset, env, baseaddr);
+      }
+      
+   private:
+      RelocationInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                     std::size_t baseaddr);
    };
 
 }

@@ -46,6 +46,7 @@ namespace MachO {
    template <Bits> class Instruction;
    template <Bits> class SectionBlob;
    template <Bits> class Placeholder;
+   template <Bits> class RelocBlob;
 
    enum class Relation {BEFORE, AFTER};   
    

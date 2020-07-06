@@ -15,8 +15,8 @@ namespace MachO {
    Section<bits> *Section<bits>::Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
       section_t<bits> sect = img.at<section_t<bits>>(offset);
       uint32_t flags = sect.flags;
-
-      /* chcek whether contains instructions */
+      
+      /* check whether contains instructions */
       std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER,
                                                  SECT_SYMBOL_STUBS};
       for (const std::string& sectname : text_sectnames) {
@@ -47,14 +47,6 @@ namespace MachO {
       } else {
          return Instruction<bits>::Parse(img, loc, env);
       }
-
-#if 0
-      try {
-         return Instruction<bits>::Parse(img, loc, env);
-      } catch (...) {
-         return DataBlob<bits>::Parse(img, loc, env);
-      }
-#endif
    }
 
 
@@ -89,6 +81,11 @@ namespace MachO {
       env.align(sect.align);
       loc(env.loc);
 
+      Location relloc;
+      sect.nreloc = relocs.size();
+      env.allocate(sect.nreloc * RelocationInfo<bits>::size(), relloc);
+      sect.reloff = relloc.offset;
+      
       for (SectionBlob<bits> *elem : content) {
          elem->Build(env);
       }
@@ -286,7 +283,25 @@ namespace MachO {
    bool Section<bits>::contains_vmaddr(std::size_t vmaddr) const {
       return vmaddr >= sect.addr && vmaddr < sect.addr + sect.size;
    }
-   
+
+   template <Bits bits>
+   Section<bits>::Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser):
+      sect(img.at<section_t<bits>>(offset)), parser(parser) {
+      /* read reloaction entries */
+      std::size_t reloff = sect.reloff;
+      for (uint32_t i = 0; i < sect.nreloc; ++i, reloff += RelocationInfo<bits>::size()) {
+         relocs.push_back(RelocationInfo<bits>::Parse(img, reloff, env, sect.addr));
+      }
+   }
+
+   template <Bits bits>
+   RelocationInfo<bits>::RelocationInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                        std::size_t baseaddr):
+      info(img.at<relocation_info>(offset))
+   {
+      /* resolve relocee */
+      env.reloc_resolver.resolve(baseaddr + info.r_address, &relocee);
+   }
 
    template class Section<Bits::M32>;
    template class Section<Bits::M64>;

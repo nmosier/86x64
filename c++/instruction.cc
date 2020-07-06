@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "instruction.hh"
 #include "image.hh"
 #include "build.hh"
@@ -34,6 +36,35 @@ namespace MachO {
 
       xed_operand_values_t *operands = xed_decoded_inst_operands(&xedd);
 
+
+
+      /* Check for relocations */
+      std::unordered_map<xed_iform_enum_t, std::size_t> reloc_index_map =
+         {{XED_IFORM_CALL_NEAR_RELBRz, 1},
+          {XED_IFORM_JMP_RELBRz, 1},
+          {XED_IFORM_JZ_RELBRz, 2},
+          {XED_IFORM_JNZ_RELBRz, 2},
+          {XED_IFORM_JL_RELBRz, 2},
+          {XED_IFORM_JLE_RELBRz, 2},
+          {XED_IFORM_JNL_RELBRz, 2},
+          {XED_IFORM_JNLE_RELBRz, 2},
+          {XED_IFORM_JNBE_RELBRz, 2},
+          {XED_IFORM_JBE_RELBRz, 2},
+          {XED_IFORM_JB_RELBRz, 2},
+          {XED_IFORM_JNB_RELBRz, 2},
+          {XED_IFORM_LEA_GPRv_AGEN, 3},
+          /* TODO -- probably missing a few */
+         };
+
+      auto reloc_index_map_it = reloc_index_map.find(xed_decoded_inst_get_iform_enum(&xedd));
+      if (reloc_index_map_it != reloc_index_map.end()) {
+         /* check if there is a relocation entry at this address */
+         std::size_t reloc_vmaddr = loc.vmaddr + reloc_index_map_it->second;
+         if (env.reloc_resolver.try_resolve(reloc_vmaddr, &reloc, true)) {
+            return; /* don't try to link branches */
+         }
+      }
+      
       /* Memory Accesses */
       const unsigned int nops = xed_decoded_inst_noperands(&xedd);
       if (xed_operand_values_has_memory_displacement(operands)) {
@@ -99,7 +130,7 @@ namespace MachO {
       default:
          break;
       }
-      
+
    }
    template <Bits bits>
    void Instruction<bits>::Emit(Image& img, std::size_t offset) const {

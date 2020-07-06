@@ -10,6 +10,7 @@
 namespace MachO {
    
    template <Bits bits> class SectionBlob;
+   template <Bits bits> class RelocBlob;
    
    template <typename T>
    class CountResolver {
@@ -32,6 +33,7 @@ namespace MachO {
       
       Resolver<std::size_t, SectionBlob<bits>> vmaddr_resolver;
       Resolver<std::size_t, SectionBlob<bits>> offset_resolver;
+      Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;
       Segment<bits> *current_segment;

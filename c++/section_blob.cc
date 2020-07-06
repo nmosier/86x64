@@ -1,3 +1,5 @@
+#include <mach-o/x86_64/reloc.h>
+
 #include "section_blob.hh"
 #include "image.hh"
 #include "build.hh"
@@ -97,6 +99,37 @@ namespace MachO {
                             TransformEnv<opposite<bits>>& env):
       SectionBlob<bits>(other, env), data(other.data) {}
 
+   template <Bits bits>
+   RelocBlob<bits> *RelocBlob<bits>::Parse(const Image& img, const Location& loc,
+                                           ParseEnv<bits>& env, uint8_t type) {
+      switch (type) {
+      case X86_64_RELOC_UNSIGNED: return RelocUnsignedBlob<bits>::Parse(img, loc, env);
+      case X86_64_RELOC_BRANCH:	 return RelocBranchBlob<bits>::Parse(img, loc, env);
+
+      case X86_64_RELOC_SIGNED:		
+      case X86_64_RELOC_GOT_LOAD:		
+      case X86_64_RELOC_GOT:			
+      case X86_64_RELOC_SUBTRACTOR:	
+      case X86_64_RELOC_SIGNED_1:		
+      case X86_64_RELOC_SIGNED_2:		
+      case X86_64_RELOC_SIGNED_4:		
+      case X86_64_RELOC_TLV:
+         throw error("unsupported relocation type");
+
+      default:
+         throw error("bad relocation type");
+      }
+   }
+
+   template <Bits bits, typename T>
+   RelocBlobT<bits, T>::RelocBlobT(const Image& img, const Location& loc, ParseEnv<bits>& env):
+      RelocBlob<bits>(loc, env), data(img.at<T>(loc.offset)) {}
+
+   template <Bits bits, typename T>
+   void RelocBlobT<bits, T>::Emit(Image& img, std::size_t offset) const {
+      img.at<T>(offset) = data;
+   }
+   
    template class SectionBlob<Bits::M32>;
    template class SectionBlob<Bits::M64>;
    
@@ -108,4 +141,10 @@ namespace MachO {
 
    template class Immediate<Bits::M32>;
    template class Immediate<Bits::M64>;
+
+   template class RelocBlobT<Bits::M32, uint32_t>;
+   template class RelocBlobT<Bits::M64, uint64_t>;
+   template class RelocBlobT<Bits::M32, int32_t>;
+   template class RelocBlobT<Bits::M64, int32_t>;
+
 }

@@ -37,6 +37,18 @@ namespace MachO {
          found.insert({key, pointee});
       }
 
+      bool try_resolve(const T& key, const U **pointer, bool unique) {
+         const auto found_it = found.find(key);
+         if (found_it != found.end()) {
+            *pointer = found_it->second;
+            if (unique) {
+               found.erase(found_it);
+            }
+         } else {
+            return false;
+         }
+      }
+      
       void resolve(const T& key, const U **pointer,
                    std::shared_ptr<functor> callback = std::make_shared<noop>()) {
          auto found_it = found.find(key);

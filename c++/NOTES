@@ -109,4 +109,15 @@ jmp dword ptr
 2 PROJECTS:
 Write program that given 64-bit executable, is able to get all addresses in given address range.
 
+DONE
 
+-------
+
+Relocation entry:
+ - jmp <disp32> -- X86_64_RELOC_BRANCH
+ - call <disp32> -- X86_64_RELOC_BRANCH
+ - dq <abs64> -- X86_64_RELOC_UNSIGNED
+
+Initial values indicate offsets within the symbol.
+
+Store relocation info with corresponding section blob, then collect at Build.
