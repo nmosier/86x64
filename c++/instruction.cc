@@ -59,9 +59,11 @@ namespace MachO {
       auto reloc_index_map_it = reloc_index_map.find(xed_decoded_inst_get_iform_enum(&xedd));
       if (reloc_index_map_it != reloc_index_map.end()) {
          /* check if there is a relocation entry at this address */
-         std::size_t reloc_vmaddr = loc.vmaddr + reloc_index_map_it->second;
-         if (env.reloc_resolver.try_resolve(reloc_vmaddr, &reloc, true)) {
-            return; /* don't try to link branches */
+         auto relocs_it = env.relocs.find(loc.vmaddr + reloc_index_map_it->second);
+         if (relocs_it != env.relocs.end()) {
+            reloc = relocs_it->second;
+            env.relocs.erase(relocs_it);
+            return;
          }
       }
       

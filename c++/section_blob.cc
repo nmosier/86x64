@@ -142,6 +142,9 @@ namespace MachO {
    template class Immediate<Bits::M32>;
    template class Immediate<Bits::M64>;
 
+   template class RelocBlob<Bits::M32>;
+   template class RelocBlob<Bits::M64>;
+   
    template class RelocBlobT<Bits::M32, uint32_t>;
    template class RelocBlobT<Bits::M64, uint64_t>;
    template class RelocBlobT<Bits::M32, int32_t>;

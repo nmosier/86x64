@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <unordered_map>
 
 #include "loc.hh"
 #include "types.hh"
@@ -33,6 +34,7 @@ namespace MachO {
       
       Resolver<std::size_t, SectionBlob<bits>> vmaddr_resolver;
       Resolver<std::size_t, SectionBlob<bits>> offset_resolver;
+      std::unordered_map<std::size_t, RelocBlob<bits> *> relocs;
       Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;

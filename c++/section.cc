@@ -290,17 +290,19 @@ namespace MachO {
       /* read reloaction entries */
       std::size_t reloff = sect.reloff;
       for (uint32_t i = 0; i < sect.nreloc; ++i, reloff += RelocationInfo<bits>::size()) {
-         relocs.push_back(RelocationInfo<bits>::Parse(img, reloff, env, sect.addr));
+         relocs.push_back(RelocationInfo<bits>::Parse(img, reloff, env, loc()));
       }
    }
 
    template <Bits bits>
    RelocationInfo<bits>::RelocationInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                        std::size_t baseaddr):
+                                        const Location& baseloc):
       info(img.at<relocation_info>(offset))
    {
-      /* resolve relocee */
-      env.reloc_resolver.resolve(baseaddr + info.r_address, &relocee);
+      /* create reloc blob */
+      const Location relocloc = baseloc + info.r_address;
+      env.relocs.insert({relocloc.vmaddr,
+                         RelocBlob<bits>::Parse(img, relocloc, env, info.r_type)});
    }
 
    template class Section<Bits::M32>;

@@ -104,13 +104,13 @@ namespace MachO {
       static std::size_t size() { return sizeof(info); }
       
       static RelocationInfo<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                         std::size_t baseaddr) {
-         return new RelocationInfo(img, offset, env, baseaddr);
+                                         const Location& baseloc) {
+         return new RelocationInfo(img, offset, env, baseloc);
       }
       
    private:
       RelocationInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                     std::size_t baseaddr);
+                     const Location& baseloc);
    };
 
 }
