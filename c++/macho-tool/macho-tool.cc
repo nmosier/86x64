@@ -21,7 +21,13 @@
 #include "instruction.hh"
 #include "tweak.hh"
 
-static const char *progname = nullptr;
+#include "command.hh"
+#include "util.hh"
+
+#include "help.hh"
+#include "noop.hh"
+
+const char *progname = nullptr;
 static const char *usagestr =
    "usage: %1$s subcommand [options...] [args...]\n"                    \
    "       %1$s -h\n"                                                   \
@@ -34,41 +40,6 @@ static const char *usagestr =
 static void usage(FILE *f = stderr) {
    fprintf(f, usagestr, progname);
 }
-
-static bool stobool(const std::string& s_) {
-   std::string s = s_;
-   for (char& c : s) {
-      c = tolower(c);
-   }
-   
-   std::unordered_map<std::string, bool> map =
-      {{"t", true},
-       {"f", false},
-       {"true", true},
-       {"false", false},
-      };
-
-   const auto it = map.find(s);
-   if (it != map.end()) {
-      return it->second;
-   } else {
-      /* try to convert to integer */
-      char *end;
-      long tmp = std::strtol(s.c_str(), &end, 0);
-      if (s == "" || *end != '\0') {
-         std::stringstream ss;
-         ss << "invalid boolean `" << s << "'";
-         throw ss.str();
-      }
-
-      switch (tmp) {
-      case 0:  return false;
-      case 1:  return true;
-      default: throw std::string("boolean value must be 0 or 1");
-      }
-   }
-}
-
 
 #define MH_FLAG(flag) {#flag + 3, flag}
 
@@ -85,197 +56,7 @@ const std::unordered_map<std::string, uint32_t> mach_header_filetype_map =
     MH_FLAG(MH_DSYM),
     MH_FLAG(MH_KEXT_BUNDLE),
    };
-
-
-struct Command {
-   const char *name;
-
-   /* usage functions */
-   virtual std::string optusage() const = 0;
-   virtual std::string subusage() const = 0;
-
-   /* option parsers */
-   virtual const char *optstring() const = 0;
-   virtual std::vector<option> longopts() const = 0;
-   virtual int opthandler(int optchar) = 0;
-   virtual void arghandler(int argc, char *argv[]) = 0;
-   virtual int work() = 0;
-   virtual int handle(int argc, char *argv[]) {
-      int optstat = parseopts(argc, argv);
-      if (optstat <= 0) {
-         return optstat;
-      }
-
-      try {
-         arghandler(argc, argv);
-      } catch (const std::string& s) {
-         log(s);
-         usage(std::cerr);
-         return -1;
-      }
-      
-      return work();
-   }
    
-   void usage(std::ostream& os) const {
-      std::string prefix = "usage: ";
-      os << "usage: " << progname << " " << name << (optusage().empty() ? "" : " ")
-         << optusage() << (subusage().empty() ? "" : " ") << subusage() << std::endl;
-   }
-
-   int parseopts(int argc, char *argv[]) {
-      int optchar;
-      int longindex = -1;
-      const struct option *longopts = this->longopts().data();
-
-      try {
-         while ((optchar = getopt_long(argc, argv, optstring(), longopts, nullptr)) >= 0) {
-            if (optchar == '?') {
-               std::stringstream ss;
-               ss << "invalid option `";
-               if (longindex < 0) {
-                  ss << (char) optchar;
-               } else {
-                  ss << longopts[longindex].name;
-               }
-               ss << "'";
-               log(ss.str());
-               return -1;
-            } else {
-               int optstat = opthandler(optchar);
-               if (optstat <= 0) {
-                  return optstat;
-               }
-            }
-            longindex = -1;
-         }
-      } catch (const std::string& s) { 
-         std::string prefix;
-         if (longindex >= 0) {
-            prefix = std::string("--") + longopts[longindex].name;
-         } else {
-            prefix = std::string("-");
-            prefix.push_back(optchar);
-         }
-         log(prefix + ": " + s);
-         usage(std::cerr);
-         return -1;        
-      }
-
-      return 1;
-   }
-   
-
-   template <typename... Args>
-   constexpr void log(const char *str, Args&&... args) const {
-      fprintf(stderr, "%s %s: ", progname, name);
-      fprintf(stderr, str, args...);
-      fprintf(stderr, "\n");
-   }
-
-   template <typename... Args>
-   constexpr void log(const std::string& str, Args&&... args) const {
-      log(str.c_str(), args...);
-   }
-
-   template <>
-   constexpr void log(const std::string& s) const {
-      log(s.c_str());
-   }
-   
-   const char *getarg(int argc, char *argv[], const char *init = nullptr) const {
-      if (optind >= argc) {
-         if (init) {
-            return init;
-         } else {
-            throw std::string("missing positional argument");
-         }
-      } else {
-         return argv[optind++];
-      }
-   }
-   
-   Command(const char *name): name(name) {}
-   virtual ~Command() {}
-};
-
-struct HelpCommand: Command {
-   virtual std::string optusage() const override { return ""; }
-   virtual std::string subusage() const override { return ""; }
-
-   virtual const char *optstring() const override { return ""; }
-   virtual std::vector<option> longopts() const override { return {}; }
-   virtual int opthandler(int optchar) override { return 1; }
-   virtual void arghandler(int argc, char *argv[]) override {}
-
-   virtual int work() override {
-      usage(std::cout);
-      return 0;
-   }
-
-   HelpCommand(): Command("help") {}
-};
-
-struct InplaceCommand: public Command {
-   int mode;
-   std::unique_ptr<MachO::Image> img;
-   
-   virtual std::string subusage() const override { return "<path>"; }
-
-   virtual void arghandler(int argc, char *argv[]) override {
-      const char *path = getarg(argc, argv);
-      img = std::make_unique<MachO::Image>(path, mode);
-   }
-   
-   InplaceCommand(const char *name, int mode): Command(name), mode(mode) {}
-};
-
-struct InOutCommand: Command {
-   const char *in_path = nullptr, *out_path = nullptr;
-   std::unique_ptr<MachO::Image> in_img, out_img;
-   
-   virtual std::string subusage() const override { return "<inpath> [<outpath>='a.out']"; }
-
-   virtual void arghandler(int argc, char *argv[]) override {
-      in_path = getarg(argc, argv);
-      out_path = getarg(argc, argv, "a.out");
-      in_img = std::make_unique<MachO::Image>(in_path, O_RDONLY);
-      out_img = std::make_unique<MachO::Image>(out_path, O_RDWR | O_CREAT | O_TRUNC);
-   }   
-
-   InOutCommand(const char *name): Command(name) {}
-};
-   
-struct NoopCommand: InOutCommand {
-   int help = 0;
-
-   virtual std::string optusage() const override { return "[-h]"; }
-
-   virtual const char *optstring() const override { return "h"; }
-   virtual std::vector<option> longopts() const override {
-      return {{"help", no_argument, nullptr, 'h'},
-              {0}};
-   }
-
-   virtual int opthandler(int optchar) override {
-      switch (optchar) {
-      case 'h':
-         usage(std::cout);
-         return 0;
-      default: abort();
-      }
-   }
-   
-   virtual int work() override {
-      MachO::MachO *macho = MachO::MachO::Parse(*in_img);
-      macho->Build();
-      macho->Emit(*out_img);
-      return 0;
-   }
-
-   NoopCommand(): InOutCommand("noop") {}
-};
-
 struct ModifyCommand: public InOutCommand {
    int help = 0;
 

@@ -2,6 +2,9 @@ include_directories("..")
 
 add_executable(macho-tool
   macho-tool.cc
+  command.cc
+  util.cc
+  noop.cc
   $<TARGET_OBJECTS:macho_cxx_objs>
   )
 
