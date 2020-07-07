@@ -32,6 +32,9 @@ namespace MachO {
       
       static std::size_t size() { return sizeof(section_t<bits>); }
 
+      bool contains_offset(std::size_t offset) const;
+      bool contains_vmaddr(std::size_t vmaddr) const;
+
       static Section<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       void Parse1(const Image& img, ParseEnv<bits>& env);
       void Parse2(ParseEnv<bits>& env);
@@ -77,8 +80,6 @@ namespace MachO {
          }
       }
 
-      bool contains_vmaddr(std::size_t vmaddr) const;
-      
       typename Content::iterator find(std::size_t vmaddr); /* inclusive greatest lower bound */
       typename Content::const_iterator find(std::size_t vmaddr) const;
 

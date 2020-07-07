@@ -233,9 +233,25 @@ namespace MachO {
    }
 
    template <Bits bits>
+   std::optional<std::size_t> Segment<bits>::try_offset_to_vmaddr(std::size_t offset) const {
+      for (Section<bits> *section : sections) {
+         if (section->contains_offset(offset)) {
+            return offset - section->sect.offset + section->sect.addr;
+         }
+      }
+      return std::nullopt;
+   }
+
+   template <Bits bits>
    bool Segment<bits>::contains_vmaddr(std::size_t vmaddr) const {
       return vmaddr >= segment_command.vmaddr &&
          vmaddr < segment_command.vmaddr + segment_command.vmsize;
+   }
+
+   template <Bits bits>
+   bool Segment<bits>::contains_offset(std::size_t offset) const {
+      return offset >= segment_command.fileoff &&
+         offset < segment_command.fileoff + segment_command.filesize;
    }
 
    template class Segment<Bits::M32>;

@@ -54,7 +54,13 @@ namespace MachO {
          // it += leb128_decode(&img.at<uint8_t>(it), img.size() - it, uleb);
          if (uleb != 0 || refaddr == segment->loc().offset) {
             refaddr += uleb;
-            entries.push_back(env.add_placeholder(env.archive.offset_to_vmaddr(refaddr)));
+            std::optional<std::size_t> vmaddr = env.archive.try_offset_to_vmaddr(refaddr);
+            if (vmaddr) {
+               entries.push_back(env.add_placeholder(*vmaddr));
+            } else {
+               fprintf(stderr, "warning: function start with offset 0x%zx not in __text segment\n",
+                       refaddr);
+            }
          }
       }
    }

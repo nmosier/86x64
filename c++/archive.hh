@@ -41,12 +41,12 @@ namespace MachO {
          return nullptr;
       }
       
-      template <class Subclass, int64_t cmdval = -1>
-      std::vector<Subclass *> subcommands() const {
-         static_assert(std::is_base_of<LoadCommand<bits>, Subclass>());
-         std::vector<Subclass *> cmds;
+      template <template <Bits> class Subclass, int64_t cmdval = -1>
+      std::vector<Subclass<bits> *> subcommands() const {
+         static_assert(std::is_base_of<LoadCommand<bits>, Subclass<bits>>());
+         std::vector<Subclass<bits> *> cmds;
          for (LoadCommand<bits> *lc : load_commands) {
-            Subclass *cmd = dynamic_cast<Subclass *>(lc);
+            Subclass<bits> *cmd = dynamic_cast<Subclass<bits> *>(lc);
             if (cmd && (cmdval == -1 || cmdval == cmd->cmd())) {
                cmds.push_back(cmd);
             }
@@ -54,8 +54,8 @@ namespace MachO {
          return cmds;
       }
 
-      std::vector<Segment<bits> *> segments() { return subcommands<Segment<bits>>(); }
-      std::vector<Segment<bits> *> segments() const { return subcommands<Segment<bits>>(); }
+      std::vector<Segment<bits> *> segments() { return subcommands<Segment>(); }
+      std::vector<Segment<bits> *> segments() const { return subcommands<Segment>(); }
       Segment<bits> *segment(std::size_t index) { return segments().at(index); }
       Segment<bits> *segment(const std::string& name);
 
@@ -74,6 +74,7 @@ namespace MachO {
       }
 
       std::size_t offset_to_vmaddr(std::size_t offset) const;
+      std::optional<size_t> try_offset_to_vmaddr(std::size_t offset) const;
 
       Archive<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new Archive<opposite<bits>>(*this, env);

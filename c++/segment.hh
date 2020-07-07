@@ -34,7 +34,9 @@ namespace MachO {
       Section<bits> *section(const std::string& name);
 
       std::size_t offset_to_vmaddr(std::size_t offset) const;
-      bool contains_vmaddr(std::size_t offset) const;
+      std::optional<std::size_t> try_offset_to_vmaddr(std::size_t offset) const;
+      bool contains_offset(std::size_t offset) const;
+      bool contains_vmaddr(std::size_t vmaddr) const;
 
       template <template <Bits> class Blob>
       Blob<bits> *find_blob(std::size_t vmaddr) const {

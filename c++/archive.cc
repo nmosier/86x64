@@ -153,6 +153,16 @@ namespace MachO {
                                   " not in any segment");
    }
 
+   template <Bits bits>
+   std::optional<std::size_t> Archive<bits>::try_offset_to_vmaddr(std::size_t offset) const {
+      for (Segment<bits> *segment : segments()) {
+         if (segment->contains_offset(offset)) {
+            return segment->try_offset_to_vmaddr(offset);
+         }
+      }
+      return std::nullopt;
+   }
+
    AbstractArchive *AbstractArchive::Parse(const Image& img, std::size_t offset) {
       uint32_t magic = img.at<uint32_t>(offset);
       switch (magic) {

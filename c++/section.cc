@@ -271,11 +271,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   bool Section<bits>::contains_vmaddr(std::size_t vmaddr) const {
-      return vmaddr >= sect.addr && vmaddr < sect.addr + sect.size;
-   }
-
-   template <Bits bits>
    Section<bits>::Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser):
       sect(img.at<section_t<bits>>(offset)), parser(parser) {
       /* read reloaction entries */
@@ -301,6 +296,16 @@ namespace MachO {
       relocation_info info = this->info;
       info.r_address = relocee->loc.vmaddr - baseloc.vmaddr;
       img.at<relocation_info>(offset) = info;
+   }
+
+   template <Bits bits>
+   bool Section<bits>::contains_offset(std::size_t offset) const {
+      return offset >= sect.offset && offset < sect.offset + sect.size;
+   }
+
+   template <Bits bits>
+   bool Section<bits>::contains_vmaddr(std::size_t vmaddr) const {
+      return vmaddr >= sect.addr && vmaddr < sect.addr + sect.size;
    }
 
    template class Section<Bits::M32>;

@@ -718,6 +718,11 @@ struct ConvertCommand: InOutCommand {
       auto id_dylib = MachO::DylibCommand<MachO::Bits::M64>::Create(LC_ID_DYLIB, name);
       archive->load_commands.push_back(id_dylib);
       free(out_path);
+
+      /* check whether MH_NO_REEXPORTED_DYLIBS should be added */
+      if (archive->template subcommands<MachO::LoadCommand, LC_REEXPORT_DYLIB>().empty()) {
+         archive->header.flags |= MH_NO_REEXPORTED_DYLIBS;
+      }
    }
    
 };
