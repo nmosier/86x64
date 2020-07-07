@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <sstream>
+#include <mach-o/loader.h>
 
 #include "util.hh"
 
@@ -36,3 +37,50 @@ bool stobool(const std::string& s_) {
       }
    }
 }
+
+template <typename Flag>
+void parse_flags(char *optarg, const FlagSet<Flag>& flagset, Flags<Flag>& flags) {
+   const char *token;
+   bool mask;
+   while ((token = strsep(&optarg, ",")) != nullptr) {
+      /* get mask */
+      switch (*token) {
+      case '\0':
+         throw std::string("empty flag");
+      case '-':
+         ++token;
+         mask = false;
+         break;
+      case '+':
+         ++token;
+      default:
+         mask = true;
+      }
+
+      /* parse flag */
+      std::string flagstr(token);
+      auto flagset_it = flagset.find(flagstr);
+      if (flagset_it == flagset.end()) {
+         std::stringstream ss;
+         ss << "invalid flag `" << token << "'";
+         throw std::string(ss.str());
+      }
+      flags.insert({flagset_it->second, mask});
+   }
+}
+
+template void parse_flags<uint32_t>(char *, const FlagSet<uint32_t>&, Flags<uint32_t>&);
+
+const std::unordered_map<std::string, uint32_t> mach_header_filetype_map = 
+   {MH_FLAG(MH_OBJECT),
+    MH_FLAG(MH_EXECUTE),
+    MH_FLAG(MH_FVMLIB),
+    MH_FLAG(MH_CORE),
+    MH_FLAG(MH_PRELOAD),
+    MH_FLAG(MH_DYLIB),
+    MH_FLAG(MH_DYLINKER),
+    MH_FLAG(MH_BUNDLE),
+    MH_FLAG(MH_DYLIB_STUB),
+    MH_FLAG(MH_DSYM),
+    MH_FLAG(MH_KEXT_BUNDLE),
+   };

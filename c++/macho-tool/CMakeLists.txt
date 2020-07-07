@@ -5,6 +5,10 @@ add_executable(macho-tool
   command.cc
   util.cc
   noop.cc
+  modify.cc
+  translate.cc
+  tweak.cc
+  convert.cc
   $<TARGET_OBJECTS:macho_cxx_objs>
   )
 
