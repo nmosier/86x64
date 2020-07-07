@@ -51,6 +51,7 @@ namespace MachO {
                                          &img.at<uint32_t>(dysymtab.indirectsymoff) +
                                          dysymtab.nindirectsyms)) {}
 
+#if 0
    template <Bits bits>
    void Symtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
       /* allocate space for symbol table */
@@ -75,7 +76,25 @@ namespace MachO {
          sym->Build();
       }
    }
+#endif
 
+   template <Bits bits>
+   void Symtab<bits>::Build_LINKEDIT_symtab(BuildEnv<bits>& env) {
+      symtab.nsyms = syms.size();
+      symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
+   }
+
+   template <Bits bits>
+   void Symtab<bits>::Build_LINKEDIT_strtab(BuildEnv<bits>& env) {
+      BuildEnv<bits> strtab_env(env.archive, Location(0, 0));
+      for (String<bits> *str : strs) {
+         str->Build(strtab_env);
+      }
+      
+      symtab.strsize = strtab_env.loc.offset;
+      symtab.stroff = env.allocate(symtab.strsize);
+   }
+   
    template <Bits bits>
    String<bits>::String(const Image& img, std::size_t offset, std::size_t maxlen) {
       std::size_t slen = strnlen(&img.at<char>(offset), maxlen);
@@ -85,11 +104,6 @@ namespace MachO {
    template <Bits bits>
    void String<bits>::Build(BuildEnv<bits>& env) {
       offset = env.allocate(size());
-   }
-
-   template <Bits bits>
-   void Nlist<bits>::Build() {
-      nlist.n_un.n_strx = string->offset;
    }
 
    template <Bits bits>
@@ -123,9 +137,8 @@ namespace MachO {
    template <Bits bits>
    void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
       nlist_t<bits> nlist = this->nlist;
-      if (value) {
-         nlist.n_value = value->loc.vmaddr;
-      }
+      nlist.n_un.n_strx = string->offset;
+      nlist.n_value = value ? value->loc.vmaddr : 0;
       img.at<nlist_t<bits>>(offset) = nlist;
    }
    

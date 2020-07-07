@@ -1,3 +1,9 @@
+/* TODO
+ * [ ] convert command:
+ *     [ ] convert MH_EXECUTE -> MH_DYLIB
+ *
+ */
+
 #include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
@@ -8,6 +14,7 @@
 #include <list>
 #include <getopt.h>
 #include <sstream>
+#include <libgen.h>
 
 #include "macho.hh"
 #include "archive.hh"
@@ -61,6 +68,24 @@ static bool stobool(const std::string& s_) {
       }
    }
 }
+
+
+#define MH_FLAG(flag) {#flag + 3, flag}
+
+const std::unordered_map<std::string, uint32_t> mach_header_filetype_map = 
+   {MH_FLAG(MH_OBJECT),
+    MH_FLAG(MH_EXECUTE),
+    MH_FLAG(MH_FVMLIB),
+    MH_FLAG(MH_CORE),
+    MH_FLAG(MH_PRELOAD),
+    MH_FLAG(MH_DYLIB),
+    MH_FLAG(MH_DYLINKER),
+    MH_FLAG(MH_BUNDLE),
+    MH_FLAG(MH_DYLIB_STUB),
+    MH_FLAG(MH_DSYM),
+    MH_FLAG(MH_KEXT_BUNDLE),
+   };
+
 
 struct Command {
    const char *name;
@@ -206,14 +231,14 @@ struct InplaceCommand: public Command {
 };
 
 struct InOutCommand: Command {
-   std::unique_ptr<MachO::Image> in_img;
-   std::unique_ptr<MachO::Image> out_img;
+   const char *in_path = nullptr, *out_path = nullptr;
+   std::unique_ptr<MachO::Image> in_img, out_img;
    
    virtual std::string subusage() const override { return "<inpath> [<outpath>='a.out']"; }
 
    virtual void arghandler(int argc, char *argv[]) override {
-      const char *in_path = getarg(argc, argv);
-      const char *out_path = getarg(argc, argv, "a.out");
+      in_path = getarg(argc, argv);
+      out_path = getarg(argc, argv, "a.out");
       in_img = std::make_unique<MachO::Image>(in_path, O_RDONLY);
       out_img = std::make_unique<MachO::Image>(out_path, O_RDWR | O_CREAT | O_TRUNC);
    }   
@@ -484,22 +509,22 @@ public:
    TranslateCommand(): InplaceCommand("translate", O_RDONLY) {}
 };
 
-#define MH_FLAG(flag) {#flag + 3, flag}
-
 /* change flags, etc. in-place */
 struct TweakCommand: InplaceCommand {
    template <typename Flag>
    using Flags = std::unordered_map<Flag, bool>;
    
    Flags<uint32_t> mach_header_flags;
+   std::optional<uint32_t> mach_header_filetype;
    
    int pie = -1;
    
    virtual std::string optusage() const override { return "[-h|-f <flag>[,<flag>]*]"; }
-   virtual const char *optstring() const override { return "hf:"; }
+   virtual const char *optstring() const override { return "hf:t:"; }
    virtual std::vector<option> longopts() const override {
       return {{"help", no_argument, nullptr, 'h'},
               {"flags", required_argument, nullptr, 'f'},
+              {"type", required_argument, nullptr, 't'},
               {0}};
    }
 
@@ -538,7 +563,18 @@ struct TweakCommand: InplaceCommand {
                      },
                      mach_header_flags);
          return 1;
-         
+
+      case 't':
+         {
+            auto it = mach_header_filetype_map.find(optarg);
+            if (it != mach_header_filetype_map.end()) {
+               mach_header_filetype = it->second;
+            } else {
+               throw std::string("-t: unrecognized Mach-O archive filetype");
+            }
+         }
+         return 1;
+            
       case 'h':
          usage(std::cout);
          return 0;
@@ -551,6 +587,10 @@ struct TweakCommand: InplaceCommand {
       auto macho = MachO::Tweak::MachO::Parse(*img);
       auto archive = dynamic_cast<MachO::Tweak::Archive<MachO::Bits::M64> *>(macho);
 
+      if (mach_header_filetype) {
+         archive->header.filetype = *mach_header_filetype;
+      }
+      
       if (!mach_header_flags.empty()) {
          if (archive == nullptr) {
             log("--flags: modifying mach header flags  only supported for 64-bit archives");
@@ -606,6 +646,82 @@ struct TweakCommand: InplaceCommand {
    
 };
 
+struct ConvertCommand: InOutCommand {
+   std::optional<uint32_t> filetype;
+   
+   virtual std::string optusage() const override { return "[-h|-a <type>]"; }
+   virtual const char *optstring() const override { return "ha:"; }
+
+   virtual std::vector<option> longopts() const override {
+      return {{"help", no_argument, nullptr, 'h'},
+              {"archive", required_argument, nullptr, 'a'},
+              {0}};
+   }
+
+   virtual int opthandler(int optchar) override {
+      switch (optchar) {
+      case 'h':
+         usage(std::cout);
+         return 0;
+         
+      case 'a':
+         {
+            auto it = mach_header_filetype_map.find(optarg);
+            if (it != mach_header_filetype_map.end()) {
+               filetype = it->second;
+            } else {
+               throw std::string("invalid Mach-O archive filetype");
+            }
+         }
+         return 1;
+
+      default: abort();
+      }
+   }
+   
+   virtual int work() override {
+      MachO::MachO *macho = MachO::MachO::Parse(*in_img);
+      
+      if (filetype) {
+         auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+         if (archive == nullptr) {
+            log("MachO binary is not an archive");
+            return -1;
+         }
+         
+         /* change filetype */
+         archive->header.filetype = *filetype;
+         
+         switch (*filetype) {
+         case MH_DYLIB:
+            archive_EXECUTE_to_DYLIB(archive);
+            break;
+            
+         default:
+            log("unsupported Mach-O archive filetype for conversion");
+            return -1;
+         }
+      }
+
+      macho->Build();
+      macho->Emit(*out_img);
+      
+      return 0;
+   }
+
+   ConvertCommand(): InOutCommand("convert") {}
+
+   void archive_EXECUTE_to_DYLIB(MachO::Archive<MachO::Bits::M64> *archive) {
+      /* add LC_ID_DYLIB */
+      char *out_path = strdup(this->out_path);
+      char *name = basename(out_path);
+      auto id_dylib = MachO::DylibCommand<MachO::Bits::M64>::Create(LC_ID_DYLIB, name);
+      archive->load_commands.push_back(id_dylib);
+      free(out_path);
+   }
+   
+};
+
 int main(int argc, char *argv[]) {
    progname = argv[0];
 
@@ -641,6 +757,7 @@ int main(int argc, char *argv[]) {
        {"modify", std::make_shared<ModifyCommand>()},
        {"translate", std::make_shared<TranslateCommand>()},
        {"tweak", std::make_shared<TweakCommand>()},
+       {"convert", std::make_shared<ConvertCommand>()},
       };
 
    auto it = subcommands.find(subcommand);

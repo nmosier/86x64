@@ -32,6 +32,7 @@ namespace MachO {
       virtual LoadCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
       
    protected:
+      LoadCommand() {}
       LoadCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env) {}
       LoadCommand(const LoadCommand<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
    };
@@ -220,26 +221,30 @@ namespace MachO {
 
       virtual uint32_t cmd() const override { return dylib_cmd.cmd; }            
       virtual std::size_t size() const override;
-      virtual void Build(BuildEnv<bits>& env) override {
-         dylib_cmd.cmdsize = size();
-         dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
-      }
-      virtual void AssignID(BuildEnv<bits>& env) override {
-         id = env.dylib_counter();
-      }
+      virtual void Build(BuildEnv<bits>& env) override;
+      virtual void AssignID(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
       
-      template <typename... Args>
-      static DylibCommand<bits> *Parse(Args&&... args) { return new DylibCommand(args...); }
+      static DylibCommand<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new DylibCommand(img, offset, env);
+      }
       
       virtual DylibCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new DylibCommand<opposite<bits>>(*this, env);
+      }
+
+      static DylibCommand<bits> *Create(uint32_t cmd, const std::string& name,
+                                        uint32_t timestamp = 0, uint32_t current_version = 0,
+                                        uint32_t compatibility_version = 0) {
+         return new DylibCommand(cmd, name, timestamp, current_version, compatibility_version);
       }
 
    private:
       DylibCommand(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       DylibCommand(const DylibCommand<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
          LoadCommand<bits>(other, env), dylib_cmd(other.dylib_cmd), name(other.name), id(0) {}
+      DylibCommand(uint32_t cmd, const std::string& name, uint32_t timestamp,
+                   uint32_t current_version, uint32_t compatibility_version);
       template <Bits> friend class DylibCommand;
    };   
    

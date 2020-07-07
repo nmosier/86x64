@@ -41,5 +41,5 @@ namespace MachO {
       unsigned segment_counter_ = 0;
       unsigned dylib_counter_ = 1;
    };
-   
+
 }

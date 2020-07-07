@@ -231,9 +231,43 @@ namespace MachO {
       this->entry = entry;
    }
 #endif
-   
+
+   template <Bits bits>
+   void DylibCommand<bits>::Build(BuildEnv<bits>& env) {
+      dylib_cmd.cmdsize = size();
+      dylib_cmd.dylib.name.offset = sizeof(dylib_cmd);
+   }
+
+   template <Bits bits>
+   void DylibCommand<bits>::AssignID(BuildEnv<bits>& env) {
+      switch (dylib_cmd.cmd) {
+      case LC_LOAD_DYLIB:
+         id = env.dylib_counter();
+         break;
+
+      case LC_ID_DYLIB:
+         id = 0;
+         break;
+
+      default: abort();
+      }
+   }
+
+   template <Bits bits>
+   DylibCommand<bits>::DylibCommand(uint32_t cmd, const std::string& name, uint32_t timestamp,
+                                    uint32_t current_version, uint32_t compatibility_version):
+      name(name)
+   {
+      dylib_cmd.cmd = cmd;
+      dylib_cmd.dylib.timestamp = timestamp;
+      dylib_cmd.dylib.current_version = current_version;
+      dylib_cmd.dylib.compatibility_version = compatibility_version;
+   }
 
    template class LoadCommand<Bits::M32>;
    template class LoadCommand<Bits::M64>;
+
+   template class DylibCommand<Bits::M32>;
+   template class DylibCommand<Bits::M64>;
    
 }

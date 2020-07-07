@@ -9,6 +9,19 @@
 
 namespace MachO {
 
+#if 0
+   uint32_t lc_build_order[] =
+      {LC_SEGMENT,
+       LC_SEGMENT_64,
+       LC_DYLD_INFO,
+       LC_DYLD_INFO_ONLY,
+       LC_DYSYMTAB,
+       LC_SYMTAB,
+      };
+#endif
+   // build order -- do later
+   // rather, need build regions. e.g. 
+   
    template <Bits bits>
    Archive<bits>::Archive(const Image& img, std::size_t offset):
       header(img.at<mach_header_t<bits>>(offset))

@@ -48,7 +48,6 @@ namespace MachO {
          return new Nlist(img, offset, env, off2str);
       }
 
-      void Build();
       void Emit(Image& img, std::size_t offset) const;
       Nlist<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new Nlist<opposite<bits>>(*this, env);
@@ -80,7 +79,9 @@ namespace MachO {
 
       template <typename... Args>
       static Symtab<bits> *Parse(Args&&... args) { return new Symtab(args...); }
-      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override;
+      virtual void Build_LINKEDIT(BuildEnv<bits>& env) override { abort(); }
+      void Build_LINKEDIT_symtab(BuildEnv<bits>& env);
+      void Build_LINKEDIT_strtab(BuildEnv<bits>& env);
       
       virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Symtab<opposite<bits>>(*this, env);

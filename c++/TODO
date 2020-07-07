@@ -2,3 +2,6 @@
 [X] delete instructions
 [ ] smart pointers
 [ ] support for fat archives -- test jtool2
+
+[ ] convert to dylib
+[ ] order load commands while building

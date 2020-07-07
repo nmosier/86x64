@@ -6,6 +6,11 @@
 #include "archive.hh"
 #include "types.hh"
 #include "section_blob.hh"
+#include "dyldinfo.hh"
+#include "linkedit.hh"
+#include "data_in_code.hh"
+#include "symtab.hh"
+
 
 namespace MachO {
 
@@ -97,6 +102,8 @@ namespace MachO {
       
       /* post-conditions for vmaddr */
       env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
+      env.loc.offset = align_up(env.loc.offset, PAGESIZE); /* experimental! */
+      
       segment_command.filesize = env.loc.offset - segment_command.fileoff;
       segment_command.vmsize = align_up<size_t>(env.loc.vmaddr - segment_command.vmaddr, PAGESIZE);
    }
@@ -108,7 +115,36 @@ namespace MachO {
       this->segment_command.fileoff = env.loc.offset = align_up(env.loc.offset, PAGESIZE);
       this->segment_command.vmaddr = env.loc.vmaddr = align_up(env.loc.vmaddr, PAGESIZE);
       
-      linkedits = env.archive->template subcommands<LinkeditCommand<bits>>();
+      // linkedits = env.archive->template subcommands<LinkeditCommand<bits>>();
+
+      /* LC_DYLD_INFO[_ONLY] */
+      auto dyld_info = env.archive->template subcommand<DyldInfo<bits>>();
+      if (dyld_info) { dyld_info->Build_LINKEDIT(env); }
+
+      /* LC_FUNCTION_STARTS */
+      auto function_starts = env.archive->template subcommand<FunctionStarts<bits>>();
+      if (function_starts) { function_starts->Build_LINKEDIT(env); }
+
+      /* LC_DATA_IN_CODE */
+      auto data_in_code = env.archive->template subcommand<DataInCode<bits>>();
+      if (data_in_code) { data_in_code->Build_LINKEDIT(env); }
+
+      /* LC_SYMTAB: symbol table */
+      auto symtab = env.archive->template subcommand<Symtab<bits>>();
+      if (symtab) { symtab->Build_LINKEDIT_symtab(env); }
+
+      /* LC_DYSYMTAB */
+      auto dysymtab = env.archive->template subcommand<Dysymtab<bits>>();
+      if (dysymtab) { dysymtab->Build_LINKEDIT(env); }
+
+      /* LC_SYMTAB: string table */
+      if (symtab) { symtab->Build_LINKEDIT_strtab(env); }
+
+      /* LC_CODE_SIGNATURE */
+      auto code_signature = env.archive->template subcommand<CodeSignature<bits>>();
+      if (code_signature) { code_signature->Build_LINKEDIT(env); }
+
+      
       for (LinkeditCommand<bits> *linkedit : linkedits) {
          linkedit->Build_LINKEDIT(env);
       }

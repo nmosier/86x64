@@ -42,6 +42,12 @@ namespace MachO {
    template <Bits> class DylibCommand;
    template <Bits> class Segment;
    template <Bits> class LinkeditCommand;
+   template <Bits> class DyldInfo;
+   template <Bits> class FunctionStarts;
+   template <Bits> class DataInCode;
+   template <Bits> class Symtab;
+   template <Bits> class Dysymtab;
+   template <Bits> class CodeSignature;
    
    template <Bits> class Instruction;
    template <Bits> class SectionBlob;
