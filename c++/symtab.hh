@@ -2,6 +2,7 @@
 
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+#include <set>
 
 #include "lc.hh"
 #include "types.hh"
@@ -37,6 +38,8 @@ namespace MachO {
    template <Bits bits>
    class Nlist {
    public:
+      enum class Kind {LOCAL, EXT, UNDEF}; /*!< keep ordering! */
+      
       static std::size_t size() { return sizeof(nlist_t<bits>); }
 
       nlist_t<bits> nlist;
@@ -52,6 +55,8 @@ namespace MachO {
       Nlist<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new Nlist<opposite<bits>>(*this, env);
       }
+
+      Kind kind() const;
       
    private:
       Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
@@ -64,7 +69,10 @@ namespace MachO {
    template <Bits bits>
    class Symtab: public LinkeditCommand<bits> {
    public:
-      using Nlists = std::list<Nlist<bits> *>;
+      struct NlistCompare {
+         bool operator()(const Nlist<bits> *lhs, const Nlist<bits> *rhs) const;
+      };
+      using Nlists = std::multiset<Nlist<bits> *, NlistCompare>;
       using Strings = std::list<String<bits> *>;
       
       symtab_command symtab;

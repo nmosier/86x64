@@ -1,7 +1,10 @@
+#include <set>
+
 #include "symtab.hh"
 #include "segment.hh"
 #include "transform.hh"
 #include "section_blob.hh" // SectionBlob
+#include "archive.hh" // Archive
 
 namespace MachO {
 
@@ -25,8 +28,8 @@ namespace MachO {
 
       /* construct symbols */
       for (uint32_t i = 0; i < symtab.nsyms; ++i) {
-         syms.push_back(Nlist<bits>::Parse(img, symtab.symoff + i * Nlist<bits>::size(), env,
-                                           off2str));
+         syms.insert(Nlist<bits>::Parse(img, symtab.symoff + i * Nlist<bits>::size(), env,
+                                        off2str));
       }
 
    }
@@ -108,6 +111,27 @@ namespace MachO {
 
    template <Bits bits>
    void Dysymtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
+      /* compute counts of symbol types (local, ext, undef) */
+      std::size_t symindex = 0;
+      auto symtab = env.archive->template subcommand<Symtab>();
+      dysymtab.nlocalsym = std::count_if(symtab->syms.begin(), symtab->syms.end(), [] (auto sym) {
+            return sym->kind() == Nlist<bits>::Kind::LOCAL;
+         });
+      dysymtab.ilocalsym = symindex;
+      symindex += dysymtab.nlocalsym;
+
+      dysymtab.nextdefsym = std::count_if(symtab->syms.begin(), symtab->syms.end(), [] (auto sym) {
+            return sym->kind() == Nlist<bits>::Kind::EXT;
+         });
+      dysymtab.iextdefsym = symindex;
+      symindex += dysymtab.nextdefsym;
+
+      dysymtab.nundefsym = std::count_if(symtab->syms.begin(), symtab->syms.end(), [] (auto sym) {
+            return sym->kind() == Nlist<bits>::Kind::UNDEF; 
+         });
+      dysymtab.iundefsym = symindex;
+      symindex += dysymtab.nundefsym;
+      
       dysymtab.indirectsymoff = env.allocate(align<bits>(sizeof(uint32_t) * indirectsyms.size()));
       dysymtab.nindirectsyms = indirectsyms.size();
    }
@@ -152,8 +176,6 @@ namespace MachO {
    void Dysymtab<bits>::Emit(Image& img, std::size_t offset) const {
       img.at<dysymtab_command>(offset) = dysymtab;
       img.copy(dysymtab.indirectsymoff, indirectsyms.begin(), indirectsyms.size());
-      // memcpy(&img.at<uint32_t>(dysymtab.indirectsymoff), &*indirectsyms.begin(),
-      // indirectsyms.size() * sizeof(uint32_t));
    }
 
    template <Bits bits>
@@ -172,7 +194,7 @@ namespace MachO {
       for (const auto sym : other.syms) {
          // DEBUG
          if (sym->string->str != "__dyld_private" || 1) {
-            syms.push_back(sym->Transform(env));
+            syms.insert(sym->Transform(env));
          }
       }
       for (const auto str : other.strs) {
@@ -201,10 +223,31 @@ namespace MachO {
    template <Bits bits>
    void Symtab<bits>::remove(const std::string& name) {
       /* find symbol to be removed */
-      syms.remove_if([&] (auto sym) { return name == sym->string->str; });
+      for (auto it = syms.begin(); it != syms.end(); ++it) {
+         if ((*it)->string->str == name) {
+            syms.erase(it);
+         }
+      }
       strs.remove_if([&] (auto str) { return name == str->str; });
    }
 
+   template <Bits bits>
+   typename Nlist<bits>::Kind Nlist<bits>::kind() const {
+      if ((nlist.n_type & N_EXT) == 0) {
+         return Kind::LOCAL;
+      } else if ((nlist.n_type & N_TYPE) == N_UNDF) {
+         return Kind::UNDEF;
+      } else {
+         return Kind::EXT;
+      }
+   }
+   
+   template <Bits bits>
+   bool Symtab<bits>::NlistCompare::operator()(const Nlist<bits> *lhs,
+                                               const Nlist<bits> *rhs) const {
+      return (int) lhs->kind() < (int) rhs->kind();
+   }
+   
    template class Symtab<Bits::M32>;
    template class Symtab<Bits::M64>;
    
