@@ -9,7 +9,9 @@ add_executable(macho-tool
   translate.cc
   tweak.cc
   convert.cc
-  operation.cc
+  modify-insert.cc
+  modify-delete.cc
+  modify-start.cc
   $<TARGET_OBJECTS:macho_cxx_objs>
   )
 

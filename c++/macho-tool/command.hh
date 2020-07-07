@@ -65,3 +65,30 @@ struct InOutCommand: Command {
    virtual void arghandler(int argc, char *argv[]) override;
    InOutCommand(const char *name): Command(name) {}
 };
+
+struct Functor {
+   virtual int parse(char *option) = 0;
+   virtual void operator()(MachO::MachO *macho) = 0;
+   virtual ~Functor() {}
+};
+
+struct Operation: Functor {
+   virtual std::vector<char *> keylist() const = 0;
+   virtual int subopthandler(int index, char *value) = 0;
+   virtual void validate() const = 0;
+
+   virtual int parse(char *option) override;
+   virtual ~Operation() {}
+};
+
+struct Subcommand: Functor {
+   std::unique_ptr<Operation> op;
+
+   virtual std::vector<char *> keylist() const = 0;
+   virtual Operation *getop(int index) = 0;
+
+   virtual void operator()(MachO::MachO *macho) override;
+   virtual int parse(char *option) override;
+   virtual ~Subcommand() {}
+};
+

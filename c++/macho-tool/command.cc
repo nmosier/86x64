@@ -95,3 +95,50 @@ void InOutCommand::arghandler(int argc, char *argv[]) {
    in_img = std::make_unique<MachO::Image>(in_path, O_RDONLY);
    out_img = std::make_unique<MachO::Image>(out_path, O_RDWR | O_CREAT | O_TRUNC);
 }   
+
+int Subcommand::parse(char *option) {
+   char *value;
+   int index;
+   if ((index = getsubopt(&option, keylist().data(), &value)) < 0) {
+      if (*suboptarg) {
+         throw "unrecognized subcommand";
+      } else {
+         throw "missing subcommand";
+      }
+   } else {
+      op = std::unique_ptr<Operation>(getop(index));
+      return op->parse(option);
+   }
+}
+
+void Subcommand::operator()(MachO::MachO *macho) {
+   return (*op)(macho);
+}
+
+int Operation::parse(char *option) {
+   while (*option) {
+      char *value;
+      int index = getsubopt(&option, keylist().data(), &value);
+      if (index < 0) {
+         if (suboptarg) {
+            throw std::string("invalid suboption `") + suboptarg + "'";
+         } else {
+            throw std::string("missing suboption");
+         }
+      }
+
+      try {
+         int stat = subopthandler(index, value);
+         if (stat <= 0) {
+            return stat;
+         }
+      } catch (const std::string& s) {
+         throw std::string(suboptarg) + ": " + s;
+      }
+   }
+
+   validate();
+
+   return 0;
+}
+
