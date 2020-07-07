@@ -17,7 +17,7 @@ struct ModifyCommand::Insert: Subcommand {
 struct ModifyCommand::Insert::Instruction: Operation {
    MachO::Location loc;
    MachO::Relation relation = MachO::Relation::BEFORE;
-   std::optional<unsigned long> bytes = -1;
+   std::optional<unsigned long> bytes;
 
    virtual std::vector<char *> keylist() const override {
       return {"vmaddr", "offset", "before", "after", "bytes", nullptr};

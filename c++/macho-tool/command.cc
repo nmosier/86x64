@@ -139,6 +139,5 @@ int Operation::parse(char *option) {
 
    validate();
 
-   return 0;
+   return 1;
 }
-

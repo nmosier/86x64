@@ -19,20 +19,25 @@ int ModifyCommand::work() {
 }
 
 int ModifyCommand::opthandler(int optchar) {
+   Functor *f;
+   
    switch (optchar) {
    case 'h':
       usage(std::cout);
       return 0;         
    case 'i':
-      operations.push_back(std::make_unique<Insert>());
-      return 1;
+      f = new Insert;
+      break;
    case 'd':
-      operations.push_back(std::make_unique<Delete>());
-      return 1;
+      f = new Delete;
+      break;
    case 's':
-      operations.push_back(std::make_unique<Start>());
-      return 1;
+      f = new Start;
+      break;
    default:
       abort();
    }
+
+   operations.emplace_back(f);
+   return f->parse(optarg);
 }
