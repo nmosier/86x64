@@ -82,10 +82,10 @@ struct Operation: Functor {
 };
 
 struct Subcommand: Functor {
-   std::unique_ptr<Operation> op;
+   std::unique_ptr<Functor> op;
 
    virtual std::vector<char *> keylist() const = 0;
-   virtual Operation *getop(int index) = 0;
+   virtual Functor *getop(int index) = 0;
 
    virtual void operator()(MachO::MachO *macho) override;
    virtual int parse(char *option) override;

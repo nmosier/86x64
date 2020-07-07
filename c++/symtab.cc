@@ -198,6 +198,13 @@ namespace MachO {
       env.add(&other, this);
    }
 
+   template <Bits bits>
+   void Symtab<bits>::remove(const std::string& name) {
+      /* find symbol to be removed */
+      syms.remove_if([&] (auto sym) { return name == sym->string->str; });
+      strs.remove_if([&] (auto str) { return name == str->str; });
+   }
+
    template class Symtab<Bits::M32>;
    template class Symtab<Bits::M64>;
    

@@ -40,6 +40,7 @@ int ModifyCommand::Insert::Instruction::subopthandler(int index, char *value) {
       break;
    default: abort();
    }
+   return 1;
 }
 
 

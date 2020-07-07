@@ -118,30 +118,30 @@ namespace MachO {
       // linkedits = env.archive->template subcommands<LinkeditCommand<bits>>();
 
       /* LC_DYLD_INFO[_ONLY] */
-      auto dyld_info = env.archive->template subcommand<DyldInfo<bits>>();
+      auto dyld_info = env.archive->template subcommand<DyldInfo>();
       if (dyld_info) { dyld_info->Build_LINKEDIT(env); }
 
       /* LC_FUNCTION_STARTS */
-      auto function_starts = env.archive->template subcommand<FunctionStarts<bits>>();
+      auto function_starts = env.archive->template subcommand<FunctionStarts>();
       if (function_starts) { function_starts->Build_LINKEDIT(env); }
 
       /* LC_DATA_IN_CODE */
-      auto data_in_code = env.archive->template subcommand<DataInCode<bits>>();
+      auto data_in_code = env.archive->template subcommand<DataInCode>();
       if (data_in_code) { data_in_code->Build_LINKEDIT(env); }
 
       /* LC_SYMTAB: symbol table */
-      auto symtab = env.archive->template subcommand<Symtab<bits>>();
+      auto symtab = env.archive->template subcommand<Symtab>();
       if (symtab) { symtab->Build_LINKEDIT_symtab(env); }
 
       /* LC_DYSYMTAB */
-      auto dysymtab = env.archive->template subcommand<Dysymtab<bits>>();
+      auto dysymtab = env.archive->template subcommand<Dysymtab>();
       if (dysymtab) { dysymtab->Build_LINKEDIT(env); }
 
       /* LC_SYMTAB: string table */
       if (symtab) { symtab->Build_LINKEDIT_strtab(env); }
 
       /* LC_CODE_SIGNATURE */
-      auto code_signature = env.archive->template subcommand<CodeSignature<bits>>();
+      auto code_signature = env.archive->template subcommand<CodeSignature>();
       if (code_signature) { code_signature->Build_LINKEDIT(env); }
 
       

@@ -60,6 +60,7 @@ namespace MachO {
          return EntryPoint<bits>::Parse(img, offset, env);
 
       case LC_LOAD_DYLIB:
+      case LC_ID_DYLIB:
          return DylibCommand<bits>::Parse(img, offset, env);
 
       case LC_DATA_IN_CODE:

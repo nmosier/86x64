@@ -45,5 +45,5 @@ namespace MachO {
       template <typename... Args>
       unrecognized_format(Args&&... args): bad_format(args...) {}
    };
-   
+
 }

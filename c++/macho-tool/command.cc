@@ -106,7 +106,7 @@ int Subcommand::parse(char *option) {
          throw "missing subcommand";
       }
    } else {
-      op = std::unique_ptr<Operation>(getop(index));
+      op = std::unique_ptr<Functor>(getop(index));
       return op->parse(option);
    }
 }

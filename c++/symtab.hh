@@ -64,8 +64,8 @@ namespace MachO {
    template <Bits bits>
    class Symtab: public LinkeditCommand<bits> {
    public:
-      using Nlists = std::vector<Nlist<bits> *>;
-      using Strings = std::vector<String<bits> *>;
+      using Nlists = std::list<Nlist<bits> *>;
+      using Strings = std::list<String<bits> *>;
       
       symtab_command symtab;
       Nlists syms;
@@ -86,6 +86,8 @@ namespace MachO {
       virtual Symtab<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Symtab<opposite<bits>>(*this, env);
       }
+
+      void remove(const std::string& name);
 
    private:
       Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);

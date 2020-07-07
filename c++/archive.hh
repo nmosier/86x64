@@ -31,11 +31,11 @@ namespace MachO {
       virtual uint32_t magic() const override { return header.magic; }
       virtual uint32_t& magic() override { return header.magic; }
 
-      template <class Subclass, int64_t cmdval = -1>
-      Subclass *subcommand() const {
-         static_assert(std::is_base_of<LoadCommand<bits>, Subclass>());
+      template <template <Bits> class Subclass, int64_t cmdval = -1>
+      Subclass<bits> *subcommand() const {
+         static_assert(std::is_base_of<LoadCommand<bits>, Subclass<bits>>());
          for (LoadCommand<bits> *lc : load_commands) {
-            Subclass *subcommand = dynamic_cast<Subclass *>(lc);
+            Subclass<bits> *subcommand = dynamic_cast<Subclass<bits> *>(lc);
             if (subcommand) { return subcommand; }
          }
          return nullptr;

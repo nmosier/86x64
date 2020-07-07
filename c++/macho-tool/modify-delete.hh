@@ -4,12 +4,17 @@
 
 struct ModifyCommand::Delete: Subcommand {
    struct Instruction;
-
+   struct Segment;
+   struct Symbol;
+   
    virtual std::vector<char *> keylist() const override {
-      return {"i", "inst", "instruction", nullptr};
+      return {"i", "inst", "instruction",
+              "S", "seg", "segment",
+              "sym", "symbol",
+              nullptr};
    }
 
-   virtual Operation *getop(int index) override;
+   virtual Functor *getop(int index) override;
 };
 
 struct ModifyCommand::Delete::Instruction: Operation {
@@ -23,4 +28,18 @@ struct ModifyCommand::Delete::Instruction: Operation {
    virtual void operator()(MachO::MachO *macho) override;
    virtual int subopthandler(int index, char *value) override;
    virtual void validate() const override {}
+};
+
+struct ModifyCommand::Delete::Segment: Functor {
+   std::string name;
+
+   virtual int parse(char *option) override;
+   virtual void operator()(MachO::MachO *macho) override;
+};
+
+struct ModifyCommand::Delete::Symbol: Functor {
+   std::string name;
+
+   virtual int parse(char *option) override;
+   virtual void operator()(MachO::MachO *macho) override;
 };

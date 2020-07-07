@@ -5,6 +5,7 @@
 #include "util.hh"
 #include "macho.hh"
 #include "archive.hh"
+#include "symtab.hh"
 
 int ConvertCommand::opthandler(int optchar) {
    switch (optchar) {
@@ -69,4 +70,19 @@ void ConvertCommand::archive_EXECUTE_to_DYLIB(MachO::Archive<MachO::Bits::M64> *
    if (archive->template subcommands<MachO::LoadCommand, LC_REEXPORT_DYLIB>().empty()) {
       archive->header.flags |= MH_NO_REEXPORTED_DYLIBS;
    }
+
+   /* remove PAGEZERO */
+   for (auto it = archive->load_commands.begin(); it != archive->load_commands.end(); ++it) {
+      auto segment = dynamic_cast<MachO::Segment<MachO::Bits::M64> *>(*it);
+      if (segment && strcmp(SEG_PAGEZERO, segment->segment_command.segname) == 0) {
+         it = archive->load_commands.erase(it);
+      }
+   }
+
+   /* remove __mh_execute_header */
+   auto symtab = archive->template subcommand<MachO::Symtab>();
+   if (symtab == nullptr) {
+      throw std::string("missing symtab");
+   }
+   symtab->remove("__mh_execute_header");
 }
