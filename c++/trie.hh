@@ -8,7 +8,7 @@
 template <typename T, typename U>
 class trie {
    class node;
-   using children_t = std::unordered_map<T, std::unique_ptr<node>>;
+   using children_t = std::unordered_map<T, node>;
 public:
    class iterator {
    public:
@@ -21,13 +21,13 @@ public:
 
       iterator& operator++() {
          /* invariant: non-end iterator points to valid node */
-         assert(its.back()->second->valid);
-         if (!its.back()->second->children.empty()) {
+         assert(its.back()->second.valid);
+         if (!its.back()->second.children.empty()) {
             /* descend until valid */
             do {
-               maps.push_back(&its.back()->second->children);
+               maps.push_back(&its.back()->second.children);
                its.push_back(maps.back()->begin());
-            } while (!its.back()->second->valid);
+            } while (!its.back()->second.valid);
          } else {
             while (!its.empty() && ++its.back() == maps.back()->end()) {
                its.pop_back();
@@ -36,11 +36,11 @@ public:
 
             if (!its.empty()) {
                /* descend until valid */
-               while (!its.back()->second->valid) {
-                  maps.push_back(&its.back()->second->children);
+               while (!its.back()->second.valid) {
+                  maps.push_back(&its.back()->second.children);
                   its.push_back(maps.back()->begin());
                }
-               assert(its.back()->second->valid);
+               assert(its.back()->second.valid);
             }
          }
          return *this;
@@ -60,12 +60,12 @@ public:
       iterator current_iterator;
       node *node = &root;
       for (It it = begin; it != end; ++it) {
-         auto child = node->children.insert({*it, std::make_unique<class node>(false)});
+         auto child = node->children.emplace(*it, false);
 
          current_iterator.its.push_back(child.first);
          current_iterator.maps.push_back(&node->children);
             
-         node = child.first->second.get();
+         node = &child.first->second;
       }
 
       if (!node->valid) {
@@ -81,12 +81,12 @@ public:
 
    iterator erase(iterator pos) {
       assert(!pos.its.empty());
-      assert(pos.its.back()->second->valid);
-      pos.its.back()->second->valid = false;
+      assert(pos.its.back()->second.valid);
+      pos.its.back()->second.valid = false;
 
       while (!pos.its.empty() &&
-             !pos.its.back()->second->valid &&
-             pos.its.back()->second->children.empty())
+             !pos.its.back()->second.valid &&
+             pos.its.back()->second.children.empty())
          {
             pos.its.back() = pos.maps.back()->erase(pos.its.back());
             if (pos.its.back() == pos.maps.back()->end()) {
@@ -100,8 +100,8 @@ public:
       --size_;
 
       /* descend until valid */
-      while (!pos.its.empty() && !pos.its.back()->second->valid) {
-         pos.maps.push_back(&pos.its.back()->second->children);
+      while (!pos.its.empty() && !pos.its.back()->second.valid) {
+         pos.maps.push_back(&pos.its.back()->second.children);
          pos.its.push_back(pos.maps.back()->begin());
       }
 
@@ -115,7 +115,7 @@ public:
          while (!node->valid) {
             begin_iterator.its.push_back(node->children.begin());
             begin_iterator.maps.push_back(&node->children);
-            node = node->children.begin()->second.get();
+            node = &node->children.begin()->second;
          }
       }
       return begin_iterator;
