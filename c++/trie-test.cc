@@ -19,12 +19,6 @@ int main(int argc, char *argv[]) {
       }
    }
 
-      for (auto it = t.begin(); it != t.end(); ++it) {
-         std::cout << *it << std::endl;
-      }
-
-      return 0;
-
    while (t.size() > 0) {
       for (auto it = t.begin(); it != t.end(); ++it) {
          std::cout << *it << std::endl;
