@@ -185,6 +185,15 @@ namespace MachO {
       }
    }
 
+   template <Bits bits>
+   void Archive<bits>::remove_commands(uint32_t cmd) {
+      for (auto it = load_commands.begin(); it != load_commands.end(); ++it) {
+         if ((*it)->cmd() == cmd) {
+            it = load_commands.erase(it);
+         }
+      }
+   }
+   
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

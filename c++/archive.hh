@@ -85,7 +85,8 @@ namespace MachO {
       }
 
       void insert(SectionBlob<bits> *blob, const Location& loc, Relation rel);
-
+      void remove_commands(uint32_t cmd);
+      
       template <template <Bits> class Blob>
       Blob<bits> *find_blob(std::size_t vmaddr) const {
          for (Segment<bits> *segment : segments()) {

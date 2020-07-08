@@ -164,5 +164,17 @@ namespace MachO {
                                 uint8_t flags, ptr_t skipping = 0);
       template <Bits> friend class BindInfo;
    };
+
+#if 0
+   template <Bits bits>
+   class ExportTrie {
+   public:
+      static ExportInfo<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+         return new ExportInfo(img, offset, env);
+      }
+   private:
+      ExportInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+   };
+#endif
    
 }

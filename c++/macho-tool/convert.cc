@@ -1,5 +1,6 @@
 #include <iostream>
 #include <libgen.h>
+#include <mach/machine.h>
 
 #include "convert.hh"
 #include "util.hh"
@@ -85,4 +86,15 @@ void ConvertCommand::archive_EXECUTE_to_DYLIB(MachO::Archive<MachO::Bits::M64> *
       throw std::string("missing symtab");
    }
    symtab->remove("__mh_execute_header");
+
+   /* remove irrelevant commands */
+   archive->remove_commands(LC_LOAD_DYLINKER);
+   archive->remove_commands(LC_MAIN);
+
+   /* tweak archive header */
+   archive->header.cpusubtype &= ~ (uint32_t) CPU_SUBTYPE_LIB64;
+   archive->header.flags &= ~ (uint32_t) MH_PIE;
+
+   /* change base address */
+   archive->vmaddr = 0x0;
 }
