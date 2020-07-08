@@ -40,9 +40,9 @@ public:
                   maps.push_back(&its.back()->second->children);
                   its.push_back(maps.back()->begin());
                }
+               assert(its.back()->second->valid);
             }
          }
-         
          return *this;
       }
 
@@ -56,7 +56,7 @@ public:
    };
       
    template <typename It>
-   iterator insert(It begin, It end) {
+   std::pair<iterator,bool> insert(It begin, It end) {
       iterator current_iterator;
       node *node = &root;
       for (It it = begin; it != end; ++it) {
@@ -68,22 +68,44 @@ public:
          node = child.first->second.get();
       }
 
-      node->valid = true;
-      ++size_;
-      return current_iterator;
+      if (!node->valid) {
+         node->valid = true;
+         ++size_;
+         return {current_iterator, true};
+      } else {
+         return {current_iterator, false};
+      }
    }
 
-   iterator insert(const U& elem) { return insert(elem.begin(), elem.end()); }
+   std::pair<iterator,bool> insert(const U& elem) { return insert(elem.begin(), elem.end()); }
 
    iterator erase(iterator pos) {
-      while (!pos.its.empty() && pos.its.back()->second->children.empty()) {
-         pos.maps.back()->erase(pos.its.back());
-         pos.maps.pop_back();
-         pos.its.pop_back();
+      assert(!pos.its.empty());
+      assert(pos.its.back()->second->valid);
+      pos.its.back()->second->valid = false;
+
+      while (!pos.its.empty() &&
+             !pos.its.back()->second->valid &&
+             pos.its.back()->second->children.empty())
+         {
+            pos.its.back() = pos.maps.back()->erase(pos.its.back());
+            if (pos.its.back() == pos.maps.back()->end()) {
+               pos.its.pop_back();
+               pos.maps.pop_back();
+            } else {
+               break;
+            }
+         }
+         
+      --size_;
+
+      /* descend until valid */
+      while (!pos.its.empty() && !pos.its.back()->second->valid) {
+         pos.maps.push_back(&pos.its.back()->second->children);
+         pos.its.push_back(pos.maps.back()->begin());
       }
 
-      --size_;
-      
+      return pos;
    }
       
    iterator begin() {
@@ -103,6 +125,8 @@ public:
 
    using size_type = std::size_t;
    size_type size() const { return size_; }
+
+   bool empty() const { return size() == 0; }
 
    trie(): root(false) {}
 
