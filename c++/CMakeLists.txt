@@ -49,3 +49,7 @@ target_link_libraries(macho+insert+instruction PRIVATE ${xed_LIBRARIES} scanopt)
 target_include_directories(macho+insert+instruction PRIVATE ${xed_INCLUDE_DIRS})
 target_compile_options(macho+insert+instruction PRIVATE -pedantic -Wall -Wno-format-security)
 
+add_executable(trie-test
+  trie-test.cc
+  )
+
