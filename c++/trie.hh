@@ -127,7 +127,7 @@ public:
    size_type size() const { return size_; }
 
    bool empty() const { return size() == 0; }
-
+   
    trie(): root(false) {}
 
 private:
