@@ -1,13 +1,13 @@
 #pragma once
 
 #include <unordered_map>
-#include <memory>
 #include <list>
 #include <vector>
 
 template <typename T, typename U>
 class trie {
-   class node;
+protected:
+   struct node;
    using children_t = std::unordered_map<T, node>;
 public:
    class iterator {
@@ -77,7 +77,7 @@ public:
       }
    }
 
-   std::pair<iterator,bool> insert(const U& elem) { return insert(elem.begin(), elem.end()); }
+   std::pair<iterator, bool> insert(const U& elem) { return insert(elem.begin(), elem.end()); }
 
    iterator erase(iterator pos) {
       assert(!pos.its.empty());
@@ -125,12 +125,11 @@ public:
 
    using size_type = std::size_t;
    size_type size() const { return size_; }
-
    bool empty() const { return size() == 0; }
-   
+
    trie(): root(false) {}
 
-private:
+protected:
    struct node {
       bool valid;
       children_t children;

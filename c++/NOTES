@@ -121,3 +121,10 @@ Relocation entry:
 Initial values indicate offsets within the symbol.
 
 Store relocation info with corresponding section blob, then collect at Build.
+
+--------
+
+
+for each node, need to emit info.
+give information about each edge
+then descend into edges
