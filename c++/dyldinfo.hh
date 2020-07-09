@@ -176,7 +176,7 @@ namespace MachO {
    class ExportNode {
    public:
       std::size_t flags;
-
+      
       static ExportNode<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
 
       std::size_t size() const;
@@ -192,8 +192,7 @@ namespace MachO {
    template <Bits bits>
    class RegularExportNode: public ExportNode<bits> {
    public:
-      std::size_t value;
-#warning TODO: need to make value point to symbol
+      const SectionBlob<bits> *value = nullptr;
 
       static RegularExportNode<bits> *Parse(const Image& img, std::size_t offset,
                                             std::size_t flags, ParseEnv<bits>& env) {
@@ -230,7 +229,7 @@ namespace MachO {
    public:
       std::size_t stuboff;
       std::size_t resolveroff;
-
+      
       static StubExportNode<bits> *Parse(const Image& img, std::size_t offset, std::size_t flags,
                                          ParseEnv<bits>& env) {
          return new StubExportNode(img, offset, flags, env);
@@ -251,9 +250,11 @@ namespace MachO {
       
    private:
       using node = typename trie_map<char, std::string, std::unique_ptr<ExportNode<bits>>>::node;
-      static node ParseNode(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      static node ParseNode(const Image& img, std::size_t offset, std::size_t start,
+                            ParseEnv<bits>& env);
       static std::size_t NodeSize(const node& node);
-      static std::size_t EmitNode(const node& node, Image& img, std::size_t offset);
+      static std::size_t EmitNode(const node& node, Image& img, std::size_t offset,
+                                  std::size_t start);
    };
    
    template <Bits bits>

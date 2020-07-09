@@ -464,8 +464,10 @@ namespace MachO {
                                               std::size_t flags, ParseEnv<bits>& env):
       ExportNode<bits>(flags)
    {
-      offset += leb128_decode(img, offset, value);
-      fprintf(stderr, "[EXPORT] value %zx\n", value);
+      std::size_t value_offset;
+      offset += leb128_decode(img, offset, value_offset);
+      fprintf(stderr, "[EXPORT] value %zx\n", value_offset);
+      env.offset_resolver.resolve(value_offset, &value);
    }
 
    template <Bits bits>
@@ -503,7 +505,7 @@ namespace MachO {
    ExportTrie<bits> ExportTrie<bits>::Parse(const Image& img, std::size_t offset,
                                             ParseEnv<bits>& env) {
       ExportTrie<bits> t;
-      t.root = ParseNode(img, offset, env);
+      t.root = ParseNode(img, offset, offset, env);
       return t;
    }
 
@@ -512,12 +514,6 @@ namespace MachO {
                                              ParseEnv<bits>& env) {
       std::size_t flags;
       offset += leb128_decode(img, offset, flags);
-
-#if 0
-      if ((flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION)) {
-         throw error("unsupported flag EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION");
-      }
-#endif
       
       if ((flags & EXPORT_SYMBOL_FLAGS_REEXPORT)) {
          return ReexportNode<bits>::Parse(img, offset, flags, env);
@@ -529,18 +525,21 @@ namespace MachO {
    }
 
    template <Bits bits> typename ExportTrie<bits>::node
-   ExportTrie<bits>::ParseNode(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-      const std::size_t ref_offset = offset;
+   ExportTrie<bits>::ParseNode(const Image& img, std::size_t offset, std::size_t start,
+                               ParseEnv<bits>& env) {
 
+      fprintf(stderr, "[EXPORT] node @ %zx\n", offset);
+      
       /* decode info */
       std::size_t size;
       offset += leb128_decode(img, offset, size);
-
-      fprintf(stderr, "[EXPORT] node data size %zx\n", size);
+ 
+      fprintf(stderr, "[EXPORT] data size %zx\n", size);
 
       node curnode;
       if (size > 0) {
-         curnode.value = std::unique_ptr<ExportNode<bits>>(ExportNode<bits>::Parse(img, offset, env));
+         curnode.value = std::unique_ptr<ExportNode<bits>>(ExportNode<bits>::Parse(img, offset,
+                                                                                   env));
       }
       offset += size;
       
@@ -555,7 +554,7 @@ namespace MachO {
          std::size_t edge_diff;
          offset += leb128_decode(img, offset, edge_diff);
 
-         fprintf(stderr, "[EXPORT] edge offset rel=%zx, abs=%zx\n", edge_diff, edge_diff + ref_offset);
+         fprintf(stderr, "[EXPORT] edge offset rel=%zx, abs=%zx\n", edge_diff, edge_diff + start);
          
          node *subnode = &curnode;
          while (*sym) {
@@ -563,9 +562,9 @@ namespace MachO {
             subnode = &result.first->second;
          }
          
-         *subnode = ParseNode(img, edge_diff + ref_offset, env);
+         *subnode = ParseNode(img, edge_diff + start, start, env);
       }
-
+      
       return curnode;
    }
 
@@ -600,11 +599,12 @@ namespace MachO {
 
    template <Bits bits>
    void ExportTrie<bits>::Emit(Image& img, std::size_t offset) const {
-      EmitNode(this->root, img, offset);
+      EmitNode(this->root, img, offset, offset);
    }
 
    template <Bits bits>
-   std::size_t ExportTrie<bits>::EmitNode(const node& node, Image& img, std::size_t offset) {
+   std::size_t ExportTrie<bits>::EmitNode(const node& node, Image& img, std::size_t offset,
+                                          std::size_t start) {
       /* emit node info size */
       std::size_t info_size = node.value ? (*node.value)->size() : 0;
       offset += leb128_encode(img, offset, info_size);
@@ -627,8 +627,9 @@ namespace MachO {
       /* emit edges & children */
       for (auto& child : node.children) {
          img.at<char>(offset++) = child.first;
-         offset += leb128_encode(img, offset, offset_past_edges);
-         offset_past_edges = EmitNode(child.second, img, offset_past_edges);
+         img.at<char>(offset++) = '\0';
+         offset += leb128_encode(img, offset, offset_past_edges - start);
+         offset_past_edges = EmitNode(child.second, img, offset_past_edges, start);
       }
 
       return offset_past_edges;
@@ -652,7 +653,7 @@ namespace MachO {
 
    template <Bits bits>
    void RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
-      offset += leb128_encode(img, offset, value);
+      offset += leb128_encode(img, offset, value ? value->loc.offset : 0);
    }
 
    template <Bits bits>
