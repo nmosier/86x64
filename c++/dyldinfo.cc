@@ -251,7 +251,7 @@ namespace MachO {
       dyld_info.lazy_bind_size = align<bits>(lazy_bind.size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
 
-      dyld_info.export_size = align<bits>(export_info->size());
+      dyld_info.export_size = align<bits>(export_info.size());
       dyld_info.export_off = env.allocate(dyld_info.export_size);
    }
 
@@ -462,28 +462,6 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void ExportInfo<bits>::ParseRec(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                   const std::string& prefix) {
-      std::size_t info_size;
-      offset += leb128_decode(img, offset, info_size);
-      if (info_size > 0) {
-         exportees.insert({prefix, ExportNode<bits>::Parse(img, offset, env, info_size)});
-      }
-      offset += info_size;
-
-      uint8_t nedges = img.at<uint8_t>(offset++);
-      for (uint8_t i = 0; i < nedges; ++i) {
-         std::string newprefix = prefix + &img.at<char>(offset);
-         offset += strlen(&img.at<char>(offset)) + 1;
-         
-         std::size_t uleb;
-         offset += leb128_decode(img, offset, uleb);
-         
-         ParseRec(img, uleb, env, newprefix);
-      }
-   }
-
-   template <Bits bits>
    ExportNode<bits>::ExportNode(const Image& img, std::size_t offset, ParseEnv<bits>& env,
                                 std::size_t size) {
       offset += leb_decode(img, offset, flags);
@@ -496,7 +474,7 @@ namespace MachO {
    }
 
    template <Bits bits>
-   ExportInfo<bits>::NodeInfo ExportInfo<bits>::ParseNode(Pos pos) {
+   typename ExportInfo<bits>::NodeInfo ExportInfo<bits>::ParseNode(Pos pos) {
       if (pos.str.empty()) {
          std::size_t size;
          pos.offset += leb128_decode(pos.img, pos.offset, size);
@@ -506,10 +484,10 @@ namespace MachO {
          pos.offset += size;
 
          /* get edges */
-         uint8_t nedges = pos.img.at<uint8_t>(pos.offset++);
+         uint8_t nedges = pos.img.template at<uint8_t>(pos.offset++);
          Edges edges;
          for (uint8_t i = 0; i < nedges; ++i) {
-            char *sym = &pos.img.at<char>(pos.offset);
+            char *sym = &pos.img.template at<char>(pos.offset);
             pos.offset += strlen(sym) + 1;
             assert(*sym != '\0');
 

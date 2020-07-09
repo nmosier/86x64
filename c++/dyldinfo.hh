@@ -24,7 +24,8 @@ namespace MachO {
       BindInfo<bits> *bind;
       std::vector<uint8_t> weak_bind;
       std::vector<uint8_t> lazy_bind;
-      ExportInfo<bits> *export_info;
+      std::vector<uint8_t> export_info;
+      // ExportInfo<bits> *export_info;
 
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
@@ -36,9 +37,11 @@ namespace MachO {
          return new DyldInfo(img, offset, env);
       }
 
+#if 0
       virtual DyldInfo<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new DyldInfo<opposite<bits>>(*this, env);
       }
+#endif
 
    private:
       DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);

@@ -29,7 +29,7 @@ namespace MachO {
       virtual void AssignID(BuildEnv<bits>& env) {} /*!< build pass 1 */
       virtual void Emit(Image& img, std::size_t offset) const = 0;
 
-      virtual LoadCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
+      virtual LoadCommand<opposite<bits>> *Transform(TransformEnv<bits>& env) const { abort(); }
       
    protected:
       LoadCommand() {}
