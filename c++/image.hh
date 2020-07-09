@@ -32,7 +32,7 @@ namespace MachO {
       }
       
       void memset(std::size_t offset, int c, std::size_t bytes);
-      
+
       Image(const Image&) = delete;
       
    private:

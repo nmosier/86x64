@@ -10,7 +10,8 @@ namespace MachO {
    DyldInfo<bits>::DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       LinkeditCommand<bits>(img, offset, env), dyld_info(img.at<dyld_info_command>(offset)),
       rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env)),
-      bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env))
+      bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env)),
+      export_info(ExportInfo<bits>::Parse(img, dyld_info.export_off, dyld_info.export_size, env))
    {
       weak_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.weak_bind_off),
                                        &img.at<uint8_t>(dyld_info.weak_bind_off +
@@ -18,9 +19,6 @@ namespace MachO {
       lazy_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.lazy_bind_off),
                                        &img.at<uint8_t>(dyld_info.lazy_bind_off +
                                                         dyld_info.lazy_bind_size));
-      export_info = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.export_off),
-                                         &img.at<uint8_t>(dyld_info.export_off +
-                                                          dyld_info.export_size));
    }
 
    template <Bits bits>
@@ -251,7 +249,7 @@ namespace MachO {
       dyld_info.lazy_bind_size = align<bits>(lazy_bind.size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
 
-      dyld_info.export_size = align<bits>(export_info.size());
+      dyld_info.export_size = align<bits>(export_info->size());
       dyld_info.export_off = env.allocate(dyld_info.export_size);
    }
 
@@ -341,7 +339,7 @@ namespace MachO {
       img.copy(dyld_info.weak_bind_off, &*weak_bind.begin(), dyld_info.weak_bind_size);
       img.copy(dyld_info.lazy_bind_off, &*lazy_bind.begin(), dyld_info.lazy_bind_size);
 
-#warning TODO -- emit ExportInfo
+      export_info->Emit(img, dyld_info.export_off);
    }
 
    template <Bits bits>
@@ -416,7 +414,7 @@ namespace MachO {
    template <Bits bits>
    std::size_t DyldInfo<bits>::content_size() const {
       return rebase->size() + bind->size() +
-         weak_bind.size() + lazy_bind.size() + export_info.size();
+         weak_bind.size() + lazy_bind.size() + export_info->size();
    }
 
    template <Bits bits>
@@ -457,58 +455,210 @@ namespace MachO {
    ExportInfo<bits>::ExportInfo(const Image& img, std::size_t offset, std::size_t size,
                                 ParseEnv<bits>& env) {
       if (size > 0) {
-         trie.decode(Pos(img, offset), ParseNode);
+         trie = ExportTrie<bits>::Parse(img, offset, env);
       }
    }
 
    template <Bits bits>
-   ExportNode<bits>::ExportNode(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                std::size_t size) {
-      offset += leb_decode(img, offset, flags);
-
-      if ((flags & EXPORT_SYMBOL_FLAGS_REEXPORT)) {
-         throw error("export node with flags EXPORT_SYMBOL_FLAGS_REEXPORT not supported");
-      } else {
-         offset += leb_decode(img, offset, value);
-      }
+   RegularExportNode<bits>::RegularExportNode(const Image& img, std::size_t offset,
+                                              std::size_t flags, ParseEnv<bits>& env):
+      ExportNode<bits>(flags)
+   {
+      offset += leb128_decode(img, offset, flags);
    }
 
    template <Bits bits>
-   typename ExportInfo<bits>::NodeInfo ExportInfo<bits>::ParseNode(Pos pos) {
-      if (pos.str.empty()) {
-         std::size_t size;
-         pos.offset += leb128_decode(pos.img, pos.offset, size);
-         
-         /* create new real node */
-         ExportNode<bits> node = ExportNode<bits>::Parse(pos.img, pos.offset, pos.env, size);
-         pos.offset += size;
+   ReexportNode<bits>::ReexportNode(const Image& img, std::size_t offset, std::size_t flags,
+                                    ParseEnv<bits>& env): ExportNode<bits>(flags) {
+      offset += leb128_decode(img, offset, libordinal);
+      name = std::string(&img.at<char>(offset));
+      offset += name.size() + 1;
+   }
 
-         /* get edges */
-         uint8_t nedges = pos.img.template at<uint8_t>(pos.offset++);
-         Edges edges;
-         for (uint8_t i = 0; i < nedges; ++i) {
-            char *sym = &pos.img.template at<char>(pos.offset);
-            pos.offset += strlen(sym) + 1;
-            assert(*sym != '\0');
+   template <Bits bits>
+   StubExportNode<bits>::StubExportNode(const Image& img, std::size_t offset, std::size_t flags,
+                                        ParseEnv<bits>& env) {
+      offset += leb128_decode(img, offset, stuboff);
+      offset += leb128_decode(img, offset, resolveroff);
+   }
 
-            std::size_t edge_offset;
-            pos.offset += leb128_decode(pos.img, pos.offset, edge_offset);
 
-            // sym + 1 since we're processing one char
-            edges.emplace_back(*sym, Pos(pos.img, pos.env, edge_offset, sym + 1));
-         }
+   template <Bits bits>
+   std::size_t RegularExportNode<bits>::derived_size() const {
+      return leb128_size(std::numeric_limits<std::size_t>::max());
+   }
 
-         return {edges, node};
-      } else {
-         /* create dummy node */
-         char c = pos.str.front();
-         pos.str.erase(pos.str.begin());
-         Edge edge(c, pos);
-         return {{edge}, std::nullopt};
-      }
+   template <Bits bits>
+   std::size_t ReexportNode<bits>::derived_size() const {
+      return leb128_size(std::numeric_limits<std::size_t>::max()) + (name.size() + 1);
+   }
+
+   template <Bits bits>
+   std::size_t StubExportNode<bits>::derived_size() const {
+      return leb128_size(std::numeric_limits<std::size_t>::max()) * 2;
    }
    
+   template <Bits bits>
+   ExportTrie<bits> ExportTrie<bits>::Parse(const Image& img, std::size_t offset,
+                                            ParseEnv<bits>& env) {
+      ExportTrie<bits> t;
+      t.root = ParseNode(img, offset, env);
+      return t;
+   }
 
+   template <Bits bits>
+   ExportNode<bits> *ExportNode<bits>::Parse(const Image& img, std::size_t offset,
+                                             ParseEnv<bits>& env) {
+      std::size_t flags;
+      offset += leb128_decode(img, offset, flags);
+
+      if ((flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION)) {
+         throw error("unsupported flag EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION");
+      }
+      
+      if ((flags & EXPORT_SYMBOL_FLAGS_REEXPORT)) {
+         return ReexportNode<bits>::Parse(img, offset, env);
+      } else if ((flags & EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER)) {
+         return StubExportNode<bits>::Parse(img, offset, env);
+      } else {
+         return RegularExportNode<bits>::Parse(img, offset, env);
+      }
+   }
+
+   template <Bits bits> typename ExportTrie<bits>::node
+   ExportTrie<bits>::ParseNode(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+      /* decode info */
+      std::size_t size;
+      offset += leb128_decode(img, offset, size);
+
+      node curnode;
+      if (size > 0) {
+         curnode.value = ExportNode<bits>::Parse(img, offset, env, size);
+      }
+      offset += size;
+      
+      
+      const uint8_t nedges = img.at<uint8_t>(offset++);
+      for (uint8_t i = 0; i < nedges; ++i) {
+         const char *sym = &img.at<char>(offset);
+         offset += strlen(sym) + 1;
+
+         std::size_t edge_offset;
+         offset += leb128_decode(img, offset, edge_offset);
+         edge_offset += offset;
+         
+         node *subnode = &curnode;
+         while (*sym) {
+            auto result = subnode->children.emplace(*sym++, node());
+            subnode = &result.first->second;
+         }
+         
+         *subnode = ParseNode(img, edge_offset, env);
+      }
+
+      return curnode;
+   }
+
+   template <Bits bits>
+   std::size_t ExportInfo<bits>::size() const {
+      return trie.content_size();
+   }
+
+   template <Bits bits>
+   std::size_t ExportTrie<bits>::content_size() const {
+      return NodeSize(this->root);
+   }
+
+   template <Bits bits>
+   std::size_t ExportTrie<bits>::NodeSize(const node& node) {
+      std::size_t size = 0;
+
+      if (node.value) {
+         size += (*node.value)->size(); /* size of info */
+      }
+      size += leb128_size(size); /* size of size of info */
+      ++size; /* nedges */
+
+      for (auto& child : node.children) {
+         size += 2;
+         size += leb128_size(std::numeric_limits<std::size_t>::max()); /* max size of offset */
+         size += NodeSize(child.second);
+      }
+
+      return size;
+   }
+
+   template <Bits bits>
+   void ExportTrie<bits>::Emit(Image& img, std::size_t offset) const {
+      EmitNode(this->root, img, offset);
+   }
+
+   template <Bits bits>
+   std::size_t ExportTrie<bits>::EmitNode(const node& node, Image& img, std::size_t offset) {
+      /* emit node info size */
+      std::size_t info_size = node.value ? (*node.value)->size() : 0;
+      offset += leb128_encode(img, offset, info_size);
+
+      /* emit node info (optional) */
+      if (node.value) {
+         (*node.value)->Emit(img, offset);
+      }
+      offset += info_size;
+      
+      /* emit edge count */
+      const uint8_t nedges = node.children.size();
+      img.at<uint8_t>(offset++) = nedges;
+      
+
+      /* compute offset past edges */
+      std::size_t offset_past_edges = offset +
+         nedges * (2 /* c + '\0' */ + leb128_size(std::numeric_limits<std::size_t>::max()));
+
+      /* emit edges & children */
+      for (auto& child : node.children) {
+         img.at<char>(offset++) = child.first;
+         offset += leb128_encode(img, offset, offset_past_edges);
+         offset_past_edges = EmitNode(child.second, img, offset_past_edges);
+      }
+
+      return offset_past_edges;
+   }
+
+   template <Bits bits>
+   void ExportNode<bits>::Emit(Image& img, std::size_t offset) const {
+      offset += leb128_encode(img, offset, flags);
+      Emit_derived(img, offset);
+   }
+
+   template <Bits bits>
+   void ExportInfo<bits>::Emit(Image& img, std::size_t offset) const {
+      return trie.Emit(img, offset);
+   }
+
+   template <Bits bits>
+   std::size_t ExportNode<bits>::size() const {
+      return leb128_size(flags) + derived_size();
+   }
+
+   template <Bits bits>
+   void RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      offset += leb128_encode(img, offset, value);
+   }
+
+   template <Bits bits>
+   void ReexportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      offset += leb128_encode(img, offset, libordinal);
+      img.copy(offset, name.c_str(), name.size() + 1);
+      offset += name.size() + 1;
+   }
+
+   template <Bits bits>
+   void StubExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      offset += leb128_encode(img, offset, stuboff);
+      offset += leb128_encode(img, offset, resolveroff);
+   }
+
+   
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
 

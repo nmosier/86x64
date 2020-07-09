@@ -24,8 +24,8 @@ namespace MachO {
       BindInfo<bits> *bind;
       std::vector<uint8_t> weak_bind;
       std::vector<uint8_t> lazy_bind;
-      std::vector<uint8_t> export_info;
-      // ExportInfo<bits> *export_info;
+      // std::vector<uint8_t> export_info;
+      ExportInfo<bits> *export_info;
 
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
@@ -176,46 +176,101 @@ namespace MachO {
    class ExportNode {
    public:
       std::size_t flags;
+
+      static ExportNode<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+
+      std::size_t size() const;
+      void Emit(Image& img, std::size_t offset) const;
+      virtual ~ExportNode() {}
+      
+   protected:
+      ExportNode(std::size_t flags): flags(flags) {}
+      virtual std::size_t derived_size() const = 0;
+      virtual void Emit_derived(Image& img, std::size_t offset) const = 0;
+   };
+
+   template <Bits bits>
+   class RegularExportNode: public ExportNode<bits> {
+   public:
       std::size_t value;
 #warning TODO: need to make value point to symbol
-      
-      static ExportNode<bits> Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
-                                    std::size_t size) {
-         return ExportNode(img, offset, env, size);
+
+      static RegularExportNode<bits> *Parse(const Image& img, std::size_t offset,
+                                            ParseEnv<bits>& env) {
+         return new RegularExportNode(img, offset, env);
       }
+
    private:
-      ExportNode(const Image& img, std::size_t offset, ParseEnv<bits>& env, std::size_t size);
+      RegularExportNode(const Image& img, std::size_t offset, std::size_t flags,
+                        ParseEnv<bits>& env);
+
+      virtual std::size_t derived_size() const override;
+      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+   };
+
+   template <Bits bits>
+   class ReexportNode: public ExportNode<bits> {
+   public:
+      std::size_t libordinal;
+      std::string name;
+
+      static ReexportNode<bits> *Parse(const Image& img, std::size_t offset, std::size_t flags,
+                                       ParseEnv<bits>& env) {
+         return new ReexportNode<bits>(img, offset, flags, env);
+      }
+      
+   private:
+      ReexportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
+      virtual std::size_t derived_size() const override;
+      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+   };
+
+   template <Bits bits>
+   class StubExportNode: public ExportNode<bits> {
+   public:
+      std::size_t stuboff;
+      std::size_t resolveroff;
+
+      static StubExportNode<bits> *Parse(const Image& img, std::size_t offset, std::size_t flags,
+                                         ParseEnv<bits>& env) {
+         return new StubExportNode(img, offset, flags, env);
+      }
+      
+   private:
+      StubExportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
+      virtual std::size_t derived_size() const override;
+      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+   };
+
+   template <Bits bits>
+   class ExportTrie: public trie_map<char, std::string, std::unique_ptr<ExportNode<bits>>> {
+   public:
+      static ExportTrie<bits> Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      std::size_t content_size() const;
+      void Emit(Image& img, std::size_t offset) const;
+      
+   private:
+      using node = typename trie_map<char, std::string, std::unique_ptr<ExportNode<bits>>>::node;
+      static node ParseNode(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      static std::size_t NodeSize(const node& node);
+      static std::size_t EmitNode(const node& node, Image& img, std::size_t offset);
    };
    
    template <Bits bits>
    class ExportInfo {
    public:
-      using Trie = trie_map<char, std::string, ExportNode<bits>>;
+      using Trie = ExportTrie<bits>;
       Trie trie;
 
       static ExportInfo<bits> *Parse(const Image& img, std::size_t offset, std::size_t size,
                                      ParseEnv<bits>& env) {
          return new ExportInfo(img, offset, size, env);
       }
+      void Emit(Image& img, std::size_t offset) const;
 
       std::size_t size() const;
       
    private:
       ExportInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
-
-      struct Pos {
-         const Image& img;
-         ParseEnv<bits>& env;
-         std::size_t offset;
-         std::string str;
-
-         Pos(const Image& img, ParseEnv<bits>& env, std::size_t offset,
-             std::string str = std::string()): img(img), env(env), offset(offset), str(str) {}
-      };
-      using Edge = std::pair<char, Pos>;
-      using Edges = std::list<Edge>;
-
-      using NodeInfo = std::pair<Edges, std::optional<ExportNode<bits>>>;
-      static NodeInfo ParseNode(Pos pos);
-   };   
+   };  
 }

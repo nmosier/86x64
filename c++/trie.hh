@@ -6,6 +6,7 @@
 
 template <typename T, typename U, typename V>
 class trie_map {
+protected:
    struct node;
    using children_t = std::unordered_map<T, node>;
 public:
@@ -47,7 +48,7 @@ public:
       
       bool operator==(const iterator& other) const { return its == other.its; }
       bool operator!=(const iterator& other) const { return !(*this == other); }
-         
+      
    private:
       std::list<typename children_t::iterator> its;
       std::list<children_t *> maps;
@@ -144,32 +145,12 @@ public:
    size_type size() const { return size_; }
    bool empty() const { return size() == 0; }
 
-   /**
-    * @tparam Pos decoder position type
-    * @tparam NodeGen functor with signature `std::pair<Edges,std::optional<V>> (Pos)',
-    *   where Edges is iterable with iterator dereference yielding a std::pair<T,Pos>
-    * @tparam EdgeGen functor with signature `Pos (Pos)'
-    */
-   template <typename Pos, typename NodeGen>
-   void decode(Pos pos, NodeGen node_gen) { root.decode(pos, node_gen); }
-   
-private:
+protected:
    struct node {
       std::optional<V> value;
       children_t children;
 
       node(const std::optional<V>& value = std::nullopt): value(value) {}
-
-      template <typename Pos, typename NodeGen>
-      void decode(Pos pos, NodeGen node_gen) {
-         auto node_result = node_gen(pos);
-         value = node_result.second;
-
-         for (auto edge : node_result.first) {
-            auto result = children.emplace(edge.first, node(std::nullopt));
-            result.first->second.decode(edge.second, node_gen);
-         }
-      }
    };
 
    node root;
