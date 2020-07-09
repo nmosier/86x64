@@ -150,7 +150,8 @@ protected:
       std::optional<V> value;
       children_t children;
 
-      node(const std::optional<V>& value = std::nullopt): value(value) {}
+      node() {}
+      template <typename... Args> node(Args&&... args): value(args...) {}
    };
 
    node root;

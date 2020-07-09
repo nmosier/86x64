@@ -196,8 +196,8 @@ namespace MachO {
 #warning TODO: need to make value point to symbol
 
       static RegularExportNode<bits> *Parse(const Image& img, std::size_t offset,
-                                            ParseEnv<bits>& env) {
-         return new RegularExportNode(img, offset, env);
+                                            std::size_t flags, ParseEnv<bits>& env) {
+         return new RegularExportNode(img, offset, flags, env);
       }
 
    private:

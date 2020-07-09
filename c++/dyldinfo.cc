@@ -477,7 +477,7 @@ namespace MachO {
 
    template <Bits bits>
    StubExportNode<bits>::StubExportNode(const Image& img, std::size_t offset, std::size_t flags,
-                                        ParseEnv<bits>& env) {
+                                        ParseEnv<bits>& env): ExportNode<bits>(flags) {
       offset += leb128_decode(img, offset, stuboff);
       offset += leb128_decode(img, offset, resolveroff);
    }
@@ -512,16 +512,18 @@ namespace MachO {
       std::size_t flags;
       offset += leb128_decode(img, offset, flags);
 
+#if 0
       if ((flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION)) {
          throw error("unsupported flag EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION");
       }
+#endif
       
       if ((flags & EXPORT_SYMBOL_FLAGS_REEXPORT)) {
-         return ReexportNode<bits>::Parse(img, offset, env);
+         return ReexportNode<bits>::Parse(img, offset, flags, env);
       } else if ((flags & EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER)) {
-         return StubExportNode<bits>::Parse(img, offset, env);
+         return StubExportNode<bits>::Parse(img, offset, flags, env);
       } else {
-         return RegularExportNode<bits>::Parse(img, offset, env);
+         return RegularExportNode<bits>::Parse(img, offset, flags, env);
       }
    }
 
@@ -531,21 +533,27 @@ namespace MachO {
       std::size_t size;
       offset += leb128_decode(img, offset, size);
 
+      fprintf(stderr, "[EXPORT] node data size %zx\n", size);
+
       node curnode;
       if (size > 0) {
-         curnode.value = ExportNode<bits>::Parse(img, offset, env, size);
+         curnode.value = std::unique_ptr<ExportNode<bits>>(ExportNode<bits>::Parse(img, offset, env));
       }
       offset += size;
       
       
       const uint8_t nedges = img.at<uint8_t>(offset++);
+      fprintf(stderr, "[EXPORT] nedges %hhx\n", nedges);
       for (uint8_t i = 0; i < nedges; ++i) {
+         std::size_t ref_offset = offset;
          const char *sym = &img.at<char>(offset);
+         fprintf(stderr, "[EXPORT] sym `%s'\n", sym);
          offset += strlen(sym) + 1;
 
-         std::size_t edge_offset;
-         offset += leb128_decode(img, offset, edge_offset);
-         edge_offset += offset;
+         std::size_t edge_diff;
+         offset += leb128_decode(img, offset, edge_diff);
+
+         fprintf(stderr, "[EXPORT] edge offset rel=%zx, abs=%zx\n", edge_diff, edge_diff + ref_offset);
          
          node *subnode = &curnode;
          while (*sym) {
@@ -553,7 +561,7 @@ namespace MachO {
             subnode = &result.first->second;
          }
          
-         *subnode = ParseNode(img, edge_offset, env);
+         *subnode = ParseNode(img, edge_diff + ref_offset, env);
       }
 
       return curnode;
@@ -657,7 +665,6 @@ namespace MachO {
       offset += leb128_encode(img, offset, stuboff);
       offset += leb128_encode(img, offset, resolveroff);
    }
-
    
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
