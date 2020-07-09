@@ -23,8 +23,8 @@ namespace MachO {
       RebaseInfo<bits> *rebase;
       BindInfo<bits> *bind;
       std::vector<uint8_t> weak_bind;
-      std::vector<uint8_t> lazy_bind;
-      // std::vector<uint8_t> export_info;
+      // std::vector<uint8_t> lazy_bind;
+      BindInfo<bits> *lazy_bind;
       ExportInfo<bits> *export_info;
 
       virtual uint32_t cmd() const override { return dyld_info.cmd; }

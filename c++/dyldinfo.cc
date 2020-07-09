@@ -11,14 +11,13 @@ namespace MachO {
       LinkeditCommand<bits>(img, offset, env), dyld_info(img.at<dyld_info_command>(offset)),
       rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env)),
       bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env)),
+      lazy_bind(BindInfo<bits>::Parse(img, dyld_info.lazy_bind_off, dyld_info.lazy_bind_size,
+                                      env)),
       export_info(ExportInfo<bits>::Parse(img, dyld_info.export_off, dyld_info.export_size, env))
    {
       weak_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.weak_bind_off),
                                        &img.at<uint8_t>(dyld_info.weak_bind_off +
                                                         dyld_info.weak_bind_size));
-      lazy_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.lazy_bind_off),
-                                       &img.at<uint8_t>(dyld_info.lazy_bind_off +
-                                                        dyld_info.lazy_bind_size));
    }
 
    template <Bits bits>
@@ -156,12 +155,10 @@ namespace MachO {
 
          case BIND_OPCODE_SET_ADDEND_SLEB:
             it += leb128_decode(img, it, addend);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, addend);
             break;
 
          case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
             it += leb128_decode(img, it, vmaddr);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, vmaddr);
             vmaddr += env.archive.segment(imm)->segment_command.vmaddr;
             break;
 
@@ -177,7 +174,6 @@ namespace MachO {
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
             it += leb128_decode(img, it, uleb);
-            // it += leb128_decode(&img.at<uint8_t>(it), end - it, uleb);
             vmaddr += (ptr_t) uleb;
             break;
 
@@ -246,7 +242,7 @@ namespace MachO {
       dyld_info.weak_bind_size = align<bits>(weak_bind.size());
       dyld_info.weak_bind_off = env.allocate(dyld_info.weak_bind_size);
       
-      dyld_info.lazy_bind_size = align<bits>(lazy_bind.size());
+      dyld_info.lazy_bind_size = align<bits>(lazy_bind->size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
 
       dyld_info.export_size = align<bits>(export_info->size());
@@ -337,8 +333,8 @@ namespace MachO {
       bind->Emit(img, dyld_info.bind_off);
 
       img.copy(dyld_info.weak_bind_off, &*weak_bind.begin(), dyld_info.weak_bind_size);
-      img.copy(dyld_info.lazy_bind_off, &*lazy_bind.begin(), dyld_info.lazy_bind_size);
 
+      lazy_bind->Emit(img, dyld_info.lazy_bind_off);
       export_info->Emit(img, dyld_info.export_off);
    }
 
@@ -414,7 +410,7 @@ namespace MachO {
    template <Bits bits>
    std::size_t DyldInfo<bits>::content_size() const {
       return rebase->size() + bind->size() +
-         weak_bind.size() + lazy_bind.size() + export_info->size();
+         weak_bind.size() + lazy_bind->size() + export_info->size();
    }
 
    template <Bits bits>
