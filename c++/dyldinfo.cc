@@ -464,7 +464,8 @@ namespace MachO {
                                               std::size_t flags, ParseEnv<bits>& env):
       ExportNode<bits>(flags)
    {
-      offset += leb128_decode(img, offset, flags);
+      offset += leb128_decode(img, offset, value);
+      fprintf(stderr, "[EXPORT] value %zx\n", value);
    }
 
    template <Bits bits>
@@ -529,6 +530,8 @@ namespace MachO {
 
    template <Bits bits> typename ExportTrie<bits>::node
    ExportTrie<bits>::ParseNode(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
+      const std::size_t ref_offset = offset;
+
       /* decode info */
       std::size_t size;
       offset += leb128_decode(img, offset, size);
@@ -545,7 +548,6 @@ namespace MachO {
       const uint8_t nedges = img.at<uint8_t>(offset++);
       fprintf(stderr, "[EXPORT] nedges %hhx\n", nedges);
       for (uint8_t i = 0; i < nedges; ++i) {
-         std::size_t ref_offset = offset;
          const char *sym = &img.at<char>(offset);
          fprintf(stderr, "[EXPORT] sym `%s'\n", sym);
          offset += strlen(sym) + 1;
