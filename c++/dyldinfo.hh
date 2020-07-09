@@ -7,11 +7,13 @@
 #include "lc.hh"
 #include "segment.hh"
 #include "parse.hh"
+#include "trie.hh"
 
 namespace MachO {
 
-   template <Bits bits> class RebaseInfo;
-   template <Bits bits> class BindInfo;
+   template <Bits> class RebaseInfo;
+   template <Bits> class BindInfo;
+   template <Bits> class ExportInfo;
 
    template <Bits bits>
    class DyldInfo: public LinkeditCommand<bits> {
@@ -22,7 +24,7 @@ namespace MachO {
       BindInfo<bits> *bind;
       std::vector<uint8_t> weak_bind;
       std::vector<uint8_t> lazy_bind;
-      std::vector<uint8_t> export_info;
+      ExportInfo<bits> *export_info;
 
       virtual uint32_t cmd() const override { return dyld_info.cmd; }
       virtual std::size_t size() const override { return sizeof(dyld_info); }
@@ -40,10 +42,12 @@ namespace MachO {
 
    private:
       DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+#if 0
       DyldInfo(const DyldInfo<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
          LinkeditCommand<bits>(other, env), dyld_info(other.dyld_info),
          rebase(other.rebase->Transform(env)), bind(other.bind->Transform(env)),
          weak_bind(other.weak_bind), lazy_bind(other.lazy_bind), export_info(other.export_info) {}
+#endif
 
       template <Bits b> friend class DyldInfo;
    };
@@ -165,16 +169,50 @@ namespace MachO {
       template <Bits> friend class BindInfo;
    };
 
-#if 0
    template <Bits bits>
-   class ExportTrie {
+   class ExportNode {
    public:
-      static ExportInfo<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env) {
-         return new ExportInfo(img, offset, env);
+      std::size_t flags;
+      std::size_t value;
+#warning TODO: need to make value point to symbol
+      
+      static ExportNode<bits> Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                    std::size_t size) {
+         return ExportNode(img, offset, env, size);
       }
    private:
-      ExportInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);
+      ExportNode(const Image& img, std::size_t offset, ParseEnv<bits>& env, std::size_t size);
    };
-#endif
    
+   template <Bits bits>
+   class ExportInfo {
+   public:
+      using Trie = trie_map<char, std::string, ExportNode<bits>>;
+      Trie trie;
+
+      static ExportInfo<bits> *Parse(const Image& img, std::size_t offset, std::size_t size,
+                                     ParseEnv<bits>& env) {
+         return new ExportInfo(img, offset, size, env);
+      }
+
+      std::size_t size() const;
+      
+   private:
+      ExportInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
+
+      struct Pos {
+         const Image& img;
+         ParseEnv<bits>& env;
+         std::size_t offset;
+         std::string str;
+
+         Pos(const Image& img, ParseEnv<bits>& env, std::size_t offset,
+             std::string str = std::string()): img(img), env(env), offset(offset), str(str) {}
+      };
+      using Edge = std::pair<char, Pos>;
+      using Edges = std::list<Edge>;
+
+      using NodeInfo = std::pair<Edges, std::optional<ExportNode<bits>>>;
+      static NodeInfo ParseNode(Pos pos);
+   };   
 }

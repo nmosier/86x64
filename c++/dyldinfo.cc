@@ -251,7 +251,7 @@ namespace MachO {
       dyld_info.lazy_bind_size = align<bits>(lazy_bind.size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
 
-      dyld_info.export_size = align<bits>(export_info.size());
+      dyld_info.export_size = align<bits>(export_info->size());
       dyld_info.export_off = env.allocate(dyld_info.export_size);
    }
 
@@ -340,7 +340,8 @@ namespace MachO {
 
       img.copy(dyld_info.weak_bind_off, &*weak_bind.begin(), dyld_info.weak_bind_size);
       img.copy(dyld_info.lazy_bind_off, &*lazy_bind.begin(), dyld_info.lazy_bind_size);
-      img.copy(dyld_info.export_off, &*export_info.begin(), dyld_info.export_size);
+
+#warning TODO -- emit ExportInfo
    }
 
    template <Bits bits>
@@ -451,7 +452,85 @@ namespace MachO {
       env.resolve(other.dylib, &dylib);
       env.resolve(other.blob, &blob);
    }
+
+   template <Bits bits>
+   ExportInfo<bits>::ExportInfo(const Image& img, std::size_t offset, std::size_t size,
+                                ParseEnv<bits>& env) {
+      if (size > 0) {
+         trie.decode(Pos(img, offset), ParseNode);
+      }
+   }
+
+   template <Bits bits>
+   void ExportInfo<bits>::ParseRec(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                   const std::string& prefix) {
+      std::size_t info_size;
+      offset += leb128_decode(img, offset, info_size);
+      if (info_size > 0) {
+         exportees.insert({prefix, ExportNode<bits>::Parse(img, offset, env, info_size)});
+      }
+      offset += info_size;
+
+      uint8_t nedges = img.at<uint8_t>(offset++);
+      for (uint8_t i = 0; i < nedges; ++i) {
+         std::string newprefix = prefix + &img.at<char>(offset);
+         offset += strlen(&img.at<char>(offset)) + 1;
+         
+         std::size_t uleb;
+         offset += leb128_decode(img, offset, uleb);
+         
+         ParseRec(img, uleb, env, newprefix);
+      }
+   }
+
+   template <Bits bits>
+   ExportNode<bits>::ExportNode(const Image& img, std::size_t offset, ParseEnv<bits>& env,
+                                std::size_t size) {
+      offset += leb_decode(img, offset, flags);
+
+      if ((flags & EXPORT_SYMBOL_FLAGS_REEXPORT)) {
+         throw error("export node with flags EXPORT_SYMBOL_FLAGS_REEXPORT not supported");
+      } else {
+         offset += leb_decode(img, offset, value);
+      }
+   }
+
+   template <Bits bits>
+   ExportInfo<bits>::NodeInfo ExportInfo<bits>::ParseNode(Pos pos) {
+      if (pos.str.empty()) {
+         std::size_t size;
+         pos.offset += leb128_decode(pos.img, pos.offset, size);
+         
+         /* create new real node */
+         ExportNode<bits> node = ExportNode<bits>::Parse(pos.img, pos.offset, pos.env, size);
+         pos.offset += size;
+
+         /* get edges */
+         uint8_t nedges = pos.img.at<uint8_t>(pos.offset++);
+         Edges edges;
+         for (uint8_t i = 0; i < nedges; ++i) {
+            char *sym = &pos.img.at<char>(pos.offset);
+            pos.offset += strlen(sym) + 1;
+            assert(*sym != '\0');
+
+            std::size_t edge_offset;
+            pos.offset += leb128_decode(pos.img, pos.offset, edge_offset);
+
+            // sym + 1 since we're processing one char
+            edges.emplace_back(*sym, Pos(pos.img, pos.env, edge_offset, sym + 1));
+         }
+
+         return {edges, node};
+      } else {
+         /* create dummy node */
+         char c = pos.str.front();
+         pos.str.erase(pos.str.begin());
+         Edge edge(c, pos);
+         return {{edge}, std::nullopt};
+      }
+   }
    
+
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
 
