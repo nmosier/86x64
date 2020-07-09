@@ -607,19 +607,25 @@ namespace MachO {
                                           std::size_t start) {
       /* emit node info size */
       std::size_t info_size = node.value ? (*node.value)->size() : 0;
-      offset += leb128_encode(img, offset, info_size);
+      std::size_t info_off;
+      std::size_t info_actual_size = info_size;
+      do {
+         info_size = info_actual_size;
+         info_off = offset;
+         info_off += leb128_encode(img, info_off, info_size);
+         if (node.value) {
+            info_actual_size = (*node.value)->Emit(img, info_off);
+         } else {
+            info_actual_size = 0;
+         }
+         info_off += info_actual_size;
+      } while (info_actual_size != info_size);
+      offset = info_off;
 
-      /* emit node info (optional) */
-      if (node.value) {
-         (*node.value)->Emit(img, offset);
-      }
-      offset += info_size;
-      
       /* emit edge count */
       const uint8_t nedges = node.children.size();
       img.at<uint8_t>(offset++) = nedges;
       
-
       /* compute offset past edges */
       std::size_t offset_past_edges = offset +
          nedges * (2 /* c + '\0' */ + leb128_size(std::numeric_limits<std::size_t>::max()));
@@ -636,9 +642,11 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void ExportNode<bits>::Emit(Image& img, std::size_t offset) const {
+   std::size_t ExportNode<bits>::Emit(Image& img, std::size_t offset) const {
+      const std::size_t start = offset;
       offset += leb128_encode(img, offset, flags);
-      Emit_derived(img, offset);
+      offset += Emit_derived(img, offset);
+      return offset - start;
    }
 
    template <Bits bits>
@@ -652,21 +660,27 @@ namespace MachO {
    }
 
    template <Bits bits>
-   void RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+   std::size_t RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      const std::size_t start = offset;
       offset += leb128_encode(img, offset, value ? value->loc.offset : 0);
+      return offset - start;
    }
-
+   
    template <Bits bits>
-   void ReexportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+   std::size_t ReexportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      const std::size_t start = offset;
       offset += leb128_encode(img, offset, libordinal);
       img.copy(offset, name.c_str(), name.size() + 1);
       offset += name.size() + 1;
+      return offset - start;
    }
 
    template <Bits bits>
-   void StubExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+   std::size_t StubExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
+      const std::size_t start = offset;
       offset += leb128_encode(img, offset, stuboff);
       offset += leb128_encode(img, offset, resolveroff);
+      return offset - start;
    }
    
    template class DyldInfo<Bits::M32>;

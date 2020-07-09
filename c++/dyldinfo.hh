@@ -180,13 +180,13 @@ namespace MachO {
       static ExportNode<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
 
       std::size_t size() const;
-      void Emit(Image& img, std::size_t offset) const;
+      std::size_t Emit(Image& img, std::size_t offset) const;
       virtual ~ExportNode() {}
       
    protected:
       ExportNode(std::size_t flags): flags(flags) {}
       virtual std::size_t derived_size() const = 0;
-      virtual void Emit_derived(Image& img, std::size_t offset) const = 0;
+      virtual std::size_t Emit_derived(Image& img, std::size_t offset) const = 0;
    };
 
    template <Bits bits>
@@ -204,7 +204,7 @@ namespace MachO {
                         ParseEnv<bits>& env);
 
       virtual std::size_t derived_size() const override;
-      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+      virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
    };
 
    template <Bits bits>
@@ -221,7 +221,7 @@ namespace MachO {
    private:
       ReexportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
       virtual std::size_t derived_size() const override;
-      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+      virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
    };
 
    template <Bits bits>
@@ -238,7 +238,7 @@ namespace MachO {
    private:
       StubExportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
       virtual std::size_t derived_size() const override;
-      virtual void Emit_derived(Image& img, std::size_t offset) const override;
+      virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
    };
 
    template <Bits bits>
