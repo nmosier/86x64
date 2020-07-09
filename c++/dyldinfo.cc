@@ -10,9 +10,9 @@ namespace MachO {
    DyldInfo<bits>::DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env):
       LinkeditCommand<bits>(img, offset, env), dyld_info(img.at<dyld_info_command>(offset)),
       rebase(RebaseInfo<bits>::Parse(img, dyld_info.rebase_off, dyld_info.rebase_size, env)),
-      bind(BindInfo<bits>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env)),
-      lazy_bind(BindInfo<bits>::Parse(img, dyld_info.lazy_bind_off, dyld_info.lazy_bind_size,
-                                      env)),
+      bind(BindInfo<bits, false>::Parse(img, dyld_info.bind_off, dyld_info.bind_size, env)),
+      lazy_bind(BindInfo<bits, true>::Parse(img, dyld_info.lazy_bind_off, dyld_info.lazy_bind_size,
+                                            env)),
       export_info(ExportInfo<bits>::Parse(img, dyld_info.export_off, dyld_info.export_size, env))
    {
       weak_bind = std::vector<uint8_t>(&img.at<uint8_t>(dyld_info.weak_bind_off),
@@ -39,11 +39,11 @@ namespace MachO {
          switch (opcode) {
          case REBASE_OPCODE_DONE:
             return;
-
+            
          case REBASE_OPCODE_SET_TYPE_IMM:
             type = imm;
             break;
-
+            
          case REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
             it += leb128_decode(img, it, vmaddr);
             vmaddr += env.archive.segment(imm)->vmaddr();
@@ -104,9 +104,9 @@ namespace MachO {
       return vmaddr;
    }
 
-   template <Bits bits>
-   BindInfo<bits>::BindInfo(const Image& img, std::size_t offset, std::size_t size,
-                            ParseEnv<bits>& env) {
+   template <Bits bits, bool lazy>
+   BindInfo<bits, lazy>::BindInfo(const Image& img, std::size_t offset, std::size_t size,
+                                  ParseEnv<bits>& env) {
       const std::size_t begin = offset;
       const std::size_t end = begin + size;
       std::size_t it = begin;
@@ -125,6 +125,31 @@ namespace MachO {
          ++it;
 
          std::size_t uleb, uleb2;
+
+         switch (opcode) {
+         case BIND_OPCODE_DONE:
+         case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+         case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+         case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+         case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+         case BIND_OPCODE_SET_TYPE_IMM:
+         case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+         case BIND_OPCODE_DO_BIND:
+            break;
+            
+         case BIND_OPCODE_THREADED:
+         case BIND_OPCODE_SET_ADDEND_SLEB:
+         case BIND_OPCODE_ADD_ADDR_ULEB:
+         case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+         case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
+         case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+            if constexpr (lazy) {
+            throw error("%s: invalid lazy bind opcode 0x%hhx", __FUNCTION__, opcode);
+            }
+            
+         default:
+            throw error("%s: invalid bind opcode %d", __FUNCTION__, opcode);
+         }
 
          switch (opcode) {
          case BIND_OPCODE_DONE:
@@ -191,27 +216,22 @@ namespace MachO {
 
          case BIND_OPCODE_THREADED:
             throw error("%s: BIND_OPCODE_THREADED not supported", __FUNCTION__);
-
-         default:
-            throw error("%s: invalid bind opcode %d", __FUNCTION__, opcode);
          }
       }
-      
-         
    }
       
-   template <Bits bits>
-   std::size_t BindInfo<bits>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
+   template <Bits bits, bool lazy>
+   std::size_t BindInfo<bits, lazy>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
                                        ssize_t addend, std::size_t dylib, const char *sym,
                                        uint8_t flags) {
       if (vmaddr != 0 && sym != nullptr) {
-         bindees.push_back(BindNode<bits>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+         bindees.push_back(BindNode<bits, lazy>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
       }
       return vmaddr + sizeof(ptr_t);
    }
 
-   template <Bits bits>
-   std::size_t BindInfo<bits>::do_bind_times(std::size_t count, std::size_t vmaddr,
+   template <Bits bits, bool lazy>
+   std::size_t BindInfo<bits, lazy>::do_bind_times(std::size_t count, std::size_t vmaddr,
                                              ParseEnv<bits>& env, uint8_t type, ssize_t addend,
                                              std::size_t dylib, const char *sym, uint8_t flags,
                                              ptr_t skipping) {
@@ -222,8 +242,8 @@ namespace MachO {
       return vmaddr;
    }
 
-   template <Bits bits>
-   BindNode<bits>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
+   template <Bits bits, bool lazy>
+   BindNode<bits, lazy>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
                             std::size_t dylib, const char *sym, uint8_t flags):
       type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr)
    {
@@ -261,10 +281,10 @@ namespace MachO {
       return align<bits>(size);
    }
 
-   template <Bits bits>
-   std::size_t BindInfo<bits>::size() const {
+   template <Bits bits, bool lazy>
+   std::size_t BindInfo<bits, lazy>::size() const {
       std::size_t size = 0;
-      for (const BindNode<bits> *node : bindees) {
+      for (const BindNode<bits, lazy> *node : bindees) {
          size += node->size();
       }
       if (size > 0) {
@@ -273,8 +293,8 @@ namespace MachO {
       return align<bits>(size);
    }
 
-   template <Bits bits>
-   std::size_t BindNode<bits>::size() const {
+   template <Bits bits, bool lazy>
+   std::size_t BindNode<bits, lazy>::size() const {
       if (!active()) { return 0; }
       
       /* 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
@@ -286,8 +306,10 @@ namespace MachO {
        * 6+a+b+c total
        */
       assert(dylib->id < 16);
-      return 6 + leb128_size(addend) + leb128_size(blob->loc.offset - blob->segment->loc().offset)
-         + sym.size() + 1;
+      return 6 +
+         (lazy ? 0 : leb128_size(addend)) +
+         leb128_size(blob->loc.offset - blob->segment->loc().offset) +
+         sym.size() + 1;
    }
 
    template <Bits bits>
@@ -367,9 +389,9 @@ namespace MachO {
       img.at<uint8_t>(offset++) = REBASE_OPCODE_DO_REBASE_IMM_TIMES | 0x1;
    }
 
-   template <Bits bits>
-   void BindInfo<bits>::Emit(Image& img, std::size_t offset) const {
-      for (BindNode<bits> *bindee : bindees) {
+   template <Bits bits, bool lazy>
+   void BindInfo<bits, lazy>::Emit(Image& img, std::size_t offset) const {
+      for (BindNode<bits, lazy> *bindee : bindees) {
          bindee->Emit(img, offset);
          offset += bindee->size();
       }
@@ -378,8 +400,8 @@ namespace MachO {
       }
    }
 
-   template <Bits bits>
-   void BindNode<bits>::Emit(Image& img, std::size_t offset) const {
+   template <Bits bits, bool lazy>
+   void BindNode<bits, lazy>::Emit(Image& img, std::size_t offset) const {
       if (!active()) {
          return;
       }
@@ -394,13 +416,16 @@ namespace MachO {
       assert(dylib->id < 16);
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_TYPE_IMM | type;
-      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_ADDEND_SLEB;
-      offset += leb128_encode(img, offset, addend);
-      // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, addend);
+
+      if constexpr (!lazy) {
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_ADDEND_SLEB;
+         offset += leb128_encode(img, offset, addend);
+      }
+      
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
       const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
       offset += leb128_encode(img, offset, segoff);
-      // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
+
       img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
       img.copy(offset, sym.c_str(), sym.size() + 1);
       offset += sym.size() + 1;
@@ -421,8 +446,8 @@ namespace MachO {
       }
    }
 
-   template <Bits bits>
-   BindInfo<bits>::BindInfo(const BindInfo<opposite<bits>>& other,
+   template <Bits bits, bool lazy>
+   BindInfo<bits, lazy>::BindInfo(const BindInfo<opposite<bits>, lazy>& other,
                             TransformEnv<opposite<bits>>& env) {
       for (const auto other_bindee : other.bindees) {
          bindees.push_back(other_bindee->Transform(env));
@@ -437,8 +462,8 @@ namespace MachO {
       env.resolve(other.blob, &blob);
    }
 
-   template <Bits bits>
-   BindNode<bits>::BindNode(const BindNode<opposite<bits>>& other,
+   template <Bits bits, bool lazy>
+   BindNode<bits, lazy>::BindNode(const BindNode<opposite<bits>, lazy>& other,
                             TransformEnv<opposite<bits>>& env):
       type(other.type), addend(other.addend), dylib(nullptr), sym(other.sym), flags(other.flags),
       blob(nullptr)
