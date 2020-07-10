@@ -4,4 +4,6 @@
 
 [X] convert to dylib
 [X] order load commands while building
-[ ] transform
+[X] transform
+
+[ ] Add instruction transformation rules
