@@ -54,6 +54,10 @@ namespace MachO {
    template <Bits> class Placeholder;
    template <Bits> class RelocBlob;
 
+   template <Bits> class RebaseInfo;
+   template <Bits, bool> class BindInfo;
+   template <Bits> class ExportInfo;
+   
    enum class Relation {BEFORE, AFTER};   
    
    constexpr std::size_t PAGESIZE = 0x1000;

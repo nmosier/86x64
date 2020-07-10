@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "leb.h"
+#include "image.hh"
 
 namespace MachO {
 

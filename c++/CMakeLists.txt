@@ -23,6 +23,7 @@ add_library(macho_cxx_objs
   instruction.cc
   fat.cc
   tweak.cc
+  export_info.cc
   )
 
 target_link_libraries(macho_cxx_objs PRIVATE ${xed_LIBRARIES})
