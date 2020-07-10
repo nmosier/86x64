@@ -10,6 +10,7 @@ _macho_tool_completions_command() {
     cmd_translate="--help --offset"
     cmd_tweak="--help --flags"
     cmd_convert="--help --archive"
+    cmd_transform="--help --bits"
 
     if [[ "$ARG" = -* ]]; then
         lookup=cmd_$COMMAND
@@ -23,7 +24,7 @@ _macho_tool_completions_command() {
         help)
             COMPREPLY=()
             ;;
-        noop|modify|translate|tweak|convert)
+        noop|modify|translate|tweak|convert|transform)
             COMPREPLY=("${files[@]}")
             ;;
     esac
@@ -35,7 +36,7 @@ _macho_tool_completions() {
     COMMAND="${COMP_WORDS[1]}"
 
     # check if in command list
-    CMDS="help noop modify translate tweak convert"
+    CMDS="help noop modify translate tweak convert transform"
     for REF in $CMDS; do
         if [[ $REF = "$COMMAND" ]]; then
             _macho_tool_completions_command $COMMAND
