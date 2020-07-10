@@ -183,9 +183,13 @@ namespace MachO {
       std::size_t size() const;
       std::size_t Emit(Image& img, std::size_t offset) const;
       virtual ~ExportNode() {}
+      virtual ExportNode<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
       
    protected:
       ExportNode(std::size_t flags): flags(flags) {}
+      ExportNode(const ExportNode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         flags(other.flags) {}
+         
       virtual std::size_t derived_size() const = 0;
       virtual std::size_t Emit_derived(Image& img, std::size_t offset) const = 0;
    };
@@ -199,13 +203,21 @@ namespace MachO {
                                             std::size_t flags, ParseEnv<bits>& env) {
          return new RegularExportNode(img, offset, flags, env);
       }
+      virtual RegularExportNode<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
+      { return new RegularExportNode<opposite<bits>>(*this, env); }
 
    private:
       RegularExportNode(const Image& img, std::size_t offset, std::size_t flags,
                         ParseEnv<bits>& env);
+      RegularExportNode(const RegularExportNode<opposite<bits>>& other,
+                        TransformEnv<opposite<bits>>& env): ExportNode<bits>(other, env) {
+         env.resolve(other.value, &value);
+      }
 
       virtual std::size_t derived_size() const override;
       virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
+
+      template <Bits> friend class RegularExportNode;
    };
 
    template <Bits bits>
@@ -218,11 +230,20 @@ namespace MachO {
                                        ParseEnv<bits>& env) {
          return new ReexportNode<bits>(img, offset, flags, env);
       }
+
+      virtual ReexportNode<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new ReexportNode<opposite<bits>>(*this, env);
+      }
       
    private:
       ReexportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
+      ReexportNode(const ReexportNode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         ExportNode<bits>(other, env), libordinal(other.libordinal), name(other.name) {}
+      
       virtual std::size_t derived_size() const override;
       virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
+
+      template <Bits> friend class ReexportNode;
    };
 
    template <Bits bits>
@@ -236,10 +257,18 @@ namespace MachO {
          return new StubExportNode(img, offset, flags, env);
       }
       
+      virtual StubExportNode<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+         return new StubExportNode<opposite<bits>>(*this, env);
+      }
+
    private:
       StubExportNode(const Image& img, std::size_t offset, std::size_t flags, ParseEnv<bits>& env);
+      StubExportNode(const StubExportNode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         ExportNode<bits>(other, env), stuboff(other.stuboff), resolveroff(other.resolveroff) {}
       virtual std::size_t derived_size() const override;
       virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
+
+      template <Bits> friend class StubExportNode;
    };
 
    template <Bits bits>
