@@ -145,17 +145,47 @@ public:
    size_type size() const { return size_; }
    bool empty() const { return size() == 0; }
 
+   template <typename VV, typename Func>
+   trie_map<T, U, VV> transform(Func func) const {
+      trie_map<T, U, VV> t;
+      t.root = root.template transform<VV>(func);
+      return t;
+   }
+            
+
 protected:
    struct node {
       std::optional<V> value;
       children_t children;
 
+      template <typename VV, typename Func>
+      typename trie_map<T, U, VV>::node transform(Func func) const {
+         typename trie_map<T, U, VV>::node newnode;
+
+         /* transform value */
+         if (value) {
+            newnode.value = func(*value);
+         }
+
+         /* transform children */
+         for (const auto& child : children) {
+            newnode.children.emplace(child.first, child.second.template transform<VV>(func));
+         }
+
+         return newnode;
+      }
+      
       node() {}
-      template <typename... Args> node(Args&&... args): value(args...) {}
+      node(const V& value): value(value) {}
+      node(const std::optional<V>& value): value(value) {}
+      // template <typename... Args> node(Args&&... args): value(args...) {}
+
    };
 
    node root;
    size_type size_;
+
+   template <typename, typename, typename> friend class trie_map;
 };
 
 #if 0

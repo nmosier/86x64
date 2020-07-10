@@ -559,8 +559,7 @@ namespace MachO {
 
       node curnode;
       if (size > 0) {
-         curnode.value = std::unique_ptr<ExportNode<bits>>(ExportNode<bits>::Parse(img, offset,
-                                                                                   env));
+         curnode.value = ExportNode<bits>::Parse(img, offset, env);
       }
       offset += size;
       

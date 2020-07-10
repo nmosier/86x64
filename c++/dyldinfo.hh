@@ -37,20 +37,20 @@ namespace MachO {
          return new DyldInfo(img, offset, env);
       }
 
-#if 0
       virtual DyldInfo<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new DyldInfo<opposite<bits>>(*this, env);
       }
-#endif
 
    private:
       DyldInfo(const Image& img, std::size_t offset, ParseEnv<bits>& env);
-#if 0
       DyldInfo(const DyldInfo<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
-         LinkeditCommand<bits>(other, env), dyld_info(other.dyld_info),
-         rebase(other.rebase->Transform(env)), bind(other.bind->Transform(env)),
-         weak_bind(other.weak_bind), lazy_bind(other.lazy_bind), export_info(other.export_info) {}
-#endif
+         LinkeditCommand<bits>(other, env),
+         dyld_info(other.dyld_info),
+         rebase(other.rebase->Transform(env)),
+         bind(other.bind->Transform(env)),
+         weak_bind(other.weak_bind),
+         lazy_bind(other.lazy_bind->Transform(env)),
+         export_info(other.export_info->Transform(env)) {}
 
       template <Bits b> friend class DyldInfo;
    };
@@ -272,19 +272,28 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class ExportTrie: public trie_map<char, std::string, std::unique_ptr<ExportNode<bits>>> {
+   class ExportTrie: public trie_map<char, std::string, ExportNode<bits> *> {
    public:
       static ExportTrie<bits> Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env);
       std::size_t content_size() const;
       void Emit(Image& img, std::size_t offset) const;
-      
+
+      ExportTrie<opposite<bits>> Transform(TransformEnv<bits>& env) const {
+         return ExportTrie<opposite<bits>>(this->template transform<ExportNode<opposite<bits>> *>([&] (const ExportNode<bits> *value) -> ExportNode<opposite<bits>> * { return value->Transform(env); }));
+      }
+
+      template <typename... Args>
+      ExportTrie(Args&&... args): trie_map<char, std::string, ExportNode<bits> *>(args...) {}
+
    private:
-      using node = typename trie_map<char, std::string, std::unique_ptr<ExportNode<bits>>>::node;
+      using node = typename trie_map<char, std::string, ExportNode<bits> *>::node;
       static node ParseNode(const Image& img, std::size_t offset, std::size_t start,
                             ParseEnv<bits>& env);
       static std::size_t NodeSize(const node& node);
       static std::size_t EmitNode(const node& node, Image& img, std::size_t offset,
                                   std::size_t start);
+      template <Bits> friend class ExportTrie;
+      
    };
    
    template <Bits bits>
@@ -299,9 +308,16 @@ namespace MachO {
       }
       void Emit(Image& img, std::size_t offset) const;
 
+      ExportInfo<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+         return new ExportInfo<opposite<bits>>(*this, env);
+      }
+
       std::size_t size() const;
       
    private:
       ExportInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
+      ExportInfo(const ExportInfo<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+         trie(other.trie.Transform(env)) {}
+      template <Bits> friend class ExportInfo;
    };  
 }
