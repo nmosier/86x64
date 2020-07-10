@@ -30,15 +30,15 @@ namespace MachO {
       big_endian<uint32_t>(in.reserved, out.reserved);
    }
    
-   template <Bits bits>
-   Fat<bits>::Fat(const Image& img) {
+   template <Bits b>
+   Fat<b>::Fat(const Image& img) {
       /* convert header to big endian */
       big_endian(img.at<fat_header>(0), header);
       
       std::size_t offset = sizeof(fat_header);
       for (uint32_t i = 0; i < header.nfat_arch; ++i) {
-         fat_arch_t<bits> arch;
-         big_endian(img.at<fat_arch_t<bits>>(offset), arch);
+         fat_arch_t<b> arch;
+         big_endian(img.at<fat_arch_t<b>>(offset), arch);
 
          if (arch.cputype == CPU_TYPE_X86 || arch.cputype == CPU_TYPE_X86_64) {
             try {
@@ -48,12 +48,12 @@ namespace MachO {
             }
          }
          
-         offset += sizeof(fat_arch_t<bits>);
+         offset += sizeof(fat_arch_t<b>);
       }
    }
    
-   template <Bits bits>
-   void Fat<bits>::Build() {
+   template <Bits b>
+   void Fat<b>::Build() {
       std::size_t offset = size();
       for (ArchiveNode& archive : archives) {
          offset = align_up<std::size_t>(offset, archive.first.align);
@@ -63,19 +63,19 @@ namespace MachO {
       }
    }
    
-   template <Bits bits>
-   void Fat<bits>::Emit(Image& img) const {
+   template <Bits b>
+   void Fat<b>::Emit(Image& img) const {
       std::size_t offset = 0;
       big_endian(header, img.at<fat_header>(0));
       offset += sizeof(header);
       
       for (const ArchiveNode& archive : archives) {
-         big_endian(archive.first, img.at<fat_arch_t<bits>>(offset));
-         offset += sizeof(fat_arch_t<bits>);
+         big_endian(archive.first, img.at<fat_arch_t<b>>(offset));
+         offset += sizeof(fat_arch_t<b>);
          archive.second->Emit(img);
       }
    }
-   
+
    template class Fat<Bits::M32>;
    template class Fat<Bits::M64>;
 

@@ -22,37 +22,37 @@ namespace MachO {
    // build order -- do later
    // rather, need build regions. e.g. 
    
-   template <Bits bits>
-   Archive<bits>::Archive(const Image& img, std::size_t offset):
-      header(img.at<mach_header_t<bits>>(offset))
+   template <Bits b>
+   Archive<b>::Archive(const Image& img, std::size_t offset):
+      header(img.at<mach_header_t<b>>(offset))
    {
-      ParseEnv<bits> env(*this);
+      ParseEnv<b> env(*this);
       offset += sizeof(header);
       for (int i = 0; i < header.ncmds; ++i) {
-         LoadCommand<bits> *cmd = LoadCommand<bits>::Parse(img, offset, env);
+         LoadCommand<b> *cmd = LoadCommand<b>::Parse(img, offset, env);
          load_commands.push_back(cmd);
          offset += cmd->size();
       }
 
-      for (LoadCommand<bits> *cmd : load_commands) {
+      for (LoadCommand<b> *cmd : load_commands) {
          cmd->Parse1(img, env);
       }
 
-      for (LoadCommand<bits> *cmd : load_commands) {
+      for (LoadCommand<b> *cmd : load_commands) {
          cmd->Parse2(env);
       }
    }
 
-   template <Bits bits>
-   Archive<bits>::~Archive() {
-      for (LoadCommand<bits> *lc : load_commands) {
+   template <Bits b>
+   Archive<b>::~Archive() {
+      for (LoadCommand<b> *lc : load_commands) {
          delete lc;
       }
    }
 
-   template <Bits bits>
-   Segment<bits> *Archive<bits>::segment(const std::string& name) {
-      for (Segment<bits> *seg : segments()) {
+   template <Bits b>
+   Segment<b> *Archive<b>::segment(const std::string& name) {
+      for (Segment<b> *seg : segments()) {
          if (name == seg->name()) {
             return seg;
          }
@@ -60,9 +60,9 @@ namespace MachO {
       return nullptr;
    }
 
-   template <Bits bits>
-   std::size_t Archive<bits>::Build(std::size_t offset) {
-      BuildEnv<bits> env(this, Location(offset, vmaddr));
+   template <Bits b>
+   std::size_t Archive<b>::Build(std::size_t offset) {
+      BuildEnv<b> env(this, Location(offset, vmaddr));
       
       env.allocate(sizeof(header));
       
@@ -71,19 +71,19 @@ namespace MachO {
 
       /* compute size of commands */
       header.sizeofcmds = 0;
-      for (LoadCommand<bits> *lc : load_commands) {
+      for (LoadCommand<b> *lc : load_commands) {
          header.sizeofcmds += lc->size();
       }
 
       env.allocate(header.sizeofcmds);
 
       /* assign IDs */
-      for (LoadCommand<bits> *lc : load_commands) {
+      for (LoadCommand<b> *lc : load_commands) {
          lc->AssignID(env);
       }
       
       /* build each command */
-      for (LoadCommand<bits> *lc : load_commands) {
+      for (LoadCommand<b> *lc : load_commands) {
          lc->Build(env);
       }
 
@@ -91,21 +91,21 @@ namespace MachO {
       return total_size;
    }
 
-   template <Bits bits>
-   void Archive<bits>::Emit(Image& img) const {
+   template <Bits b>
+   void Archive<b>::Emit(Image& img) const {
       /* emit header */
-      img.at<mach_header_t<bits>>(0) = header;
+      img.at<mach_header_t<b>>(0) = header;
       
       /* emit load commands */
       std::size_t offset = sizeof(header);
-      for (LoadCommand<bits> *lc : load_commands) {
+      for (LoadCommand<b> *lc : load_commands) {
          lc->Emit(img, offset);
          offset += lc->size();
       }
    }
 
-   template <Bits bits>
-   Archive<bits>::Archive(const Archive<opposite<bits>>& other, TransformEnv<opposite<bits>>& env)
+   template <Bits b>
+   Archive<b>::Archive(const Archive<opposite<b>>& other, TransformEnv<opposite<b>>& env)
    {
       env(other.header, header);
       for (const auto lc : other.load_commands) {
@@ -113,24 +113,24 @@ namespace MachO {
       }
    }
 
-   template <Bits bits>
-   void Archive<bits>::insert(SectionBlob<bits> *blob, const Location& loc, Relation rel) {
-      macho_addr_t<bits> segment_command_t<bits>::*segloc;
-      macho_addr_t<bits> segment_command_t<bits>::*segsize;
+   template <Bits b>
+   void Archive<b>::insert(SectionBlob<b> *blob, const Location& loc, Relation rel) {
+      macho_addr_t<b> segment_command_t<b>::*segloc;
+      macho_addr_t<b> segment_command_t<b>::*segsize;
       std::size_t locval;
       if (loc.offset) {
-         segloc = &segment_command_t<bits>::fileoff;
-         segsize = &segment_command_t<bits>::filesize;
+         segloc = &segment_command_t<b>::fileoff;
+         segsize = &segment_command_t<b>::filesize;
          locval = loc.offset;
       } else if (loc.vmaddr) {
-         segloc = &segment_command_t<bits>::vmaddr;
-         segsize = &segment_command_t<bits>::vmsize;
+         segloc = &segment_command_t<b>::vmaddr;
+         segsize = &segment_command_t<b>::vmsize;
          locval = loc.vmaddr;
       } else {
          throw std::invalid_argument("location offset and vmaddr are both 0");
       }
 
-      for (Segment<bits> *segment : segments()) {
+      for (Segment<b> *segment : segments()) {
          std::size_t segloc_ = segment->segment_command.*segloc;
          if (locval >= segloc_ && locval < segloc_ + segment->segment_command.*segsize) {
             segment->insert(blob, loc, rel);
@@ -141,9 +141,9 @@ namespace MachO {
       throw std::invalid_argument("location not in any segment");
    }
 
-   template <Bits bits>
-   std::size_t Archive<bits>::offset_to_vmaddr(std::size_t offset) const {
-      for (Segment<bits> *segment : segments()) {
+   template <Bits b>
+   std::size_t Archive<b>::offset_to_vmaddr(std::size_t offset) const {
+      for (Segment<b> *segment : segments()) {
          if (offset >= segment->segment_command.fileoff &&
              offset < segment->segment_command.fileoff + segment->segment_command.filesize) {
             return segment->offset_to_vmaddr(offset);
@@ -153,9 +153,9 @@ namespace MachO {
                                   " not in any segment");
    }
 
-   template <Bits bits>
-   std::optional<std::size_t> Archive<bits>::try_offset_to_vmaddr(std::size_t offset) const {
-      for (Segment<bits> *segment : segments()) {
+   template <Bits b>
+   std::optional<std::size_t> Archive<b>::try_offset_to_vmaddr(std::size_t offset) const {
+      for (Segment<b> *segment : segments()) {
          if (segment->contains_offset(offset)) {
             return segment->try_offset_to_vmaddr(offset);
          }
@@ -185,15 +185,15 @@ namespace MachO {
       }
    }
 
-   template <Bits bits>
-   void Archive<bits>::remove_commands(uint32_t cmd) {
+   template <Bits b>
+   void Archive<b>::remove_commands(uint32_t cmd) {
       for (auto it = load_commands.begin(); it != load_commands.end(); ++it) {
          if ((*it)->cmd() == cmd) {
             it = load_commands.erase(it);
          }
       }
    }
-   
+
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

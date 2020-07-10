@@ -72,7 +72,12 @@ namespace MachO {
 
          switch (opcode) {
          case BIND_OPCODE_DONE:
-            return;
+            dylib = 0;
+            addend = 0;
+            flags = 0;
+            type = 0;
+            break;
+            // return;
 
          case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
             dylib = imm;
@@ -203,20 +208,39 @@ namespace MachO {
    template <Bits bits, bool lazy>
    std::size_t BindNode<bits, lazy>::size() const {
       if (!active()) { return 0; }
-      
-      /* 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
-       * 1   BIND_OPCODE_SET_TYPE_IMM
-       * 1+a   [BIND_OPCODE_SET_ADDEND_SLEB]
-       * 1+b BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
-       * 1+c BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
-       * 1   BIND_OPCODE_DO_BIND
-       * 6+a+b+c total
-       */
-      assert(dylib->id < 16);
-      return 6 +
-         (lazy ? 0 : leb128_size(addend)) +
-         leb128_size(blob->loc.offset - blob->segment->loc().offset) +
-         sym.size() + 1;
+
+      if (!lazy) {
+         /* NON-LAZY
+          * 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
+          * 1   BIND_OPCODE_SET_TYPE_IMM
+          * 1+a   [BIND_OPCODE_SET_ADDEND_SLEB]
+          * 1+b BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+          * 1+c BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+          * 1   BIND_OPCODE_DO_BIND
+          * 6+a+b+c total
+          */
+         return
+            1 +
+            1 +
+            (1 + leb128_size(addend)) +
+            (1 + leb128_size(blob->loc.offset - blob->segment->loc().offset)) +
+            (1 + (sym.size() + 1)) +
+            1;
+      } else {
+         /* LAZY 
+          * 1+a BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+          * 1   BIND_OPCODE_SET_DYLIB_ORDINAL_IMM
+          * 1+c BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+          * 1   BIND_OPCODE_DO_BIND
+          * 1   BIND_OPCODE_DONE
+          */
+         return
+            (1 + leb128_size(blob->loc.offset - blob->segment->loc().offset)) +
+            1 +
+            (1 + (sym.size() + 1)) +
+            1 +
+            1;
+      }
    }
 
    template <Bits bits>
@@ -248,31 +272,50 @@ namespace MachO {
       if (!active()) {
          return;
       }
-      
-      /* BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
-       * BIND_OPCODE_SET_TYPE_IMM
-       * BIND_OPCODE_SET_ADDEND_SLEB
-       * BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
-       * BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
-       * BIND_OPCODE_DO_BIND
-       */
-      assert(dylib->id < 16);
-      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
-      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_TYPE_IMM | type;
 
-      if constexpr (!lazy) {
+      if (!lazy) {
+         /* BIND_OPCODE_SET_DYLIB_ORDINAL_IMM 
+          * BIND_OPCODE_SET_TYPE_IMM
+          * BIND_OPCODE_SET_ADDEND_SLEB
+          * BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+          * BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+          * BIND_OPCODE_DO_BIND
+          */
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_TYPE_IMM | type;
+         
          img.at<uint8_t>(offset++) = BIND_OPCODE_SET_ADDEND_SLEB;
          offset += leb128_encode(img, offset, addend);
-      }
-      
-      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
-      const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
-      offset += leb128_encode(img, offset, segoff);
+         
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
+         const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
+         offset += leb128_encode(img, offset, segoff);
+         
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
+         img.copy(offset, sym.c_str(), sym.size() + 1);
+         offset += sym.size() + 1;
+         img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
+      } else {
+         /* LAZY 
+          * BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB
+          * BIND_OPCODE_SET_DYLIB_ORDINAL_IMM
+          * BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM
+          * BIND_OPCODE_DO_BIND
+          * BIND_OPCODE_DONE
+          */
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB | blob->segment->id;
+         const std::size_t segoff = blob->loc.vmaddr - blob->segment->loc().vmaddr;
+         offset += leb128_encode(img, offset, segoff);
 
-      img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
-      img.copy(offset, sym.c_str(), sym.size() + 1);
-      offset += sym.size() + 1;
-      img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_DYLIB_ORDINAL_IMM | dylib->id;
+         
+         img.at<uint8_t>(offset++) = BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM | flags;
+         img.copy(offset, sym.c_str(), sym.size() + 1);
+         offset += sym.size() + 1;
+
+         img.at<uint8_t>(offset++) = BIND_OPCODE_DO_BIND;
+         img.at<uint8_t>(offset++) = BIND_OPCODE_DONE;
+      }
    }
 
    template <Bits bits>

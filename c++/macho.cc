@@ -36,5 +36,5 @@ namespace MachO {
          throw unrecognized_format("bad magic number 0x%x", (std::size_t) img.at<uint32_t>(0));
       }
    }
-   
+
 }

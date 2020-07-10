@@ -15,6 +15,7 @@ namespace MachO {
    public:
       virtual uint32_t magic() const = 0;
       virtual uint32_t& magic() = 0;
+      virtual Bits bits() const = 0;
       
       static MachO *Parse(const Image& img);
       virtual void Build() = 0;
