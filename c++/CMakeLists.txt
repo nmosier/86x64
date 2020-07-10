@@ -23,6 +23,7 @@ add_library(macho_cxx_objs
   instruction.cc
   fat.cc
   tweak.cc
+  rebase_info.cc
   export_info.cc
   )
 
