@@ -10,10 +10,23 @@ _macho_tool_completions_command() {
     cmd_translate="--help --offset"
     cmd_tweak="--help --flags"
     cmd_convert="--help --archive"
-    
-    lookup=cmd_$COMMAND
-    options=${!lookup}
-    COMPREPLY=($(compgen -W "$options" -- "$ARG"))
+
+    if [[ "$ARG" = -* ]]; then
+        lookup=cmd_$COMMAND
+        options="${!lookup}"
+        COMPREPLY=($(compgen -W "$options" -- "$ARG"))
+        return
+    fi
+
+    files=($(compgen -f -- "$ARG"))
+    case $COMMAND in
+        help)
+            COMPREPLY=()
+            ;;
+        noop|modify|translate|tweak|convert)
+            COMPREPLY=("${files[@]}")
+            ;;
+    esac
 }
 
 
