@@ -8,7 +8,7 @@
 
 namespace MachO {
 
-   template <typename T, typename U>
+   template <typename T, typename U, bool lazy>
    class Resolver {
    public:
       struct functor {
@@ -26,27 +26,18 @@ namespace MachO {
       using TodoMap = std::map<T, std::list<TodoNode>>;
       
       void add(const T& key, U *pointee) {
-         auto todo_it = todo.find(key);
-         if (todo_it != todo.end()) {
-            for (const TodoNode& node : todo_it->second) {
-               *node.first = pointee;
-               (*node.second)(pointee);
+         if constexpr (!lazy) {
+               auto todo_it = todo.find(key);
+               if (todo_it != todo.end()) {
+                  for (const TodoNode& node : todo_it->second) {
+                     *node.first = pointee;
+                     (*node.second)(pointee);
+                  }
+                  todo.erase(todo_it);
+               }
             }
-            todo.erase(todo_it);
-         }
+         assert(found.find(key) == found.end());
          found.insert({key, pointee});
-      }
-
-      bool try_resolve(const T& key, const U **pointer, bool unique) {
-         const auto found_it = found.find(key);
-         if (found_it != found.end()) {
-            *pointer = found_it->second;
-            if (unique) {
-               found.erase(found_it);
-            }
-         } else {
-            return false;
-         }
       }
       
       void resolve(const T& key, const U **pointer,
@@ -60,16 +51,21 @@ namespace MachO {
          }
       }
 
-      ~Resolver() {
-#if 0
-         if (!todo.empty()) {
-            fprintf(stderr, "%s: pending unresolved pointers\n", __FUNCTION__);
-            for (auto pair : todo) {
-               fprintf(stderr, "key 0x%zx\n", (std::size_t) pair.first);
+      void do_resolve() {
+         for (auto todo_it = todo.begin(); todo_it != todo.end(); ++todo_it) {
+            if (!todo_it->second.empty()) {
+               auto found_it = found.find(todo_it->first);
+               if (found_it != found.end()) {
+                  for (const TodoNode& node : todo_it->second) {
+                     *node.first = found_it->second;
+                     (*node.second)(found_it->second);
+                  }
+               }
             }
          }
-#endif
       }
+      
+      ~Resolver() {}
 
       FoundMap found;
       TodoMap todo;

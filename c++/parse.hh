@@ -23,7 +23,7 @@ namespace MachO {
       CountResolver(): id(0) {}
       
    private:
-      Resolver<std::size_t, T> resolver;
+      Resolver<std::size_t, T, false> resolver;
       unsigned id;
    };
 
@@ -32,10 +32,10 @@ namespace MachO {
    public:
       Archive<bits>& archive;
       
-      Resolver<std::size_t, SectionBlob<bits>> vmaddr_resolver;
-      Resolver<std::size_t, SectionBlob<bits>> offset_resolver;
+      Resolver<std::size_t, SectionBlob<bits>, true> vmaddr_resolver;
+      Resolver<std::size_t, SectionBlob<bits>, true> offset_resolver;
       std::unordered_map<std::size_t, RelocBlob<bits> *> relocs;
-      Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
+      // Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;
       Segment<bits> *current_segment = nullptr;
@@ -47,6 +47,7 @@ namespace MachO {
       TodoPlaceholders placeholders;
 
       Placeholder<bits> *add_placeholder(std::size_t vmaddr);
+      void do_resolve();
       
       
       ParseEnv(Archive<bits>& archive):

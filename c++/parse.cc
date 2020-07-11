@@ -68,6 +68,12 @@ namespace MachO {
          return it->second;
       }
    }
+
+   template <Bits bits>
+   void ParseEnv<bits>::do_resolve() {
+      offset_resolver.do_resolve();
+      vmaddr_resolver.do_resolve();
+   }
    
    template class ParseEnv<Bits::M32>;
    template class ParseEnv<Bits::M64>;

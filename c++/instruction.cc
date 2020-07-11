@@ -158,10 +158,6 @@ namespace MachO {
                         "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
          }
       }
-
-      if (imm) {
-         imm->Emit(img, offset + instbuf.size() - imm->size());
-      }
       
       if (brdisp) {
          const unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
@@ -177,6 +173,10 @@ namespace MachO {
 
       /* emit instruction bytes */
       img.copy(offset, &*instbuf.begin(), instbuf.size());
+
+      if (imm) {
+         imm->Emit(img, offset + instbuf.size() - imm->size());
+      }
    }
 
    template <Bits bits>

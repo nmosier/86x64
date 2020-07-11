@@ -38,9 +38,13 @@ namespace MachO {
          cmd->Parse1(img, env);
       }
 
+      env.do_resolve();
+
       for (LoadCommand<b> *cmd : load_commands) {
          cmd->Parse2(env);
       }
+
+      env.do_resolve();
    }
 
    template <Bits b>

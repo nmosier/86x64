@@ -85,7 +85,7 @@ namespace MachO {
       }
       
    private:
-      Resolver<const void *, void> resolver;
+      Resolver<const void *, void, false> resolver;
    };
    
 }
