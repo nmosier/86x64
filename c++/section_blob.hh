@@ -133,7 +133,7 @@ namespace MachO {
    class Immediate: public SectionBlob<bits> {
    public:
       uint32_t value;
-      const SectionBlob<bits> *pointee; /*!< optional -- only if deemed to be pointer */
+      const SectionBlob<bits> *pointee = nullptr; /*!< optional -- only if deemed to be pointer */
       virtual std::size_t size() const override { return sizeof(uint32_t); }
       
       static Immediate<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env,

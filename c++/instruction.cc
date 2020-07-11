@@ -1,5 +1,9 @@
 #include <unordered_map>
 
+extern "C" {
+#include <xed-interface.h>
+}
+
 #include "instruction.hh"
 #include "image.hh"
 #include "build.hh"
@@ -194,8 +198,25 @@ namespace MachO {
       }
       
       if (other.imm) {
-         imm = other.imm->Transform(env);
-      }
+         if (other.imm->pointee) {
+            /* this immediate is actually a pointer -- convert to equivalent 64-bit */
+            assert(bits == Bits::M64);
+            switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+            case XED_IFORM_PUSH_IMMz: // -> lea r11, [rip+disp32] \ push r11
+               // instbuf = opcode::lea_r11_mem_rip_disp32(imm->pointee)
+               
+#warning TODO -- emit instructio nreplaceemnt
+               
+               break;
+               
+            default:
+               throw error("%s: could not transform immediate branch instruction",
+                           __FUNCTION__);
+            }
+         } else {
+            imm = other.imm->Transform(env);
+         }
+   }
       
       if (other.brdisp) {
          env.resolve(other.brdisp, &brdisp);

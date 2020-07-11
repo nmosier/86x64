@@ -25,6 +25,7 @@ add_library(macho_cxx_objs
   tweak.cc
   rebase_info.cc
   export_info.cc
+  opcodes.cc
   )
 
 target_link_libraries(macho_cxx_objs PRIVATE ${xed_LIBRARIES})
