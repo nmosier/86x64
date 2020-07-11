@@ -64,7 +64,6 @@ namespace MachO {
          return DylibCommand<bits>::Parse(img, offset, env);
 
       case LC_DATA_IN_CODE:
-         fprintf(stderr, "warning: %s: data in code not yet supported\n", __FUNCTION__);
       case LC_FUNCTION_STARTS:
       case LC_CODE_SIGNATURE:
          return LinkeditData<bits>::Parse(img, offset, env);

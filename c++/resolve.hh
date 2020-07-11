@@ -61,12 +61,14 @@ namespace MachO {
       }
 
       ~Resolver() {
+#if 0
          if (!todo.empty()) {
             fprintf(stderr, "%s: pending unresolved pointers\n", __FUNCTION__);
             for (auto pair : todo) {
                fprintf(stderr, "key 0x%zx\n", (std::size_t) pair.first);
             }
          }
+#endif
       }
 
       FoundMap found;

@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <mach-o/loader.h>
 
 #include "rebase_info.hh"
 #include "image.hh"
@@ -78,7 +79,7 @@ namespace MachO {
 
    template <Bits bits>
    std::size_t RebaseInfo<bits>::do_rebase(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type) {
-      std::cerr << "[PARSE] REBASE @ 0x" << std::hex << vmaddr << std::endl;
+      // std::cerr << "[PARSE] REBASE @ 0x" << std::hex << vmaddr << std::endl;
       rebasees.push_back(RebaseNode<bits>::Parse(vmaddr, env, type));
       return vmaddr + sizeof(ptr_t);
    }
@@ -184,6 +185,32 @@ namespace MachO {
       offset += leb128_encode(img, offset, segoff);
       // offset += leb128_encode(&img.at<uint8_t>(offset), img.size() - offset, segoff);
       img.at<uint8_t>(offset++) = REBASE_OPCODE_DO_REBASE_IMM_TIMES | 0x1;
+   }
+
+   template <Bits bits>
+   void RebaseInfo<bits>::print(std::ostream& os) const {
+      os << "segment\tsection\taddress\ttype" << std::endl;
+      for (auto rebasee : rebasees) {
+         rebasee->print(os);
+         os << std::endl;
+      }
+   }
+
+   template <Bits bits>
+   void RebaseNode<bits>::print(std::ostream& os) const {
+      os << blob->segment->name() << "\t" << blob->section->name() << "\t"
+         << blob->loc.vmaddr << "\t";
+
+      std::unordered_map<uint8_t, std::string> types =
+         {{REBASE_TYPE_POINTER, "POINTER"},
+          {REBASE_TYPE_TEXT_ABSOLUTE32, "TEXT_ABSOLUTE32"},
+          {REBASE_TYPE_TEXT_PCREL32, "TEXT_PCREL32"}};
+      auto type_it = types.find(type);
+      if (type_it != types.end()) {
+         os << type_it->second;
+      } else {
+         os << "(invalid)";
+      }
    }
 
    template class RebaseInfo<Bits::M32>;

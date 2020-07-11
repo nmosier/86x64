@@ -20,7 +20,6 @@ namespace MachO {
    {
       std::size_t value_offset;
       offset += leb128_decode(img, offset, value_offset);
-      fprintf(stderr, "[EXPORT] value %zx\n", value_offset);
       env.offset_resolver.resolve(value_offset, &value);
    }
 
@@ -82,14 +81,10 @@ namespace MachO {
    ExportTrie<bits>::ParseNode(const Image& img, std::size_t offset, std::size_t start,
                                ParseEnv<bits>& env) {
 
-      fprintf(stderr, "[EXPORT] node @ %zx\n", offset);
-      
       /* decode info */
       std::size_t size;
       offset += leb128_decode(img, offset, size);
  
-      fprintf(stderr, "[EXPORT] data size %zx\n", size);
-
       node curnode;
       if (size > 0) {
          curnode.value = ExportNode<bits>::Parse(img, offset, env);
@@ -98,17 +93,13 @@ namespace MachO {
       
       
       const uint8_t nedges = img.at<uint8_t>(offset++);
-      fprintf(stderr, "[EXPORT] nedges %hhx\n", nedges);
       for (uint8_t i = 0; i < nedges; ++i) {
          const char *sym = &img.at<char>(offset);
-         fprintf(stderr, "[EXPORT] sym `%s'\n", sym);
          offset += strlen(sym) + 1;
 
          std::size_t edge_diff;
          offset += leb128_decode(img, offset, edge_diff);
 
-         fprintf(stderr, "[EXPORT] edge offset rel=%zx, abs=%zx\n", edge_diff, edge_diff + start);
-         
          node *subnode = &curnode;
          while (*sym) {
             auto result = subnode->children.emplace(*sym++, node());

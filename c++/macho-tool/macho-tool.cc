@@ -30,6 +30,7 @@
 #include "translate.hh"
 #include "convert.hh"
 #include "transform.hh"
+#include "print.hh"
 
 const char *progname = nullptr;
 static const char *usagestr =
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
        {"tweak", std::make_shared<TweakCommand>()},
        {"convert", std::make_shared<ConvertCommand>()},
        {"transform", std::make_shared<TransformCommand>()},
+       {"print", std::make_shared<PrintCommand>()},
       };
 
    auto it = subcommands.find(subcommand);

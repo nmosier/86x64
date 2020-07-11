@@ -6,8 +6,6 @@
 #include "loc.hh"
 
 struct ModifyCommand: public InOutCommand {
-   int help = 0;
-
    struct Insert;
    struct Delete;
    struct Start;

@@ -9,6 +9,7 @@ extern "C" {
 #include "build.hh"
 #include "parse.hh"
 #include "transform.hh"
+#include "opcodes.hh"
 
 namespace MachO {
 
@@ -201,15 +202,18 @@ namespace MachO {
          if (other.imm->pointee) {
             /* this immediate is actually a pointer -- convert to equivalent 64-bit */
             assert(bits == Bits::M64);
-            switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+            switch (xed_decoded_inst_get_iform_enum(&other.xedd)) {
             case XED_IFORM_PUSH_IMMz: // -> lea r11, [rip+disp32] \ push r11
-               // instbuf = opcode::lea_r11_mem_rip_disp32(imm->pointee)
+               instbuf = opcode::lea_r11_mem_rip_disp32(other.imm->pointee->loc.vmaddr -
+                                                        (other.loc.vmaddr + other.size()));
                
-#warning TODO -- emit instructio nreplaceemnt
+               
+#warning TODO -- emit instruction replaceemnt
                
                break;
                
             default:
+               break;
                throw error("%s: could not transform immediate branch instruction",
                            __FUNCTION__);
             }

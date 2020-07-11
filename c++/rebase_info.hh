@@ -26,6 +26,8 @@ namespace MachO {
       RebaseNode<opposite<bits>> *Transform(TransformEnv<bits>& env) {
          return new RebaseNode<opposite<bits>>(*this, env);
       }
+
+      void print(std::ostream& os) const;
          
    private:
       RebaseNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type);
@@ -52,7 +54,9 @@ namespace MachO {
       RebaseInfo<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new RebaseInfo<opposite<bits>>(*this, env);
       }
-      
+
+      void print(std::ostream& os) const;
+
    private:
       RebaseInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
       RebaseInfo(const RebaseInfo<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);

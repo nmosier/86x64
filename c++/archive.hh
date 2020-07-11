@@ -13,6 +13,8 @@ namespace MachO {
 
    class AbstractArchive: public MachO {
    public:
+      
+      
       static AbstractArchive *Parse(const Image& img, std::size_t offset);
       virtual void Build() override { Build(0); }
       virtual std::size_t Build(std::size_t offset) = 0;

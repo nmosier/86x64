@@ -13,6 +13,7 @@ add_executable(macho-tool
   modify-delete.cc
   modify-start.cc
   transform.cc
+  print.cc
   $<TARGET_OBJECTS:macho_cxx_objs>
   )
 

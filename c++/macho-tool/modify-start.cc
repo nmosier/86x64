@@ -12,9 +12,12 @@ int ModifyCommand::Start::parse(char *option) {
 }
 
 void ModifyCommand::Start::operator()(MachO::MachO *macho) {
-   auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
-   if (archive) {
-      archive->vmaddr = this->vmaddr;
+   auto archive32 = dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho);
+   auto archive64 = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+   if (archive32) {
+      archive32->vmaddr = this->vmaddr;
+   } else if (archive64) {
+      archive64->vmaddr = this->vmaddr;
    } else {
       throw std::string("binary is not an archive");
    }
