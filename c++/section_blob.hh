@@ -11,7 +11,8 @@ namespace MachO {
    class SectionBlob {
    public:
       bool active = true;
-      const Segment<bits> *segment; /*!< containing segment */
+      const Segment<bits> *segment = nullptr; /*!< containing segment */
+      const Section<bits> *section = nullptr; /*!< containing section */
       Location loc; /*!< Post-build location, also used during parsing */
       
       virtual std::size_t size() const = 0;

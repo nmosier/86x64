@@ -59,6 +59,8 @@ namespace MachO {
    
    template <Bits bits>
    void Section<bits>::Parse1(const Image& img, ParseEnv<bits>& env) {
+      env.current_section = this;
+      
       const std::size_t begin = sect.offset;
       const std::size_t end = begin + sect.size;
       std::size_t it = begin;
@@ -69,6 +71,8 @@ namespace MachO {
          it += elem->size();
          vmaddr += elem->size();
       }
+
+      env.current_section = nullptr;
    }
    
    template <Bits bits>
@@ -233,6 +237,8 @@ namespace MachO {
             assert((*content_it)->loc.vmaddr == placeholder_it->first);
 
             placeholder_it->second->segment = env.current_segment;
+            placeholder_it->second->section = this;
+            
             content.insert(content_it, placeholder_it->second);
          }
    }

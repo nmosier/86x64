@@ -64,10 +64,12 @@ namespace MachO {
          case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
             if constexpr (lazy) {
             throw error("%s: invalid lazy bind opcode 0x%hhx", __FUNCTION__, opcode);
+               } else {
+               break;
             }
             
          default:
-            throw error("%s: invalid bind opcode %d", __FUNCTION__, opcode);
+            throw error("%s: invalid bind opcode 0x%x", __FUNCTION__, opcode);
          }
 
          switch (opcode) {

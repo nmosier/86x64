@@ -38,7 +38,8 @@ namespace MachO {
       Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;
-      Segment<bits> *current_segment;
+      Segment<bits> *current_segment = nullptr;
+      Section<bits> *current_section = nullptr;
       Regions data_in_code;
 
       /* vmaddr-to-placeholder map */
@@ -48,7 +49,8 @@ namespace MachO {
       Placeholder<bits> *add_placeholder(std::size_t vmaddr);
       
       
-      ParseEnv(Archive<bits>& archive): archive(archive), current_segment(nullptr) {}
+      ParseEnv(Archive<bits>& archive):
+         archive(archive), current_segment(nullptr), current_section(nullptr) {}
       
    private:
       
