@@ -44,6 +44,8 @@ namespace MachO {
       Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env);
       Instruction(const Instruction<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       template <Bits> friend class Instruction;
+
+      void decode();
    };   
 
 }
