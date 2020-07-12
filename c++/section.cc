@@ -245,6 +245,7 @@ namespace MachO {
 
    template <Bits bits>
    void Section<bits>::insert(SectionBlob<bits> *blob, const Location& loc, Relation rel) {
+      blob->section = this;
       std::size_t Location::*locptr;
       std::size_t sectloc;
       if (loc.offset) {
