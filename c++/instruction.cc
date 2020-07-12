@@ -138,6 +138,7 @@ namespace MachO {
       /* Check for other immediates */
       switch (xed_decoded_inst_get_iform_enum(&xedd)) {
       case XED_IFORM_PUSH_IMMz: /* push imm32 */
+         assert(imm == nullptr);
          imm = Immediate<bits>::Parse(img, loc + (instbuf.size() - sizeof(uint32_t)), env, false);
          break;
       default:
@@ -211,12 +212,15 @@ namespace MachO {
             switch (xed_decoded_inst_get_iform_enum(&other.xedd)) {
             case XED_IFORM_PUSH_IMMz: // -> lea r11, [rip+disp32] \ push r11
                {
+#if 0
                   instbuf = opcode::lea_r11_mem_rip_disp32(other.imm->pointee->loc.vmaddr -
                                                            (other.loc.vmaddr + other.size()));
                   const opcode_t push = opcode::push_r11();
                   // new Instruction<bits>(opcode::push_r11()
-                  // Instruction<bits> *push_inst = new Instruction<bits>(push, 
-                  // todo
+                  Instruction<bits> *push_inst = new Instruction<bits>(opcode::push_r11());
+                  auto inst_iter = this->iter;
+                  push_inst->iter = this->section->content.insert(++inst_iter, push_inst);
+#endif
                }
                
                
