@@ -4,16 +4,20 @@
 
 #include "types.hh"
 #include "loc.hh"
+#include "section.hh"
 
 namespace MachO {
 
    template <Bits bits>
    class SectionBlob {
    public:
+      using Iterator = typename Section<bits>::Content::iterator;
+      
       bool active = true;
       const Segment<bits> *segment = nullptr; /*!< containing segment */
       const Section<bits> *section = nullptr; /*!< containing section */
       Location loc; /*!< Post-build location, also used during parsing */
+      Iterator iter;
       
       virtual std::size_t size() const = 0;
       virtual ~SectionBlob() {}
@@ -23,7 +27,7 @@ namespace MachO {
       
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env, bool add_to_map = true);
-      SectionBlob(Segment<bits> *segment): segment(segment) {}
+      SectionBlob() {}
       SectionBlob(const SectionBlob<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
    };
 

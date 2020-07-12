@@ -14,7 +14,7 @@ namespace MachO {
    template <Bits bits>
    class Instruction: public SectionBlob<bits> {
    public:
-      static const xed_state_t dstate;
+      static const xed_state_t& dstate();
       
       std::vector<uint8_t> instbuf;
       xed_decoded_inst_t xedd;
@@ -33,8 +33,8 @@ namespace MachO {
       { return new Instruction(img, loc, env); }
       
       template <typename It>
-      Instruction(Segment<bits> *segment, It begin, It end):
-         SectionBlob<bits>(segment), instbuf(begin, end), memdisp(nullptr), brdisp(nullptr) {}
+      Instruction(It begin, It end):
+         SectionBlob<bits>(), instbuf(begin, end), memdisp(nullptr), brdisp(nullptr) {}
       
       Instruction<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Instruction<opposite<bits>>(*this, env);

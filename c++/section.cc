@@ -67,7 +67,7 @@ namespace MachO {
       std::size_t vmaddr = sect.addr;
       while (it != end) {
          SectionBlob<bits> *elem = parser(img, Location(it, vmaddr), env);
-         content.push_back(elem);
+         elem->iter = content.insert(content.end(), elem);
          it += elem->size();
          vmaddr += elem->size();
       }
