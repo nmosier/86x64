@@ -8,6 +8,7 @@ extern "C" {
 
 #include "types.hh"
 #include "section_blob.hh"
+#include "opcodes.hh"
 
 namespace MachO {
 
@@ -34,7 +35,13 @@ namespace MachO {
       
       template <typename It>
       Instruction(It begin, It end):
-         SectionBlob<bits>(), instbuf(begin, end), memdisp(nullptr), brdisp(nullptr) {}
+         SectionBlob<bits>(), instbuf(begin, end), memdisp(nullptr), brdisp(nullptr) {
+         decode();
+      }
+
+      Instruction(const opcode_t& opcode): SectionBlob<bits>(), instbuf(opcode) {
+         decode();
+      }
       
       Instruction<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
          return new Instruction<opposite<bits>>(*this, env);
