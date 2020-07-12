@@ -13,19 +13,26 @@ extern "C" {
 
 namespace MachO {
 
-   template <Bits bits>
-   const xed_state_t Instruction<bits>::dstate =
-      {select_value(bits, XED_MACHINE_MODE_LEGACY_32, XED_MACHINE_MODE_LONG_64),
-       select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_32b)
-      };
+   namespace {
+      template <Bits bits>
+      const xed_state_t dstate_ =
+         {select_value(bits, XED_MACHINE_MODE_LEGACY_32, XED_MACHINE_MODE_LONG_64),
+          select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_32b)
+         };
+
+   }
 
    template <Bits bits>
-   Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
-      SectionBlob<bits>(loc, env), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
+   const xed_state_t& Instruction<bits>::dstate() { return dstate_<bits>; }
+   
+   template <Bits bits>
+   Instruction<bits>::Instruction(const Image& img, const Location& loc,
+                                  typename SectionBlob<bits>::Iterator iter, ParseEnv<bits>& env):
+      SectionBlob<bits>(loc, iter, env), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
    {
       xed_error_enum_t err;
       
-      xed_decoded_inst_zero_set_mode(&xedd, &dstate);
+      xed_decoded_inst_zero_set_mode(&xedd, &dstate());
       xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 
       if ((err = xed_decode(&xedd, &img.at<uint8_t>(loc.offset), img.size() - loc.offset)) !=
@@ -204,11 +211,17 @@ namespace MachO {
             assert(bits == Bits::M64);
             switch (xed_decoded_inst_get_iform_enum(&other.xedd)) {
             case XED_IFORM_PUSH_IMMz: // -> lea r11, [rip+disp32] \ push r11
-               instbuf = opcode::lea_r11_mem_rip_disp32(other.imm->pointee->loc.vmaddr -
-                                                        (other.loc.vmaddr + other.size()));
+               {
+                  instbuf = opcode::lea_r11_mem_rip_disp32(other.imm->pointee->loc.vmaddr -
+                                                           (other.loc.vmaddr + other.size()));
+                  const opcode_t push = opcode::push_r11();
+                  // new Instruction<bits>(opcode::push_r11()
+                  // Instruction<bits> *push_inst = new Instruction<bits>(push, 
+                  // todo
+               }
                
                
-#warning TODO -- emit instruction replaceemnt
+#warning TODO -- emit instruction replacement
                
                break;
                
@@ -226,7 +239,7 @@ namespace MachO {
          env.resolve(other.brdisp, &brdisp);
       }
 
-      xed_decoded_inst_zero_set_mode(&xedd, &dstate);
+      xed_decoded_inst_zero_set_mode(&xedd, &dstate());
       xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 
       xed_error_enum_t err;
@@ -234,10 +247,23 @@ namespace MachO {
          throw error("%s: xed_decode: %s\n", __FUNCTION__, xed_error_enum_t2str(err));
       }
 
+#if 0 // why would this matter?
       if (xed_decoded_inst_get_length(&xedd) != xed_decoded_inst_get_length(&other.xedd)) {
          throw error("%s: lengths of transformed instruction mismatch\n", __FUNCTION__);
       }
+#endif
    }
+
+   template <Bits bits>
+   void Instruction<bits>::decode() {
+      xed_error_enum_t err;
+      xed_decoded_inst_zero_set_mode(&xedd, &dstate());
+      xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
+      if ((err = xed_decode(&xedd, instbuf.data(), instbuf.size())) != XED_ERROR_NONE) {
+         throw error("%s: xed_decode: %s\n", __FUNCTION__, xed_error_enum_t2str(err));
+      }
+   }
+
 
    template class Instruction<Bits::M32>;
    template class Instruction<Bits::M64>;   
