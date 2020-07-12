@@ -12,6 +12,7 @@ namespace MachO {
    class SectionBlob {
    public:
       using Iterator = typename Section<bits>::Content::iterator;
+      using SectionBlobs = std::list<SectionBlob<opposite<bits>> *>;
       
       bool active = true;
       const Segment<bits> *segment = nullptr; /*!< containing segment */
@@ -23,7 +24,9 @@ namespace MachO {
       virtual ~SectionBlob() {}
       virtual void Build(BuildEnv<bits>& env);
       virtual void Emit(Image& img, std::size_t offset) const = 0;
-      virtual SectionBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const = 0;
+
+      virtual SectionBlobs Transform(TransformEnv<bits>& env) const { return {Transform_one(env)}; }
+      virtual SectionBlob<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const = 0;
       
    protected:
       SectionBlob(const Location& loc, ParseEnv<bits>& env, bool add_to_map = true);
@@ -42,7 +45,7 @@ namespace MachO {
          return new DataBlob(img, loc, env);
       }
       
-      virtual DataBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+      virtual DataBlob<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
          return new DataBlob<opposite<bits>>(*this, env);
       }
       
@@ -61,7 +64,7 @@ namespace MachO {
 
       static SectionBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
       { return new ZeroBlob(img, loc, env); }
-      virtual ZeroBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
+      virtual ZeroBlob<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override
       { return new ZeroBlob<opposite<bits>>(*this, env); }
       
    private:
@@ -98,10 +101,8 @@ namespace MachO {
          return new LazySymbolPointer(img, loc, env);
       }
 
-      virtual LazySymbolPointer<opposite<bits>> *Transform(TransformEnv<bits>& env) const override
-      {
-         return new LazySymbolPointer<opposite<bits>>(*this, env);
-      }
+      virtual LazySymbolPointer<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const
+         override { return new LazySymbolPointer<opposite<bits>>(*this, env);      }
      
    private:
       LazySymbolPointer(const Image& img, const Location& loc, ParseEnv<bits>& env);
@@ -121,7 +122,7 @@ namespace MachO {
          return new NonLazySymbolPointer(img, loc, env);
       }
 
-      virtual NonLazySymbolPointer<opposite<bits>> *Transform(TransformEnv<bits>& env) const
+      virtual NonLazySymbolPointer<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const
          override { return new NonLazySymbolPointer<opposite<bits>>(*this, env); }
       
    private:
@@ -146,7 +147,7 @@ namespace MachO {
       { return new Immediate(img, loc, env, is_pointer); }
       
       virtual void Emit(Image& img, std::size_t offset) const override;
-      virtual Immediate<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+      virtual Immediate<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
          return new Immediate<opposite<bits>>(*this, env);
       }
       
@@ -163,7 +164,7 @@ namespace MachO {
          return new Placeholder(loc, env);
       }
 
-      virtual Placeholder<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+      virtual Placeholder<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
          return new Placeholder<opposite<bits>>(*this, env);
       }
 
@@ -180,7 +181,7 @@ namespace MachO {
    template <Bits bits>
    class RelocBlob: public SectionBlob<bits> {
    public:
-      virtual RelocBlob<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
+      virtual RelocBlob<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const {
          throw error("transforming relocation blobs unsupported");
       }
       

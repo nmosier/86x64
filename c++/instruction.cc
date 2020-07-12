@@ -234,7 +234,7 @@ namespace MachO {
                            __FUNCTION__);
             }
          } else {
-            imm = other.imm->Transform(env);
+            imm = other.imm->Transform_one(env);
          }
    }
       

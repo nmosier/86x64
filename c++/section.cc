@@ -133,7 +133,8 @@ namespace MachO {
    {
       env(other.sect, sect);
       for (const auto elem : other.content) {
-         content.push_back(elem->Transform(env));
+         content.splice(content.end(), elem->Transform(env));
+         // content.push_back(elem->Transform(env));
       }
    }
 

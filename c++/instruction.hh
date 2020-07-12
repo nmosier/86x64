@@ -42,8 +42,8 @@ namespace MachO {
       Instruction(const opcode_t& opcode): SectionBlob<bits>(), instbuf(opcode) {
          decode();
       }
-      
-      Instruction<opposite<bits>> *Transform(TransformEnv<bits>& env) const override {
+
+      virtual Instruction<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
          return new Instruction<opposite<bits>>(*this, env);
       }
 
