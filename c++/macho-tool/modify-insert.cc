@@ -14,8 +14,7 @@ void ModifyCommand::Insert::Instruction::operator()(MachO::MachO *macho) {
    char *buf = new char[*bytes];
    assert(fread(buf, 1, *bytes, stdin) == *bytes);
    
-   archive->insert(new MachO::Instruction<MachO::Bits::M64>(archive->segment(SEG_TEXT),
-                                                            buf, buf + *bytes), loc, relation);
+   archive->insert(new MachO::Instruction<MachO::Bits::M64>(buf, buf + *bytes), loc, relation);
 }
 
 
