@@ -11,7 +11,12 @@
 namespace MachO {
 
    Image::Image(const char *path, int mode) {
-      if ((fd = open(path, mode)) < 0) {
+      int mode2 = 0;
+      if ((mode & O_CREAT)) {
+         mode2 = 0776;
+      }
+      
+      if ((fd = open(path, mode, mode2)) < 0) {
          throw cerror("open");
       }
 

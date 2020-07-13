@@ -9,6 +9,7 @@ struct ModifyCommand: public InOutCommand {
    struct Insert;
    struct Delete;
    struct Start;
+   struct Update;
 
    virtual const char *optstring() const override { return "hi:d:s:"; }
    virtual std::vector<option> longopts() const override {
@@ -16,6 +17,7 @@ struct ModifyCommand: public InOutCommand {
               {"insert", required_argument, nullptr, 'i'},
               {"delete", required_argument, nullptr, 'd'},
               {"start", required_argument, nullptr, 's'},
+              {"update", required_argument, nullptr, 'u'},
               {0}};
    }
    virtual int opthandler(int optchar) override;

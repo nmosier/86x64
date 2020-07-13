@@ -5,6 +5,7 @@
 #include "modify-insert.hh"
 #include "modify-delete.hh"
 #include "modify-start.hh"
+#include "modify-update.hh"
 
 int ModifyCommand::work() {
    MachO::MachO *macho = MachO::MachO::Parse(*in_img);
@@ -33,6 +34,9 @@ int ModifyCommand::opthandler(int optchar) {
       break;
    case 's':
       f = new Start;
+      break;
+   case 'u':
+      f = new Update;
       break;
    default:
       abort();
