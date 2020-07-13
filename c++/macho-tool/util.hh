@@ -3,6 +3,16 @@
 #include <unordered_map>
 #include <string>
 
+template <typename T>
+T stout(const std::string& str, std::size_t *pos = nullptr, int base = 10) {
+   static_assert(std::is_unsigned<T>());
+   auto raw = std::stoull(str, pos, base);
+   if (raw > std::numeric_limits<T>::max()) {
+      throw std::out_of_range("unsigned integer out range");
+   }
+   return (T) raw;
+}
+
 bool stobool(const std::string& s);
 
 template <typename Flag>
