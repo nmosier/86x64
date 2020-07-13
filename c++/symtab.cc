@@ -50,6 +50,15 @@ namespace MachO {
       } else {
          value = env.add_placeholder(nlist.n_value);
       }
+
+      /* resolve section */
+      if (type() == Type::SECT) {
+         if (nlist.n_sect == NO_SECT) {
+            throw error("symbol `%s' type is SECT but section number is NO_SECT (0)",
+                        string->str.c_str());
+         }
+         env.section_resolver.resolve(nlist.n_sect, &section);
+      }
    }
 
    template <Bits bits>
@@ -63,7 +72,7 @@ namespace MachO {
    void Symtab<bits>::Build_LINKEDIT_symtab(BuildEnv<bits>& env) {
       symtab.nsyms = syms.size();
       symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
-
+      
       for (auto sym : syms) {
          sym->Build(env);
       }
@@ -146,6 +155,9 @@ namespace MachO {
       if (string->str == MH_EXECUTE_HEADER) {
          nlist.n_value = env.archive->segment(SEG_TEXT)->loc().vmaddr;
       }
+
+      /* get section ID */
+      nlist.n_sect = section ? section->id : NO_SECT;
    }
 
    template <Bits bits>
@@ -186,13 +198,13 @@ namespace MachO {
       LinkeditCommand<bits>(other, env), symtab(other.symtab)
    {
       for (const auto sym : other.syms) {
-         // DEBUG
-         if (sym->string->str != "__dyld_private" || 1) {
+         if (sym->string->str != Nlist<bits>::DYLD_PRIVATE || 1) {
             syms.insert(sym->Transform(env));
          }
       }
+#warning DEBUG
       for (const auto str : other.strs) {
-         if (str->str != "__dyld_private" || 1) {
+         if (str->str != Nlist<bits>::DYLD_PRIVATE || 1) {
             strs.push_back(str->Transform(env));
          }
       }
@@ -210,6 +222,9 @@ namespace MachO {
       } else {
          env.resolve(other.value, &value);
       }
+
+      /* resolve section */
+      env.resolve(other.section, &section);
    }
    
    template <Bits bits>
@@ -249,6 +264,11 @@ namespace MachO {
 
    template <Bits bits>
    void Symtab<bits>::print(std::ostream& os) const {
+      os << "nsyms=" << syms.size() << std::endl;
+      
+      /* print column names */
+      os << "value type external desc section string" << std::endl;
+      
       for (auto sym : syms) {
          sym->print(os);
          os << std::endl;
@@ -257,23 +277,46 @@ namespace MachO {
 
    template <Bits bits>
    void Nlist<bits>::print(std::ostream& os) const {
-      if (value) {
-         os << value->loc.vmaddr << " ";
-      } else {
-         os << (std::size_t) nlist.n_value << " ";
-      }
-      
-      os << nlist.n_desc << " ";
-      
-      if (value) {
-         os << (value->segment ? value->segment->name() : "?") << ",";
-         os << (value->section ? value->section->name() : "?") << " ";
-      } else if (nlist.n_value) {
-         os << "ABS" << " ";
-      } else {
-         os << "*UND*" << " ";
-      }
+      /* value */
+      os << (value ? value->loc.vmaddr : nlist.n_value) << " ";
 
+      /* type */
+      const std::unordered_map<uint8_t, const char *> type2str =
+         {{N_UNDF, "UNDF"},
+          {N_ABS,  "ABS"},
+          {N_SECT, "SECT"},
+          {N_PBUD, "PBUD"},
+          {N_INDR, "INDR"}};
+      const auto type_it = type2str.find(nlist.n_type & N_TYPE);
+      os << (type_it != type2str.end() ? type_it->second : "?") << " ";
+
+      /* external? */
+      os << (nlist.n_type & N_EXT ? 'x' : '-') << " ";
+
+      /* stab info? */
+      if ((nlist.n_type & N_EXT)) {
+         os << nlist.n_desc;
+      } else {
+         os << "-";
+      }
+      os << " ";
+
+      /* section */
+      switch (nlist.n_type & N_TYPE) {
+      case N_UNDF:
+      case N_ABS:
+      case N_PBUD:
+      case N_INDR:
+         os << "-";
+         break;
+      case N_SECT:
+         os << section->segment->name() << "," << section->name() << " ";
+         break;
+      default:
+         os << "-";
+      }
+      os << " ";
+      
       os << string->str;
    }
    

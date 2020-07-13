@@ -254,6 +254,14 @@ namespace MachO {
          offset < segment_command.fileoff + segment_command.filesize;
    }
 
+   template <Bits bits>
+   void Segment<bits>::AssignID(BuildEnv<bits>& env) {
+      id = env.segment_counter();
+      for (auto section : sections) {
+         section->AssignID(env);
+      }
+   }
+
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 

@@ -33,6 +33,7 @@ int TransformCommand::workT(MachO::MachO *macho) {
       log("transform requires archive of correct bits");
       return -1;
    }
+   archive->Build(0);
    auto newarchive = archive->Transform();
    newarchive->Build(0);
    newarchive->Emit(*out_img);

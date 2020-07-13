@@ -38,6 +38,7 @@ namespace MachO {
       // Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;
       CountResolver<Segment<bits>> segment_resolver;
+      CountResolver<Section<bits>> section_resolver;
       Segment<bits> *current_segment = nullptr;
       Section<bits> *current_section = nullptr;
       Regions data_in_code;

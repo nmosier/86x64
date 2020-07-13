@@ -25,9 +25,7 @@ namespace MachO {
       std::string name() const;
       std::size_t vmaddr() const { return segment_command.vmaddr; }
       virtual void Build(BuildEnv<bits>& env) override;
-      virtual void AssignID(BuildEnv<bits>& env) override {
-         id = env.segment_counter();
-      };
+      virtual void AssignID(BuildEnv<bits>& env) override;
       virtual void Emit(Image& img, std::size_t offset) const override;
       Location loc() const { return Location(segment_command.fileoff, segment_command.vmaddr); }
 

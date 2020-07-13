@@ -23,6 +23,8 @@ namespace MachO {
       section_t<bits> sect;
       Content content;
       Relocations relocs;
+      uint8_t id; /*!< assigned at build time */
+      const Segment<bits> *segment = nullptr; /*!< containing segment (parse-time) */
 
       std::string name() const;
       Location loc() const { return Location(sect.offset, sect.addr); }
@@ -39,7 +41,8 @@ namespace MachO {
       void Parse1(const Image& img, ParseEnv<bits>& env);
       void Parse2(ParseEnv<bits>& env);
 
-      virtual void Build(BuildEnv<bits>& env);
+      void AssignID(BuildEnv<bits>& env);
+      void Build(BuildEnv<bits>& env);
       // std::size_t content_size() const;
       void Emit(Image& img, std::size_t offset) const;
       void Insert(const SectionLocation<bits>& loc, SectionBlob<bits> *blob);

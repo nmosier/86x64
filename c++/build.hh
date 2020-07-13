@@ -32,13 +32,15 @@ namespace MachO {
 
       unsigned segment_counter() { return segment_counter_++; }
       unsigned dylib_counter() { return dylib_counter_++; }
-
+      uint8_t section_counter();
+      
       Location loc;      
 
       BuildEnv(Archive<bits> *archive, const Location& loc): archive(archive), loc(loc) {}
       
    private:
       unsigned segment_counter_ = 0;
+      uint8_t section_counter_ = 0;
       unsigned dylib_counter_ = 1;
    };
 

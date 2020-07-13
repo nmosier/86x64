@@ -129,15 +129,18 @@ namespace MachO {
    }
 
    template <Bits bits>
-   Section<bits>::Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env)
+   Section<bits>::Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
+      /* relocs(other.relocs.Transform(env)), */ id(other.id)
    {
+#warning TRANSFORM RELOCS
+      env.add(&other, this);
       env(other.sect, sect);
+      env.resolve(other.segment, &segment);
       for (const auto elem : other.content) {
          content.splice(content.end(), elem->Transform(env));
          // content.push_back(elem->Transform(env));
       }
    }
-
 
    template <Bits bits>
    typename Section<bits>::Content::iterator Section<bits>::find(std::size_t vmaddr) {
@@ -280,7 +283,11 @@ namespace MachO {
 
    template <Bits bits>
    Section<bits>::Section(const Image& img, std::size_t offset, ParseEnv<bits>& env, Parser parser):
-      sect(img.at<section_t<bits>>(offset)), parser(parser) {
+      sect(img.at<section_t<bits>>(offset)), segment(env.current_segment), parser(parser)
+   {
+      /* section resolver */
+      env.section_resolver.add(this);
+      
       /* read reloaction entries */
       std::size_t reloff = sect.reloff;
       for (uint32_t i = 0; i < sect.nreloc; ++i, reloff += RelocationInfo<bits>::size()) {
@@ -314,6 +321,14 @@ namespace MachO {
    template <Bits bits>
    bool Section<bits>::contains_vmaddr(std::size_t vmaddr) const {
       return vmaddr >= sect.addr && vmaddr < sect.addr + sect.size;
+   }
+
+   template <Bits bits>
+   void Section<bits>::AssignID(BuildEnv<bits>& env) {
+      id = env.section_counter();
+
+      // DEBUG
+      fprintf(stderr, "%s: `%s': %d\n", __FUNCTION__, name().c_str(), (int) id);
    }
 
    template class Section<Bits::M32>;

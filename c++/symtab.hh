@@ -39,13 +39,16 @@ namespace MachO {
    class Nlist {
    public:
       enum class Kind {LOCAL, EXT, UNDEF}; /*!< keep ordering! */
+      enum class Type {UNDF = N_UNDF, ABS = N_ABS, SECT = N_SECT, PBUD = N_PBUD, INDR = N_INDR};
       static constexpr char MH_EXECUTE_HEADER[] = "__mh_execute_header";
+      static constexpr char DYLD_PRIVATE[] = "__dyld_private";
       
       static std::size_t size() { return sizeof(nlist_t<bits>); }
 
       nlist_t<bits> nlist;
       const String<bits> *string = nullptr;
       const Placeholder<bits> *value = nullptr;
+      const Section<bits> *section = nullptr; /* indexed by nlist.n_sect */
 
       static Nlist<bits> *Parse(const Image& img, std::size_t offset, ParseEnv<bits>& env,
                                 const std::unordered_map<std::size_t, String<bits> *>& off2str) {
@@ -59,6 +62,7 @@ namespace MachO {
       }
 
       Kind kind() const;
+      Type type() const { return (Type) (nlist.n_type & N_TYPE); }
 
       void print(std::ostream& os) const;
       

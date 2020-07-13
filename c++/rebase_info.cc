@@ -118,7 +118,6 @@ namespace MachO {
          callback(ParseEnv<bits>& env): env(env) {}
          
          virtual void operator()(SectionBlob<bits> *blob2) override {
-            fprintf(stderr, "callback at 0x%zx type %s\n", blob2->loc.vmaddr, typeid(*blob2).name());
             auto imm = dynamic_cast<Immediate<bits> *>(blob2);
             if (imm) {
                imm->pointee = env.add_placeholder(imm->value);

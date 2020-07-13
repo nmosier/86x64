@@ -198,6 +198,24 @@ namespace MachO {
       }
    }
 
+   template <Bits b>
+   std::vector<Section<b> *> Archive<b>::sections() const {
+      std::vector<Section<b> *> acc;
+      for (const auto segment : segments()) {
+         acc.insert(acc.end(), segment->sections.begin(), segment->sections.end());
+      }
+      return acc;
+   }
+
+   template <Bits b>
+   Section<b> *Archive<b>::section(uint8_t index) const {
+      if (index == NO_SECT) {
+         return nullptr;
+      } else {
+         return sections().at(index - 1);
+      }
+   }
+
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

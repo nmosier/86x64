@@ -24,6 +24,14 @@ namespace MachO {
       loc.vmaddr = align_up(loc.vmaddr, PAGESIZE);
    }
 
+   template <Bits bits>
+   uint8_t BuildEnv<bits>::section_counter() {
+      if (section_counter_ == MAX_SECT) {
+         throw error("too many sections");
+      }
+      return ++section_counter_;
+   }
+
    template class BuildEnv<Bits::M32>;
    template class BuildEnv<Bits::M64>;
    
