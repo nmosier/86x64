@@ -196,6 +196,54 @@ namespace MachO {
    }
 
    template <Bits bits>
+   typename SectionBlob<bits>::SectionBlobs Instruction<bits>::Transform(TransformEnv<bits>& env)
+      const
+   {
+      if (imm && imm->pointee) {
+         assert(bits == Bits::M32);
+         
+         switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+         case XED_IFORM_PUSH_IMMz:
+            {
+               /* i386 | push disp32
+                * -----|---------------------
+                * X86  | lea r11,[rip+disp32]
+                *      | push r11
+                */
+               auto lea_inst = new Instruction<opposite<bits>>(opcode::lea_r11_mem_rip_disp32());
+               lea_inst->memidx = 0; // TODO: is this right?
+               env.resolve(imm->pointee, &lea_inst->memdisp);
+
+               auto push_inst = new Instruction<opposite<bits>>(opcode::push_r11());
+
+               return {lea_inst, push_inst};
+            }
+
+         case XED_IFORM_JMP_MEMv:
+            {
+               /* i386 | jmp [abs32]
+                * -----|-----------------
+                * X86  | jmp [rip+disp32]
+                */  
+               auto jmp_inst = new Instruction<opposite<bits>>(opcode::jmp_mem_rip_disp32());
+               jmp_inst->memidx = 0; // TODO: is this right?
+               env.resolve(imm->pointee, &jmp_inst->memdisp);
+               
+               return {jmp_inst};
+            }
+            
+         default:
+            throw error("%s: don't know how to translate i386 instruction with absolute memory " \
+                        "addressing to x86_64 (iform = %s)", __FUNCTION__,
+                        xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&xedd)));
+         }
+
+      }
+
+      return {new Instruction<opposite<bits>>(*this, env)};
+   }
+
+   template <Bits bits>
    Instruction<bits>::Instruction(const Instruction<opposite<bits>>& other,
                                   TransformEnv<opposite<bits>>& env):
       SectionBlob<bits>(other, env), instbuf(other.instbuf), memidx(other.memidx),

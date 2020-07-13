@@ -39,6 +39,7 @@ namespace MachO {
    class Nlist {
    public:
       enum class Kind {LOCAL, EXT, UNDEF}; /*!< keep ordering! */
+      static constexpr char MH_EXECUTE_HEADER[] = "__mh_execute_header";
       
       static std::size_t size() { return sizeof(nlist_t<bits>); }
 
@@ -51,12 +52,15 @@ namespace MachO {
          return new Nlist(img, offset, env, off2str);
       }
 
+      void Build(BuildEnv<bits>& env);
       void Emit(Image& img, std::size_t offset) const;
       Nlist<opposite<bits>> *Transform(TransformEnv<bits>& env) const {
          return new Nlist<opposite<bits>>(*this, env);
       }
 
       Kind kind() const;
+
+      void print(std::ostream& os) const;
       
    private:
       Nlist(const Image& img, std::size_t offset, ParseEnv<bits>& env,
@@ -96,6 +100,8 @@ namespace MachO {
       }
 
       void remove(const std::string& name);
+
+      void print(std::ostream& os) const;
 
    private:
       Symtab(const Image& img, std::size_t offset, ParseEnv<bits>& env);

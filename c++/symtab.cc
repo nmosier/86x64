@@ -1,4 +1,5 @@
 #include <set>
+#include <mach-o/stab.h>
 
 #include "symtab.hh"
 #include "segment.hh"
@@ -40,11 +41,15 @@ namespace MachO {
       value(nullptr)
    {
       nlist = img.at<nlist_t<bits>>(offset);
-      value = env.add_placeholder(nlist.n_value);
       if (off2str.find(nlist.n_un.n_strx) == off2str.end()) {
          throw error("nlist offset 0x%x does not point to beginning of string", nlist.n_un.n_strx);
       }
       string = off2str.at(nlist.n_un.n_strx);
+      if (string->str == MH_EXECUTE_HEADER) {
+         // do nothing
+      } else {
+         value = env.add_placeholder(nlist.n_value);
+      }
    }
 
    template <Bits bits>
@@ -54,37 +59,14 @@ namespace MachO {
                                          &img.at<uint32_t>(dysymtab.indirectsymoff) +
                                          dysymtab.nindirectsyms)) {}
 
-#if 0
-   template <Bits bits>
-   void Symtab<bits>::Build_LINKEDIT(BuildEnv<bits>& env) {
-      /* allocate space for symbol table */
-      symtab.nsyms = syms.size();
-      symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
-      
-      symtab.strsize = 0;
-      for (const String<bits> *str : strs) {
-         symtab.strsize += str->size();
-      }
-      symtab.strsize = align<bits>(symtab.strsize);
-      symtab.stroff = env.allocate(symtab.strsize);
-      
-      /* create build environment for string table */
-      BuildEnv<bits> strtab_env(env.archive, Location(0, 0));
-      for (String<bits> *str : strs) {
-         str->Build(strtab_env);
-      }
-
-      /* build nlists */
-      for (Nlist<bits> *sym : syms) {
-         sym->Build();
-      }
-   }
-#endif
-
    template <Bits bits>
    void Symtab<bits>::Build_LINKEDIT_symtab(BuildEnv<bits>& env) {
       symtab.nsyms = syms.size();
       symtab.symoff = env.allocate(Nlist<bits>::size() * symtab.nsyms);
+
+      for (auto sym : syms) {
+         sym->Build(env);
+      }
    }
 
    template <Bits bits>
@@ -159,10 +141,22 @@ namespace MachO {
    }
 
    template <Bits bits>
+   void Nlist<bits>::Build(BuildEnv<bits>& env) {
+      /* get text address */
+      if (string->str == MH_EXECUTE_HEADER) {
+         nlist.n_value = env.archive->segment(SEG_TEXT)->loc().vmaddr;
+      }
+   }
+
+   template <Bits bits>
    void Nlist<bits>::Emit(Image& img, std::size_t offset) const {
       nlist_t<bits> nlist = this->nlist;
       nlist.n_un.n_strx = string->offset;
-      nlist.n_value = value ? value->loc.vmaddr : 0;
+
+      if (value) {
+         nlist.n_value = value->loc.vmaddr;
+      }
+
       img.at<nlist_t<bits>>(offset) = nlist;
    }
    
@@ -210,7 +204,12 @@ namespace MachO {
    {
       env(other.nlist, nlist);
       env.resolve(other.string, &string);
-      env.resolve(other.value, &value);
+
+      if (other.string->str == MH_EXECUTE_HEADER) {
+         // value remains null
+      } else {
+         env.resolve(other.value, &value);
+      }
    }
    
    template <Bits bits>
@@ -246,6 +245,36 @@ namespace MachO {
    bool Symtab<bits>::NlistCompare::operator()(const Nlist<bits> *lhs,
                                                const Nlist<bits> *rhs) const {
       return (int) lhs->kind() < (int) rhs->kind();
+   }
+
+   template <Bits bits>
+   void Symtab<bits>::print(std::ostream& os) const {
+      for (auto sym : syms) {
+         sym->print(os);
+         os << std::endl;
+      }
+   }
+
+   template <Bits bits>
+   void Nlist<bits>::print(std::ostream& os) const {
+      if (value) {
+         os << value->loc.vmaddr << " ";
+      } else {
+         os << (std::size_t) nlist.n_value << " ";
+      }
+      
+      os << nlist.n_desc << " ";
+      
+      if (value) {
+         os << (value->segment ? value->segment->name() : "?") << ",";
+         os << (value->section ? value->section->name() : "?") << " ";
+      } else if (nlist.n_value) {
+         os << "ABS" << " ";
+      } else {
+         os << "*UND*" << " ";
+      }
+
+      os << string->str;
    }
    
    template class Symtab<Bits::M32>;

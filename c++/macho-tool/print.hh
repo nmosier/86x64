@@ -6,11 +6,13 @@
 
 struct PrintCommand: InplaceCommand {
    static constexpr int REBASE = 256;
+   static constexpr int SYMS = 't';
    
-   virtual const char *optstring() const override { return "h"; }
+   virtual const char *optstring() const override { return "ht"; }
    virtual std::vector<option> longopts() const override {
       return {{"help", no_argument, nullptr, 'h'},
               {"rebase", no_argument, nullptr, REBASE},
+              {"syms", no_argument, nullptr, SYMS},
               {0}};
    }
    virtual int opthandler(int optchar) override;
@@ -26,5 +28,6 @@ struct PrintCommand: InplaceCommand {
    PrintCommand();
 
    template <MachO::Bits bits> void print_REBASE(const MachO::Archive<bits> *macho);
+   template <MachO::Bits bits> void print_SYMS(const MachO::Archive<bits> *archive);
    
 };

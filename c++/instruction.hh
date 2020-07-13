@@ -43,6 +43,10 @@ namespace MachO {
          decode();
       }
 
+      /* sometimes needs to return multiple instructions */
+      virtual typename SectionBlob<bits>::SectionBlobs Transform(TransformEnv<bits>& env)
+         const override; 
+
       virtual Instruction<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
          return new Instruction<opposite<bits>>(*this, env);
       }

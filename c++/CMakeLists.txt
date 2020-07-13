@@ -26,6 +26,7 @@ add_library(macho_cxx_objs
   rebase_info.cc
   export_info.cc
   opcodes.cc
+  transform.cc
   )
 
 target_link_libraries(macho_cxx_objs PRIVATE ${xed_LIBRARIES})
