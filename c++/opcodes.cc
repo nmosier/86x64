@@ -59,6 +59,17 @@ namespace MachO::opcode {
       encode_int(opcode, disp);
       return opcode;
    }
-   
+
+   opcode_t mov_mem_rsp_r32(xed_reg_enum_t r32) {
+      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_EDI);
+      const uint8_t byte = 0x04 | ((r32 - XED_REG_EAX) << 3);
+      return {0x89, byte, 0x24};
+   }
+
+   opcode_t jmp_r64(xed_reg_enum_t r64) {
+      assert(r64 >= XED_REG_RAX && r64 <= XED_REG_RDI);
+      const uint8_t byte = 0xe | (r64 - XED_REG_RAX);
+      return {0xff, byte};
+   }
    
 }

@@ -10,6 +10,7 @@ extern "C" {
 #include "parse.hh"
 #include "transform.hh"
 #include "opcodes.hh"
+#include "section.hh"
 
 namespace MachO {
 
@@ -19,6 +20,20 @@ namespace MachO {
          {select_value(bits, XED_MACHINE_MODE_LEGACY_32, XED_MACHINE_MODE_LONG_64),
           select_value(bits, XED_ADDRESS_WIDTH_32b, XED_ADDRESS_WIDTH_32b)
          };
+
+      typename SectionBlob<Bits::M32>::SectionBlobs push_r32(xed_reg_enum_t r32) {
+         /* i386 | push r32
+          * -----|---------
+          * X86  | push ax
+          *      | push ax
+          *      | mov [rsp], r32
+          * NOTE: Shouldn't modify flags.
+          */
+         auto push1 = new Instruction<Bits::M64>(opcode::push_ax());
+         auto push2 = new Instruction<Bits::M64>(opcode::push_ax());
+         auto mov = new Instruction<Bits::M64>(opcode::mov_mem_rsp_r32(r32));
+         return {push1, push2, mov};
+      }
 
    }
 
@@ -199,13 +214,20 @@ namespace MachO {
    typename SectionBlob<bits>::SectionBlobs Instruction<bits>::Transform(TransformEnv<bits>& env)
       const
    {
+      assert(bits == Bits::M32);
+      
       if (imm && imm->pointee) {
          assert(bits == Bits::M32);
-         
+
          switch (xed_decoded_inst_get_iform_enum(&xedd)) {
          case XED_IFORM_PUSH_IMMz:
             {
-               /* i386 | push disp32
+               if (this->section->name() != SECT_SYMBOL_STUB &&
+                   this->section->name() != SECT_STUB_HELPER) {
+                  throw error("pushing abs32 in section `%s'", this->section->name().c_str());
+               }
+               
+               /* i386 | push abs32
                 * -----|---------------------
                 * X86  | lea r11,[rip+disp32]
                 *      | push r11
@@ -231,7 +253,7 @@ namespace MachO {
                
                return {jmp_inst};
             }
-            
+
          default:
             throw error("%s: don't know how to translate i386 instruction with absolute memory " \
                         "addressing to x86_64 (iform = %s)", __FUNCTION__,
@@ -240,7 +262,48 @@ namespace MachO {
 
       }
 
-      return {new Instruction<opposite<bits>>(*this, env)};
+      if constexpr (bits == Bits::M32) {
+            /* iform rules */
+            switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+            case XED_IFORM_PUSH_GPRv_50: // push r32
+               return push_r32(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0));
+
+               
+               /* i386 | call <op>
+                * -----|----
+                * X86  | lea r11,[rip+<size>]
+                *      | _push r11
+                *      | jmp <op>
+                */ 
+            case XED_IFORM_CALL_NEAR_GPRv: // call r32
+               {
+                  auto lea_inst = new Instruction<Bits::M64>(opcode::lea_r11_mem_rip_disp32());
+                  auto push_insts = push_r32(XED_REG_R11D);
+                  auto jmp_inst = new Instruction<Bits::M64>(opcode::jmp_r64(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG)));
+                  auto ret_placeholder = Placeholder<Bits::M64>::Create();
+                  
+#warning memidx may be wrong
+                  lea_inst->memidx = 1;
+                  lea_inst->memdisp = ret_placeholder;
+
+                  auto insts = push_insts;
+                  insts.push_front(lea_inst);
+                  insts.push_back(jmp_inst);
+                  insts.push_back(ret_placeholder);
+                  return insts;
+               }
+               
+               
+            default: break;
+            }
+
+            /* default rule */
+            return {new Instruction<opposite<bits>>(*this, env)};
+            
+         } else {
+         abort();
+      }
+      
    }
 
    template <Bits bits>
@@ -252,39 +315,12 @@ namespace MachO {
       if (other.memdisp) {
          env.resolve(other.memdisp, &memdisp);
       }
+
+      assert(!(other.imm && other.imm->pointee));
       
       if (other.imm) {
-         if (other.imm->pointee) {
-            /* this immediate is actually a pointer -- convert to equivalent 64-bit */
-            assert(bits == Bits::M64);
-            switch (xed_decoded_inst_get_iform_enum(&other.xedd)) {
-            case XED_IFORM_PUSH_IMMz: // -> lea r11, [rip+disp32] \ push r11
-               {
-#if 0
-                  instbuf = opcode::lea_r11_mem_rip_disp32(other.imm->pointee->loc.vmaddr -
-                                                           (other.loc.vmaddr + other.size()));
-                  const opcode_t push = opcode::push_r11();
-                  // new Instruction<bits>(opcode::push_r11()
-                  Instruction<bits> *push_inst = new Instruction<bits>(opcode::push_r11());
-                  auto inst_iter = this->iter;
-                  push_inst->iter = this->section->content.insert(++inst_iter, push_inst);
-#endif
-               }
-               
-               
-#warning TODO -- emit instruction replacement
-               
-               break;
-               
-            default:
-               break;
-               throw error("%s: could not transform immediate branch instruction",
-                           __FUNCTION__);
-            }
-         } else {
-            imm = other.imm->Transform_one(env);
-         }
-   }
+         imm = other.imm->Transform_one(env);
+      }
       
       if (other.brdisp) {
          env.resolve(other.brdisp, &brdisp);
@@ -297,12 +333,6 @@ namespace MachO {
       if ((err = xed_decode(&xedd, instbuf.data(), instbuf.size())) != XED_ERROR_NONE) {
          throw error("%s: xed_decode: %s\n", __FUNCTION__, xed_error_enum_t2str(err));
       }
-
-#if 0 // why would this matter?
-      if (xed_decoded_inst_get_length(&xedd) != xed_decoded_inst_get_length(&other.xedd)) {
-         throw error("%s: lengths of transformed instruction mismatch\n", __FUNCTION__);
-      }
-#endif
    }
 
    template <Bits bits>

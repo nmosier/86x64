@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
+extern "C" {
 #include <xed-interface.h>
+}
 
 #include "types.hh"
 
@@ -29,6 +31,15 @@ namespace MachO {
 
       /* jmp [rip+disp32] */
       inline opcode_t jmp_mem_rip_disp32() { return {0xff, 0x25, 0x00, 0x00, 0x00, 0x00}; }
+
+      /* push ax */
+      inline opcode_t push_ax() { return {0x66, 0x50}; }
+      
+      /* mov [rsp], r32 */
+      opcode_t mov_mem_rsp_r32(xed_reg_enum_t r32);
+
+      /* jmp r64 */
+      opcode_t jmp_r64(xed_reg_enum_t r64);
       
    }
 

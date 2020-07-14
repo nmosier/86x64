@@ -170,11 +170,14 @@ namespace MachO {
 
       virtual std::size_t size() const override { return 0; }
       virtual void Emit(Image& img, std::size_t offset) const override {}
+
+      static Placeholder<bits> *Create() { return new Placeholder(); }
       
    private:
       Placeholder(const Location& loc, ParseEnv<bits>& env): SectionBlob<bits>(loc, env, false) {}
       Placeholder(const Placeholder<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
          SectionBlob<bits>(other, env) {}
+      Placeholder() {}
       template <Bits> friend class Placeholder;
    };
 

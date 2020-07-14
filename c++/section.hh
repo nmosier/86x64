@@ -13,6 +13,10 @@
 namespace MachO {
 
    template <Bits> class RelocationInfo;
+
+#define SECT_STUBS "__stubs"
+#define SECT_STUB_HELPER "__stub_helper"
+#define SECT_SYMBOL_STUB "__symbol_stub"
    
    template <Bits bits>
    class Section {

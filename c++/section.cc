@@ -18,7 +18,7 @@ namespace MachO {
       
       /* check whether contains instructions */
       std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER,
-                                                 SECT_SYMBOL_STUBS};
+                                                 SECT_SYMBOL_STUB};
       for (const std::string& sectname : text_sectnames) {
          if (sectname == sect.sectname) {
             return new Section<bits>(img, offset, env, TextParser);
