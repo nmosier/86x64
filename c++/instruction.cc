@@ -35,6 +35,37 @@ namespace MachO {
          return {push1, push2, mov};
       }
 
+      typename SectionBlob<Bits::M32>::SectionBlobs pop_r32(xed_reg_enum_t r32) {
+         /* i386 | pop r32
+          * -----|--------
+          * X86  | mov r32,[rsp]
+          *      | lea rsp,[rsp+4]
+          * NOTE: Shouldn't modify flags.
+          */
+         auto mov = new Instruction<Bits::M64>(opcode::mov_r32_mem_rsp(r32));
+         auto lea = new Instruction<Bits::M64>(opcode::lea_rsp_mem_rsp_4());
+         return {mov, lea};
+      }
+
+      typename SectionBlob<Bits::M32>::SectionBlobs call_op(SectionBlob<Bits::M64> *jmp_inst) {
+         /* i386 | call <op>
+          * -----|----------
+          * X86  | lea r11,[rip+<size>]
+          *      | _push r11d
+          *      | jmp <op>
+          */
+         auto lea_inst = new Instruction<Bits::M64>(opcode::lea_r11_mem_rip_disp32());
+         auto push_insts = push_r32(XED_REG_R11D);
+         auto ret_placeholder = Placeholder<Bits::M64>::Create();
+         lea_inst->memidx = 0;
+         lea_inst->memdisp = ret_placeholder;
+         auto insts = push_insts;
+         insts.push_front(lea_inst);
+         insts.push_back(jmp_inst);
+         insts.push_back(ret_placeholder);
+         return insts;
+      }
+
    }
 
    template <Bits bits>
@@ -177,7 +208,8 @@ namespace MachO {
          enc.displacement_bits = width_bits;
          if (!xed_patch_disp(&xedd, &*instbuf.begin(), enc)) {
             throw error("%s: xed_patch_disp: failed to patch instruction at offset 0x%zx, " \
-                        "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
+                        "vmaddr 0x%zx, iform %s\n", __FUNCTION__, this->loc.offset,
+                        this->loc.vmaddr, xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&xedd)));
          }
       }
       
@@ -268,31 +300,38 @@ namespace MachO {
             case XED_IFORM_PUSH_GPRv_50: // push r32
                return push_r32(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0));
 
+            case XED_IFORM_POP_GPRv_58:
+               return pop_r32(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0));
                
-               /* i386 | call <op>
-                * -----|----
-                * X86  | lea r11,[rip+<size>]
-                *      | _push r11
-                *      | jmp <op>
-                */ 
             case XED_IFORM_CALL_NEAR_GPRv: // call r32
                {
-                  auto lea_inst = new Instruction<Bits::M64>(opcode::lea_r11_mem_rip_disp32());
-                  auto push_insts = push_r32(XED_REG_R11D);
-                  auto jmp_inst = new Instruction<Bits::M64>(opcode::jmp_r64(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG)));
-                  auto ret_placeholder = Placeholder<Bits::M64>::Create();
-                  
-#warning memidx may be wrong
-                  lea_inst->memidx = 1;
-                  lea_inst->memdisp = ret_placeholder;
+                  auto jmp_inst = new Instruction<Bits::M64>
+                     (opcode::jmp_r64(opcode::r32_to_r64(xed_decoded_inst_get_reg
+                                                         (&xedd, XED_OPERAND_REG0))));
+                  return call_op(jmp_inst);
+               }
 
-                  auto insts = push_insts;
-                  insts.push_front(lea_inst);
-                  insts.push_back(jmp_inst);
-                  insts.push_back(ret_placeholder);
-                  return insts;
+            case XED_IFORM_CALL_NEAR_MEMv:
+               {
+                  auto jmp = instbuf;
+                  assert((jmp.at(1) & 0x30) == 0x20);
+                  jmp.at(1) ^= 0x30;
+                  auto jmp_inst = new Instruction<Bits::M64>(jmp);
+                  env.resolve(brdisp, &jmp_inst->brdisp);
+                  env.resolve(memdisp, &jmp_inst->memdisp);
+                  return call_op(jmp_inst);
+               }
+
+            case XED_IFORM_CALL_NEAR_RELBRz:
+               {
+                  auto jmp_inst = new Instruction<Bits::M64>({0xe9, 0x00, 0x00, 0x00, 0x00});
+                  env.resolve(memdisp, &jmp_inst->memdisp);
+                  env.resolve(brdisp, &jmp_inst->brdisp);
+                  return call_op(jmp_inst);
                }
                
+            case XED_IFORM_CALL_NEAR_RELBRd:
+               throw error("%s: don't know how to handle `XED_IFORM_CALL_NEAR_RELBRz' at vmaddr 0x%zx", __FUNCTION__, this->loc.vmaddr);
                
             default: break;
             }

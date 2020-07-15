@@ -61,9 +61,19 @@ namespace MachO::opcode {
    }
 
    opcode_t mov_mem_rsp_r32(xed_reg_enum_t r32) {
+      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_R15D);
+      const uint8_t byte = 0x04 | (((r32 - XED_REG_EAX) << 3) % 8);
+      opcode_t opcode = {0x89, byte, 0x24};
+      if (r32 >= XED_REG_R8D && r32 <= XED_REG_R15D) {
+         opcode.insert(opcode.begin(), 0x44);
+      }
+      return opcode;
+   }
+   
+   opcode_t mov_r32_mem_rsp(xed_reg_enum_t r32) {
       assert(r32 >= XED_REG_EAX && r32 <= XED_REG_EDI);
       const uint8_t byte = 0x04 | ((r32 - XED_REG_EAX) << 3);
-      return {0x89, byte, 0x24};
+      return {0x8b, byte, 0x24};
    }
 
    opcode_t jmp_r64(xed_reg_enum_t r64) {
