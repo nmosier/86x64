@@ -1,25 +1,30 @@
 .SUFFIXES:
 
-wrapper: printf32-64.dylib wrapper.asm.o
-	$(LD) -lsystem -e _main_wrapper -o $@ $^
+OBJS = printf32-64.dylib wrapper.asm.o libinterpose.dylib
 
-%.c.o: %.c
+wrapper: $(OBJS) Makefile
+	$(LD) $(LDFLAGS) -pagezero_size 0x1000 -lsystem -e _main_wrapper -o $@ $(OBJS)
+
+%.c.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-%32.c.o: %.c
+%32.c.o: %.c Makefile
 	$(CC) $(CFLAGS) -m32 -c -o $@ $<
 
-printf32-64.dylib: printf32-64 macho-tool
+printf32-64.dylib: printf32-64 macho-tool Makefile
 	macho-tool convert --archive DYLIB $< $@
 
-printf32-64: printf32 macho-tool
+printf32-64: printf32 macho-tool Makefile
 	macho-tool transform $< $@
 
-printf32: printf32.c.o
+printf32: printf32.c.o Makefile
 	$(LD) $(LDFLAGS) -lsystem -o $@ $<
 
 macho-tool:
 	$(MAKE) -C ..
 
-wrapper.asm.o: wrapper.asm
+wrapper.asm.o: wrapper.asm Makefile
 	nasm -f macho64 -o $@ $<
+
+libinterpose.dylib: interpose.c Makefile
+	$(CC) $(CFLAGS) $(LDFLAGS) -dynamiclib -o $@ $<
