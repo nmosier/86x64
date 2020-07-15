@@ -2,6 +2,7 @@
 #include "parse.hh"
 #include "transform.hh"
 #include "section_blob.hh"
+#include "archive.hh"
 
 namespace MachO {
 
@@ -20,7 +21,10 @@ namespace MachO {
    {
       std::size_t value_offset;
       offset += leb128_decode(img, offset, value_offset);
-      env.offset_resolver.resolve(value_offset, &value);
+      // env.offset_resolver.resolve(value_offset, &value);
+      if (value_offset > 0) {
+         value = env.add_placeholder(env.archive.offset_to_vmaddr(value_offset));
+      }
    }
 
    template <Bits bits>
@@ -206,6 +210,7 @@ namespace MachO {
    template <Bits bits>
    std::size_t RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
       const std::size_t start = offset;
+      fprintf(stderr, "[EMIT] %s: %p\n", __FUNCTION__, (void *) value);
       offset += leb128_encode(img, offset, value ? value->loc.offset : 0);
       return offset - start;
    }

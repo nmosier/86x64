@@ -77,7 +77,7 @@ namespace MachO {
       
       virtual std::size_t derived_size() const override;
       virtual std::size_t Emit_derived(Image& img, std::size_t offset) const override;
-
+      
       template <Bits> friend class ReexportNode;
    };
 
