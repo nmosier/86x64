@@ -1,6 +1,6 @@
 .SUFFIXES:
 
-wrapper: printf32-64.dylib wrapper.c.o
+wrapper: printf32-64.dylib wrapper.asm.o
 	$(LD) -lsystem -e _main_wrapper -o $@ $^
 
 %.c.o: %.c
@@ -20,3 +20,6 @@ printf32: printf32.c.o
 
 macho-tool:
 	$(MAKE) -C ..
+
+wrapper.asm.o: wrapper.asm
+	nasm -f macho64 -o $@ $<
