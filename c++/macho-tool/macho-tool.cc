@@ -49,21 +49,27 @@ static void usage(FILE *f = stderr) {
 int main(int argc, char *argv[]) {
    progname = argv[0];
 
-   const char *main_optstr = "h";
-   int help = 0;
+   const char *main_optstr = "hi";
+   bool inplace;
 
    /* read main options */
-   if (scanopt(argc, argv, main_optstr, &help) < 0) {
-      usage();
-      return 1;
-   }
+   int optchar;
+   while ((optchar = getopt(argc, argv, main_optstr)) < 0) {
+      switch (optchar) {
+      case 'h':
+         usage(stdout);
+         return 0;
 
-   /* handle main options */
-   if (help) {
-      usage(stdout);
-      return 0;
+      case 'i':
+         inplace = true;
+         break;
+         
+      default:
+         usage(stderr);
+         return 1;
+      }
    }
-
+   
    MachO::init();
 
    /* prepare for subcommand */
