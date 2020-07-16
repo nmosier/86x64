@@ -11,7 +11,7 @@ wrapper: $(OBJS) Makefile
 %32.c.o: %.c Makefile
 	$(CC) $(CFLAGS) -m32 -c -o $@ $<
 
-printf32-64.dylib: printf32-64-abi macho-tool Makefile
+printf32-64.dylib: printf32-64-interpose macho-tool Makefile
 	macho-tool convert --archive DYLIB $< $@
 
 printf32-64: printf32 macho-tool Makefile
@@ -19,6 +19,9 @@ printf32-64: printf32 macho-tool Makefile
 
 printf32-64-abi: printf32-64 libabiconv.dylib macho-tool
 	macho-tool modify --insert load-dylib,name="libabiconv.dylib" $< $@
+
+printf32-64-interpose: printf32-64-abi static-interpose.sh
+	./static-interpose.sh $< $@ libabiconv.dylib __ _printf
 
 printf32: printf32.c.o Makefile
 	$(LD) $(LDFLAGS) -lsystem -o $@ $<

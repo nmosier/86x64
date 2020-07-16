@@ -27,6 +27,7 @@ struct ModifyCommand::Insert::Instruction: Operation {
    }
    virtual int subopthandler(int index, char *value) override;
    virtual void operator()(MachO::MachO *macho) override;
+   template <MachO::Bits b> void workT(MachO::Archive<b> *archive);
    virtual void validate() const override;
 };
 

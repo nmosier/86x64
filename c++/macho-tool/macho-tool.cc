@@ -31,6 +31,7 @@
 #include "convert.hh"
 #include "transform.hh"
 #include "print.hh"
+#include "rebasify.hh"
 
 const char *progname = nullptr;
 static const char *usagestr =
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]) {
 
    /* read main options */
    int optchar;
-   while ((optchar = getopt(argc, argv, main_optstr)) < 0) {
+   while ((optchar = getopt(argc, argv, main_optstr)) >= 0) {
       switch (optchar) {
       case 'h':
          usage(stdout);
@@ -90,6 +91,7 @@ int main(int argc, char *argv[]) {
        {"convert", std::make_shared<ConvertCommand>()},
        {"transform", std::make_shared<TransformCommand>()},
        {"print", std::make_shared<PrintCommand>()},
+       {"rebasify", std::make_shared<Rebasify>()},
       };
 
    auto it = subcommands.find(subcommand);

@@ -15,6 +15,7 @@ add_executable(macho-tool
   modify-update.cc
   transform.cc
   print.cc
+  rebasify.cc
   $<TARGET_OBJECTS:macho_cxx_objs>
   )
 

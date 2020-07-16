@@ -4,21 +4,22 @@
 #include "util.hh"
 
 void ModifyCommand::Insert::Instruction::operator()(MachO::MachO *macho) {
-   MachO::Archive<MachO::Bits::M64> *archive =
-      dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
-   if (!archive) {
-      throw std::logic_error("only 64-bit archives currently supported");
+   switch (macho->bits()) {
+   case MachO::Bits::M32:
+      return workT(dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho));
+   case MachO::Bits::M64:
+      return workT(dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho));
+   default: abort();
    }
-   
+}
+
+template <MachO::Bits b>
+void ModifyCommand::Insert::Instruction::workT(MachO::Archive<b> *archive) {
    /* read bytes */
    char *buf = new char[*bytes];
    assert(fread(buf, 1, *bytes, stdin) == *bytes);
-   
-   archive->insert(new MachO::Instruction<MachO::Bits::M64>(buf, buf + *bytes), loc, relation);
+   archive->insert(new MachO::Instruction<b>(buf, buf + *bytes), loc, relation);
 }
-
-
-
 
 int ModifyCommand::Insert::Instruction::subopthandler(int index, char *value) {
    switch (index) {

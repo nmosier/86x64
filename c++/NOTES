@@ -128,3 +128,17 @@ Store relocation info with corresponding section blob, then collect at Build.
 for each node, need to emit info.
 give information about each edge
 then descend into edges
+
+-----
+
+call 0
+pop eax
+
+->
+
+lea eax, [rip + <patch-diff>]
+
+----
+
+Decouple 'call 0 \ pop eax' issue with 32-bit-to-64-bit transformation.
+Add initial pass for macho-tool that converts such trickery into the equivalent rebase opcodes.
