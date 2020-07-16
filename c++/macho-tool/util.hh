@@ -27,3 +27,14 @@ void parse_flags(char *optarg, const FlagSet<Flag>& flagset, Flags<Flag>& flags)
 #define MH_FLAG(flag) {#flag + 3, flag}
 
 extern const std::unordered_map<std::string, uint32_t> mach_header_filetype_map;
+
+template <typename... Args>
+inline std::string fmtstr(const char *fmt, Args&&... args) {
+   char *cstr;
+   if (asprintf(fmt, args...) < 0) {
+      throw std::runtime_error(strerror(errno));
+   }
+   std::string str = cstr;
+   free(cstr);
+   return str;
+}
