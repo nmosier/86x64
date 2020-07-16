@@ -64,13 +64,23 @@ _main_wrapper:
    ;; success
    lea rdi, [rel success_msg]
    mov rsi, rsp
-   call _printf
+   ;; call _printf
 
    ;; work
    mov rdi, [rsp + 16]          ; argc
    mov rsi, [rsp + 24]          ; argv
-   call _main
+
+   sub esp, 20                  ; sizeof(argc) + sizeof(argv) + sizeof(retaddr)
+   and esp, ~0xf
+   add esp, 8
+   lea eax, [rel .ret]
+   mov [rsp], eax
+   mov [rsp + 4], edi
+   mov [rsp + 8], esi
    
+   jmp _main
+
+.ret:
    xor eax, eax
    leave
    ret

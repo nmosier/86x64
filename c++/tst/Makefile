@@ -1,6 +1,6 @@
 .SUFFIXES:
 
-OBJS = printf32-64.dylib wrapper.asm.o libinterpose.dylib
+OBJS = printf32-64.dylib wrapper.asm.o libinterpose.dylib # libabiconv.dylib
 
 wrapper: $(OBJS) Makefile
 	$(LD) $(LDFLAGS) -pagezero_size 0x1000 -lsystem -e _main_wrapper -o $@ $(OBJS)
@@ -23,8 +23,14 @@ printf32: printf32.c.o Makefile
 macho-tool:
 	$(MAKE) -C ..
 
-wrapper.asm.o: wrapper.asm Makefile
+%.asm.o: %.asm Makefile
 	nasm -f macho64 -o $@ $<
 
-libinterpose.dylib: interpose.c Makefile
-	$(CC) $(CFLAGS) $(LDFLAGS) -dynamiclib -o $@ $<
+ABICONV_OBJS = abiconv.c.o abiconv.asm.o
+INTERPOSE_OBJS = interpose.c.o $(ABICONV_OBJS)
+
+libinterpose.dylib: $(INTERPOSE_OBJS) Makefile
+	$(CC) $(LDFLAGS) -dynamiclib -o $@ $(INTERPOSE_OBJS)
+
+libabiconv.dylib: $(ABICONV_OBJS) Makefile
+	$(CC) $(LDFLAGS) -dynamiclib -o $@ $(ABICONV_OBJS)

@@ -3,12 +3,16 @@
 #include "lc.hh"
 #include "macho.hh"
 #include "archive.hh"
+#include "dyldinfo.hh"
 
 Operation *ModifyCommand::Update::getop(int index) {
    switch (index) {
    case 0: // load_dylib
    case 1: // load-dylib
       return new LoadDylib;
+
+   case 2: // bind
+      return new BindNode;
 
    default: abort();
    }
@@ -68,4 +72,104 @@ void ModifyCommand::Update::LoadDylib::operator()(MachO::MachO *macho) {
       break;
    default: abort();
    }
+}
+
+int ModifyCommand::Update::BindNode::subopthandler(int index, char *value) {
+   switch (index) {
+   case 0: // old_sym
+   case 1:
+      old_sym = value;
+      return 1;
+      
+   case 2: // new_type
+   case 3:
+      new_type = stout<uint8_t>(value, nullptr, 0);
+      return 1;
+
+   case 4: // new_dylib
+   case 5:
+      new_dylib_ord = stout<unsigned>(value, nullptr, 0);
+      return 1;
+
+   case 6: // new_sym
+   case 7:
+      new_sym = value;
+      return 1;
+
+   case 8: // new_flags
+   case 9:
+      new_flags = stout<uint8_t>(value, nullptr, 0);
+      return 1;
+
+   case 10: // lazy
+      if (value) {
+         throw std::string("`lazy' flag takes no arguments");
+      }
+      lazy = true;
+      return 1;
+
+   default: abort();
+   }
+}
+
+void ModifyCommand::Update::BindNode::validate() const {
+   if (!old_sym) {
+      throw std::string("must specify original symbol name with `old_sym=<sym>'");
+   }
+}
+
+void ModifyCommand::Update::BindNode::operator()(MachO::MachO *macho) {
+   switch (macho->bits()) {
+   case MachO::Bits::M32:
+      {
+         auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho);
+         if (lazy) {
+            workT<MachO::Bits::M32, true>(archive);
+         } else {
+            workT<MachO::Bits::M32, false>(archive);
+         }
+         break;
+      }
+   case MachO::Bits::M64:
+      {
+         auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+         if (lazy) {
+            workT<MachO::Bits::M64, true>(archive);
+         } else {
+            workT<MachO::Bits::M64, false>(archive);
+         }
+         break;
+      }
+   default: abort();
+   }   
+}
+
+template <MachO::Bits b, bool l>
+void ModifyCommand::Update::BindNode::workT(MachO::Archive<b> *archive) {
+   auto load_dylibs = archive->template subcommands<MachO::DylibCommand, LC_LOAD_DYLIB>();
+
+   /* find bind node */
+   auto dyldinfo = archive->template subcommand<MachO::DyldInfo>();
+   if (dyldinfo == nullptr) {
+      throw MachO::error("LC_DYLDINFO command missing");
+   }
+
+   MachO::BindInfo<b, l> *bindinfo;
+   if constexpr (l) {
+         bindinfo = dyldinfo->lazy_bind;
+} else {
+      bindinfo = dyldinfo->bind;
+   }
+
+   auto bindee_it = bindinfo->find(*old_sym);
+   if (bindee_it == bindinfo->end()) {
+      throw MachO::error("bind node for symbol `%s' not found", old_sym->c_str());
+   }
+   auto bindee = *bindee_it;
+   
+   if (new_type) { bindee->type = *new_type; }
+   if (new_addend) { bindee->addend = *new_addend; }
+   if (new_dylib_ord) { bindee->dylib = load_dylibs[*new_dylib_ord - 1]; }
+   if (new_sym) { bindee->sym = *new_sym; }
+   if (new_flags) { bindee->flags = *new_flags; }
 }

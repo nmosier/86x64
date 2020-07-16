@@ -101,6 +101,12 @@ namespace MachO {
          return new BindInfo<opposite<bits>, lazy>(*this, env);
       }
 
+      typename Bindees::iterator find(const std::string& sym) {
+         return std::find_if(begin(), end(), [&] (auto node) { return node->sym == sym; });
+      }
+      typename Bindees::iterator begin() { return bindees.begin(); }
+      typename Bindees::iterator end() { return bindees.end(); }
+
    private:
       BindInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);
       BindInfo(const BindInfo<opposite<bits>, lazy>& other, TransformEnv<opposite<bits>>& env);

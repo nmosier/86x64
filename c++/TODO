@@ -6,4 +6,7 @@
 [X] order load commands while building
 [X] transform
 
-[ ] Add instruction transformation rules
+[X] Add instruction transformation rules
+
+[ ] statically interpose lazily bound symbols
+    - need to specify symbol name, new name and library

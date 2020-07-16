@@ -32,7 +32,8 @@ void Command::usage(std::ostream& os) const {
 int Command::parseopts(int argc, char *argv[]) {
    int optchar;
    int longindex = -1;
-   const struct option *longopts = this->longopts().data();
+   const auto longopts_vec = this->longopts();
+   const struct option *longopts = longopts_vec.data();
    
    try {
       while ((optchar = getopt_long(argc, argv, optstring(), longopts, nullptr)) >= 0) {
@@ -101,9 +102,9 @@ int Subcommand::parse(char *option) {
    int index;
    if ((index = getsubopt(&option, keylist().data(), &value)) < 0) {
       if (*suboptarg) {
-         throw "unrecognized subcommand";
+         throw std::string("unrecognized subcommand `") + suboptarg + "'";
       } else {
-         throw "missing subcommand";
+         throw std::string("missing subcommand");
       }
    } else {
       op = std::unique_ptr<Functor>(getop(index));

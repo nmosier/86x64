@@ -344,7 +344,6 @@ namespace MachO {
       env.resolve(other.blob, &blob);
    }
 
-   
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
 
