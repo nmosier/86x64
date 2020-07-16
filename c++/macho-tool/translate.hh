@@ -36,3 +36,11 @@ struct TranslateCommand::Offset: Functor {
 
    template <MachO::Bits b> void workT(MachO::Archive<b> *archive);
 };
+
+struct TranslateCommand::LoadDylib: Functor {
+   std::optional<std::string> name;
+
+   virtual int parse(char *option) override;
+   virtual void operator()(MachO::MachO *macho) override;
+   template <MachO::Bits b> void workT(MachO::Archive<b> *archive);
+};
