@@ -74,6 +74,8 @@ namespace MachO {
       BindNode<opposite<bits>, lazy> *Transform(TransformEnv<bits>& env) const {
          return new BindNode<opposite<bits>, lazy>(*this, env);
       }
+
+      void print(std::ostream& os) const;
       
    private:
       BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
@@ -106,6 +108,8 @@ namespace MachO {
       }
       typename Bindees::iterator begin() { return bindees.begin(); }
       typename Bindees::iterator end() { return bindees.end(); }
+
+      void print(std::ostream& os) const;
 
    private:
       BindInfo(const Image& img, std::size_t offset, std::size_t size, ParseEnv<bits>& env);

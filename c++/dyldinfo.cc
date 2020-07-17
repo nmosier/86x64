@@ -344,7 +344,27 @@ namespace MachO {
       env.resolve(other.blob, &blob);
    }
 
+   template <Bits bits, bool lazy>
+   void BindInfo<bits, lazy>::print(std::ostream& os) const {
+      os << "segment section address dylib symbol" << std::endl;
+      for (auto bindee : bindees) {
+         bindee->print(os);
+         os << std::endl;
+      }
+   }
+   
+   template <Bits bits, bool lazy>
+   void BindNode<bits, lazy>::print(std::ostream& os) const {
+      os << blob->segment->name() << " " << blob->section->name() << " 0x" << std::hex
+         << blob->loc.vmaddr << " " << dylib->name << " " << sym;
+   }
+
    template class DyldInfo<Bits::M32>;
    template class DyldInfo<Bits::M64>;
+
+   template class BindInfo<Bits::M32, true>;
+   template class BindInfo<Bits::M32, false>;
+   template class BindInfo<Bits::M64, true>;
+   template class BindInfo<Bits::M64, false>;
 
 }

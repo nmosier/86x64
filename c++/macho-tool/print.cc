@@ -21,6 +21,10 @@ int PrintCommand::opthandler(int optchar) {
    case SYMS:
       ops.push_back(SYMS);
       return 1;
+
+   case LAZY_BIND:
+      ops.push_back(LAZY_BIND);
+      return 1;
       
    default: abort();
    }
@@ -50,6 +54,9 @@ int PrintCommand::workT(const MachO::MachO *macho) {
       case SYMS:
          print_SYMS<bits>(archive);
          break;
+      case LAZY_BIND:
+         print_LAZY_BIND<bits>(archive);
+         break;
       default: abort();
       }
    }
@@ -73,6 +80,16 @@ void PrintCommand::print_SYMS(const MachO::Archive<bits> *archive) {
    }
 
    symtab->print(std::cout);
+}
+
+template <MachO::Bits bits>
+void PrintCommand::print_LAZY_BIND(const MachO::Archive<bits> *archive) {
+   const auto dyld_info = archive->template subcommand<MachO::DyldInfo>();
+   if (dyld_info == nullptr) {
+      throw std::string("archive contains no dyld info");
+   }
+
+   dyld_info->lazy_bind->print(std::cout);
 }
 
 PrintCommand::PrintCommand(): InplaceCommand("print", O_RDONLY) {}
