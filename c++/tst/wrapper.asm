@@ -70,18 +70,19 @@ _main_wrapper:
    mov rdi, [rsp + 16]          ; argc
    mov rsi, [rsp + 24]          ; argv
 
-   sub esp, 20                  ; sizeof(argc) + sizeof(argv) + sizeof(retaddr)
+   sub esp, 28                  ; sizeof(argc) + sizeof(argv) + sizeof(retaddr) + sizeof(rbp)
    and esp, ~0xf
    add esp, 8
    lea eax, [rel .ret]
    mov [rsp], eax
    mov [rsp + 4], edi
    mov [rsp + 8], esi
+   mov [rsp + 12], rbp
    
    jmp _main
 
 .ret:
-   xor eax, eax
+   mov rbp, [rsp + 12 - 4]
    leave
    ret
 
