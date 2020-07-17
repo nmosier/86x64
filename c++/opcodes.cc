@@ -71,15 +71,29 @@ namespace MachO::opcode {
    }
    
    opcode_t mov_r32_mem_rsp(xed_reg_enum_t r32) {
-      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_EDI);
-      const uint8_t byte = 0x04 | ((r32 - XED_REG_EAX) << 3);
-      return {0x8b, byte, 0x24};
+      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_R15D);
+      const uint8_t byte = 0x04 | (((r32 - XED_REG_EAX) % 8) << 3);
+      opcode_t opcode = {0x8b, byte, 0x24};
+      if (r32 >= XED_REG_R8D && r32 <= XED_REG_R15D) {
+         opcode.insert(opcode.begin(), 0x44);
+      }
+      return opcode;
    }
 
    opcode_t jmp_r64(xed_reg_enum_t r64) {
-      assert(r64 >= XED_REG_RAX && r64 <= XED_REG_RDI);
-      const uint8_t byte = 0xe | (r64 - XED_REG_RAX);
-      return {0xff, byte};
+      assert(r64 >= XED_REG_RAX && r64 <= XED_REG_R15);
+      const uint8_t byte = 0xe0 | ((r64 - XED_REG_RAX) % 8);
+      opcode_t opcode = {0xff, byte};
+      if (r64 >= XED_REG_R8 && r64 <= XED_REG_R15) {
+         opcode.insert(opcode.begin(), 0x41);
+      }
+      return opcode;
+   }
+
+   opcode_t lea_r32_mem_rip_disp32(xed_reg_enum_t r32) {
+      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_EDI);
+      const uint8_t byte = 0x5 | ((r32 - XED_REG_EAX) << 3);
+      return {0x8d, byte, 0x00, 0x00, 0x00, 0x00};
    }
    
 }

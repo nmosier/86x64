@@ -14,7 +14,10 @@ wrapper: $(OBJS) Makefile
 printf32-64.dylib: printf32-64-interpose macho-tool Makefile
 	macho-tool convert --archive DYLIB $< $@
 
-printf32-64: printf32 macho-tool Makefile
+printf32-rebase: printf32 macho-tool Makefile
+	macho-tool rebasify $< $@
+
+printf32-64: printf32-rebase macho-tool Makefile
 	macho-tool transform $< $@
 
 printf32-64-abi: printf32-64 libabiconv.dylib macho-tool

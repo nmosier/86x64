@@ -56,7 +56,7 @@ namespace MachO {
    class error: public std::exception {
    public:
       template <typename... Args>
-      error(const char *fmt, Args... args) {
+      inline error(const char *fmt, Args... args) {
          asprintf(&errstr, fmt, args...);
       }
       ~error() { free(errstr); }

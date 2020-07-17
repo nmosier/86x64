@@ -274,8 +274,25 @@ namespace MachO {
                return {lea_inst, push_inst};
             }
 
+         case XED_IFORM_MOV_GPRv_IMMv:
+            {
+               /* i386 | mov r32, abs32
+                * -----|---------------
+                * X86  | lea r32, [rip+disp32]
+                */
+               const auto r32 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
+               auto lea_inst = new Instruction<opposite<bits>>(opcode::lea_r32_mem_rip_disp32(r32));
+               lea_inst->memidx = 0; // TODO: is this right
+               env.resolve(imm->pointee, &lea_inst->memdisp);
+               return {lea_inst};
+            }
+
          case XED_IFORM_JMP_MEMv:
             {
+               if (this->section->name() != SECT_SYMBOL_STUB &&
+                   this->section->name() != SECT_STUB_HELPER) {
+                  throw error("%s:%d: stub\n", __FUNCTION__, __LINE__);
+               }
                /* i386 | jmp [abs32]
                 * -----|-----------------
                 * X86  | jmp [rip+disp32]
@@ -333,6 +350,19 @@ namespace MachO {
                
             case XED_IFORM_CALL_NEAR_RELBRd:
                throw error("%s: don't know how to handle `XED_IFORM_CALL_NEAR_RELBRz' at vmaddr 0x%zx", __FUNCTION__, this->loc.vmaddr);
+               
+            case XED_IFORM_RET_NEAR:
+               {
+                  /* i386 | ret
+                   * -----|-----
+                   * X86  | _pop32 r11d
+                   *      | jmp r11d
+                   */
+                  auto insts = pop_r32(XED_REG_R11D);
+                  auto jmp_inst = new Instruction<opposite<bits>>(opcode::jmp_r64(XED_REG_R11));
+                  insts.push_back(jmp_inst);
+                  return insts;
+               }
                
             default: break;
             }
