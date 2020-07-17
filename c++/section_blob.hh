@@ -145,6 +145,7 @@ namespace MachO {
       static Immediate<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env,
                                     bool is_pointer)
       { return new Immediate(img, loc, env, is_pointer); }
+      static Immediate<bits> *Create(uint32_t value) { return new Immediate(value); }
       
       virtual void Emit(Image& img, std::size_t offset) const override;
       virtual Immediate<opposite<bits>> *Transform_one(TransformEnv<bits>& env) const override {
@@ -154,6 +155,7 @@ namespace MachO {
    private:
       Immediate(const Image& img, const Location& loc, ParseEnv<bits>& env, bool is_pointer);
       Immediate(const Immediate<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      Immediate(uint32_t value): value(value) {}
       template <Bits> friend class Immediate;
    };
 

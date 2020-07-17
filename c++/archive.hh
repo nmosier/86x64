@@ -64,6 +64,7 @@ namespace MachO {
 
       std::vector<Section<b> *> sections() const;
       Section<b> *section(uint8_t index) const;
+      Section<b> *section(const std::string& name) const;
 
       static Archive<b> *Parse(const Image& img, std::size_t offset = 0) {
          return new Archive(img, offset);

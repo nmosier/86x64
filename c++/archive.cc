@@ -216,6 +216,16 @@ namespace MachO {
       }
    }
 
+   template <Bits b>
+   Section<b> *Archive<b>::section(const std::string& name) const {
+      for (auto section : sections()) {
+         if (section->name() == name) {
+            return section;
+         }
+      }
+      return nullptr;
+   }
+
    template class Archive<Bits::M32>;
    template class Archive<Bits::M64>;
 

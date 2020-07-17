@@ -12,7 +12,7 @@ namespace MachO {
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
 
       uint8_t type;
-      const SectionBlob<bits> *blob;
+      const SectionBlob<bits> *blob = nullptr;
       
       std::size_t size() const;
       void Emit(Image& img, std::size_t offset) const;
@@ -27,9 +27,14 @@ namespace MachO {
          return new RebaseNode<opposite<bits>>(*this, env);
       }
 
+      static RebaseNode<bits> *Create(uint8_t type) {
+         return new RebaseNode(type);
+      }
+
       void print(std::ostream& os) const;
          
    private:
+      RebaseNode(uint8_t type): type(type) {}
       RebaseNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type);
       RebaseNode(const RebaseNode<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       template <Bits> friend class RebaseNode;
