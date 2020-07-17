@@ -184,6 +184,7 @@ namespace MachO {
       /* Check for other immediates */
       switch (xed_decoded_inst_get_iform_enum(&xedd)) {
       case XED_IFORM_PUSH_IMMz: /* push imm32 */
+      case XED_IFORM_MOV_GPRv_IMMv:
          assert(imm == nullptr);
          imm = Immediate<bits>::Parse(img, loc + (instbuf.size() - sizeof(uint32_t)), env, false);
          break;

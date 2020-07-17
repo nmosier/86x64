@@ -7,6 +7,7 @@
 #include "section_blob.hh"
 #include "instruction.hh"
 #include "rebase_info.hh"
+#include "dyldinfo.hh"
 
 int Rebasify::opthandler(int optchar) {
    switch (optchar) {
@@ -138,6 +139,14 @@ int Rebasify::work() {
                if (memidx != nmemops || reg1 == XED_REG_EAX) {
                   auto mov_inst = new MachO::Instruction<MachO::Bits::M32>(MachO::opcode::mov_eax_imm32());
                   auto mov_inst_imm = MachO::Immediate<MachO::Bits::M32>::Create(target);
+                  if ((mov_inst->segment = mov_inst_imm->segment = archive32->segment(SEG_TEXT)) == nullptr) {
+                     log("missing TEXT segment");
+                     return -1;
+                  }
+                  if ((mov_inst->section = mov_inst_imm->section = archive32->section(SECT_TEXT)) == nullptr) {
+                     log("missing text section");
+                     return -1;
+                  }
                   if ((mov_inst_imm->pointee = archive32->find_blob<MachO::SectionBlob>(target)) == nullptr) {
                      log("unable to find destination blob in rebasify operation at vmaddr 0x%zx",
                          inst->loc.vmaddr);
@@ -157,6 +166,18 @@ int Rebasify::work() {
                         return -1;
                      }
                   }
+
+                  /* add to rebase info */
+                  auto rebase_node = MachO::RebaseNode<MachO::Bits::M32>::Create(REBASE_TYPE_TEXT_ABSOLUTE32);
+                  rebase_node->blob = mov_inst_imm;
+                  auto dyld_info = archive32->template subcommand<MachO::DyldInfo>();
+                  if (dyld_info == nullptr) {
+                     log("missing dyld info");
+                     return -1;
+                  }
+                  auto rebase_info = dyld_info->rebase;
+                  rebase_info->rebasees.push_back(rebase_node);
+                  
                   
                   fprintf(stderr, "[REBASIFY] 0x%zx, target = 0x%zx\n", inst->loc.vmaddr, target);
                }
@@ -169,11 +190,4 @@ int Rebasify::work() {
    archive32->Build(0);
    archive32->Emit(*out_img);
    return 0;
-}
-
-void Rebasify::add_rebase(std::size_t vmaddr, uint8_t type) {
-   auto node = MachO::RebaseNode<MachO::Bits::M32>::Create(type);
-
-   /* find pointee */
-#warning TODO
 }

@@ -199,8 +199,12 @@ namespace MachO {
 
    template <Bits bits>
    void RebaseNode<bits>::print(std::ostream& os) const {
-      os << blob->segment->name() << "\t" << blob->section->name() << "\t"
-         << blob->loc.vmaddr << "\t";
+      if (blob) {
+         os << blob->segment->name() << "\t" << blob->section->name() << "\t"
+            << blob->loc.vmaddr << "\t";
+      } else {
+         os << "?" << "\t" << "?" << "\t" << "?" << "\t";
+      }
 
       std::unordered_map<uint8_t, std::string> types =
          {{REBASE_TYPE_POINTER, "POINTER"},
