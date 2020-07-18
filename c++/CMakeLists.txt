@@ -39,3 +39,4 @@ add_executable(trie-test
   trie-test.cc
   )
 
+add_subdirectory(abiconv)
