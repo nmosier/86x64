@@ -61,5 +61,4 @@ while [[ $# > 0 ]]; do
 done
 
 CMD=$(echo macho-tool modify "$ARGS" "$INPATH" "$OUTPATH")
-echo "$CMD"
 $CMD
