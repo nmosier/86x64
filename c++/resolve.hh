@@ -3,6 +3,8 @@
 #include <map>
 #include <list>
 #include <memory>
+#include <iostream>
+#include <typeinfo>
 
 #include "util.hh"
 
@@ -65,7 +67,16 @@ namespace MachO {
          }
       }
       
-      ~Resolver() {}
+      ~Resolver() {
+         for (auto todo_pair : todo) {
+            auto first = todo_pair.first;
+            for (auto second : todo_pair.second) {
+               std::cerr << "resolver<" << typeid(T).name() << ">"
+                         << ": unresolved pair (" << first << "," << second.first
+                         << std::endl;
+            }
+         }
+      }
 
       FoundMap found;
       TodoMap todo;

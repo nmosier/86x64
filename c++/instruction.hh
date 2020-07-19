@@ -30,8 +30,10 @@ namespace MachO {
       virtual void Emit(Image& img, std::size_t offset) const override;
       virtual void Build(BuildEnv<bits>& env) override;
       
-      static Instruction<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
-      { return new Instruction(img, loc, env); }
+      static Instruction<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env,
+                                      bool add_to_map = true) {
+         return new Instruction(img, loc, env, add_to_map);
+      }
       
       template <typename It>
       Instruction(It begin, It end):
@@ -52,7 +54,7 @@ namespace MachO {
       }
 
    private:
-      Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env);
+      Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env, bool add_to_map);
       Instruction(const Instruction<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
       template <Bits> friend class Instruction;
 

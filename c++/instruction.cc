@@ -72,8 +72,9 @@ namespace MachO {
    const xed_state_t& Instruction<bits>::dstate() { return dstate_<bits>; }
    
    template <Bits bits>
-   Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env):
-      SectionBlob<bits>(loc, env), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
+   Instruction<bits>::Instruction(const Image& img, const Location& loc, ParseEnv<bits>& env,
+                                  bool add_to_map):
+      SectionBlob<bits>(loc, env, add_to_map), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
    {
       xed_error_enum_t err;
       
