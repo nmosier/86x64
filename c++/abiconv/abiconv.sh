@@ -2,7 +2,7 @@
 
 usage() {
     cat <<EOF
-usage: $0 [-h] [-o libabiconv] [-l ldlib] [-L libpath] -s symbols 
+usage: $0 [-h] [-o libabiconv] [-l ldlib] [-L libpath] [sympath=<stdin>]
 EOF
 }
 
@@ -16,7 +16,7 @@ SYMBOLS=""
 LDFLAGS=()
 LDLIBS=("-lsystem")
 
-while getopts "ho:s:l:L:" OPTION; do
+while getopts "ho:l:L:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -24,9 +24,6 @@ while getopts "ho:s:l:L:" OPTION; do
             ;;
         o)
             OUTPATH="$OPTARG"
-            ;;
-        s)
-            SYMBOLS="$OPTARG"
             ;;
         l)
             LDLIBS=("${LDLIBS[@]}" "-l$OPTARG")
@@ -43,24 +40,26 @@ done
 
 shift $((OPTIND-1))
 
-if [[ $# -lt 1 ]]; then
-    echo "$0: missing positional argument" >&2
-    exit 1
+if [[ $# -eq 1 ]]; then
+    SYMBOLS="$1"
+    shift $((OPTIND-1))
 elif [[ $# -gt 1 ]]; then
     echo "$0: excess positional arguments" >&2
     exit 1
 fi
 
-ARCHIVE="$1"
 
-if ! [ "$SYMBOLS" ]; then
-    echo "$0: specify symbols with '-i'" >&2
-fi
 
 # generate 32-to-64 ABI converter
 ABICONV_ASM=$(mktemp)
 ABICONV_O=$(mktemp)
-trap "rm $ABICONV_ASM $ABICONV_O"
-./abigen < "$SYMBOLS" > "$ABICONV_ASM" || error
+trap "rm $ABICONV_ASM $ABICONV_O" EXIT
+
+if [ "$SYMBOLS" ]; then
+    ./abigen < "$SYMBOLS"
+else
+    ./abigen
+fi > "$ABICONV_ASM" || error
+
 nasm -f macho64 -o "$ABICONV_O" "$ABICONV_ASM"
-ld "${LDFLAGS[@]}" "${LDLIBS[@]}" -o "$OUTPATH" "$ABICONV_O"
+cc "${LDFLAGS[@]}" "${LDLIBS[@]}" -dynamiclib -o "$OUTPATH" "$ABICONV_O"
