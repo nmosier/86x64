@@ -33,6 +33,7 @@ namespace MachO {
       unsigned segment_counter() { return segment_counter_++; }
       unsigned dylib_counter() { return dylib_counter_++; }
       uint8_t section_counter();
+      uint32_t lazy_bind_index(uint32_t size);
       
       Location loc;      
 
@@ -42,6 +43,7 @@ namespace MachO {
       unsigned segment_counter_ = 0;
       uint8_t section_counter_ = 0;
       unsigned dylib_counter_ = 1;
+      uint32_t lazy_bind_index_ = 0;
    };
 
 }

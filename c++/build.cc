@@ -32,6 +32,13 @@ namespace MachO {
       return ++section_counter_;
    }
 
+   template <Bits bits>
+   uint32_t BuildEnv<bits>::lazy_bind_index(uint32_t size) {
+      auto tmp = lazy_bind_index_;
+      lazy_bind_index_ += size;
+      return tmp;
+   }
+
    template class BuildEnv<Bits::M32>;
    template class BuildEnv<Bits::M64>;
    

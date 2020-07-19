@@ -72,6 +72,8 @@ namespace MachO {
          return new BindNode(vmaddr, env, type, addend, dylib, sym, flags, index);
       }
 
+      void Build(BuildEnv<bits>& env);
+
       BindNode<opposite<bits>, lazy> *Transform(TransformEnv<bits>& env) const {
          return new BindNode<opposite<bits>, lazy>(*this, env);
       }
@@ -103,6 +105,8 @@ namespace MachO {
       BindInfo<opposite<bits>, lazy> *Transform(TransformEnv<bits>& env) const {
          return new BindInfo<opposite<bits>, lazy>(*this, env);
       }
+
+      void Build(BuildEnv<bits>& env);
 
       typename Bindees::iterator find(const std::string& sym) {
          return std::find_if(begin(), end(), [&] (auto node) { return node->sym == sym; });
