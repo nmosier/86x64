@@ -72,7 +72,7 @@ namespace MachO {
    StubHelperBlob<bits>::StubHelperBlob(const StubHelperBlob<opposite<bits>>& other,
                                         TransformEnv<opposite<bits>>& env):
       SectionBlob<bits>(other, env), push_inst(other.push_inst->Transform_one(env)),
-      jmp_inst(other.push_inst->Transform_one(env))
+      jmp_inst(other.jmp_inst->Transform_one(env))
    {
       env.template resolve<LazyBindNode>(other.bindee, &bindee);
    }

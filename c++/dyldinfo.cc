@@ -351,6 +351,7 @@ namespace MachO {
       type(other.type), addend(other.addend), dylib(nullptr), sym(other.sym), flags(other.flags),
       blob(nullptr)
    {
+      if constexpr (lazy) { env.template add<LazyBindNode>(&other, this); }
       env.resolve(other.dylib, &dylib);
       env.resolve(other.blob, &blob);
    }

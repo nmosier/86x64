@@ -59,6 +59,7 @@ namespace MachO {
    template <Bits> class ExportInfo;
 
    template <Bits, bool> class BindNode;
+   template <Bits b> using LazyBindNode = BindNode<b, true>;
    
    enum class Relation {BEFORE, AFTER};   
    
