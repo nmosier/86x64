@@ -326,9 +326,6 @@ namespace MachO {
    template <Bits bits>
    void Section<bits>::AssignID(BuildEnv<bits>& env) {
       id = env.section_counter();
-
-      // DEBUG
-      fprintf(stderr, "%s: `%s': %d\n", __FUNCTION__, name().c_str(), (int) id);
    }
 
    template class Section<Bits::M32>;

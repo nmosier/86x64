@@ -174,7 +174,7 @@ namespace MachO {
          offset += sect->size();
       }
 
-      fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname, (std::size_t) segment_command.fileoff, (size_t) segment_command.filesize, (size_t) segment_command.vmaddr, (size_t) segment_command.vmsize);
+      // fprintf(stderr, "[EMIT] segment={name=%s,fileoff=0x%zx,filesize=0x%zx,vmaddr=0x%zx,vmsize=0x%zx}\n", segment_command.segname, (std::size_t) segment_command.fileoff, (size_t) segment_command.filesize, (size_t) segment_command.vmaddr, (size_t) segment_command.vmsize);
    }
 
    template <Bits bits>

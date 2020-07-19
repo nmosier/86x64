@@ -210,7 +210,6 @@ namespace MachO {
    template <Bits bits>
    std::size_t RegularExportNode<bits>::Emit_derived(Image& img, std::size_t offset) const {
       const std::size_t start = offset;
-      fprintf(stderr, "[EMIT] %s: %p\n", __FUNCTION__, (void *) value);
       offset += leb128_encode(img, offset, value ? value->loc.offset : 0);
       return offset - start;
    }

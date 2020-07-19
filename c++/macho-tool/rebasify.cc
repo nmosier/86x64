@@ -53,7 +53,7 @@ int Rebasify::work() {
          } else if (inst->instbuf == pop_opcode && state == 1) {
             state = 2;
             eax_vmaddr = inst->loc.vmaddr;
-            fprintf(stderr, "[REBASIFY] pop, eax = 0x%zx\n", eax_vmaddr);
+            // fprintf(stderr, "[REBASIFY] pop, eax = 0x%zx\n", eax_vmaddr);
          } else {
             state = 0;
          }
@@ -116,7 +116,7 @@ int Rebasify::work() {
                   
 #warning ADD REBASE
                }
-               fprintf(stderr, "[REBASIFY] 0x%zx, lea = 0x%zx\n", inst->loc.vmaddr, eax_vmaddr);
+               // fprintf(stderr, "[REBASIFY] 0x%zx, lea = 0x%zx\n", inst->loc.vmaddr, eax_vmaddr);
             }
             break;
 #endif
@@ -179,7 +179,7 @@ int Rebasify::work() {
                   rebase_info->rebasees.push_back(rebase_node);
                   
                   
-                  fprintf(stderr, "[REBASIFY] 0x%zx, target = 0x%zx\n", inst->loc.vmaddr, target);
+                  // fprintf(stderr, "[REBASIFY] 0x%zx, target = 0x%zx\n", inst->loc.vmaddr, target);
                }
                break;
             }

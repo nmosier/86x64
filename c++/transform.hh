@@ -17,7 +17,7 @@ namespace MachO {
          if (key) {
             resolver.add(key, pointee);
          } else {
-            fprintf(stderr, "warning: %s: not adding null key\n", __FUNCTION__);
+            // fprintf(stderr, "warning: %s: not adding null key\n", __FUNCTION__);
          }
       }
       template <template<Bits> typename T>
@@ -25,7 +25,7 @@ namespace MachO {
          if (key) {
             resolver.resolve(key, (const void **) pointer);
          } else {
-            fprintf(stderr, "warning: %s: not resolving null key\n", __FUNCTION__);
+            // fprintf(stderr, "warning: %s: not resolving null key\n", __FUNCTION__);
          }
       }
 

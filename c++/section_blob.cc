@@ -23,11 +23,6 @@ namespace MachO {
    SectionBlob<bits>::SectionBlob(const Location& loc, ParseEnv<bits>& env, bool add_to_map):
       segment(env.current_segment), section(env.current_section), loc(loc)
    {
-      if (loc.vmaddr == 0x1f9d) {
-         fprintf(stderr, "%s\n", typeid(*this).name());
-      }
-      
-      
       if (add_to_map) {
          env.vmaddr_resolver.add(loc.vmaddr, this);
          env.offset_resolver.add(loc.offset, this);
