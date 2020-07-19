@@ -8,6 +8,7 @@
 #include "transform.hh"
 #include "section_blob.hh" // LazySymbolPointer
 #include "instruction.hh"
+#include "stub_helper.hh"
 
 namespace MachO {
 
@@ -17,12 +18,15 @@ namespace MachO {
       uint32_t flags = sect.flags;
       
       /* check whether contains instructions */
-      std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_STUB_HELPER,
-                                                 SECT_SYMBOL_STUB};
+      std::vector<std::string> text_sectnames = {SECT_TEXT, SECT_STUBS, SECT_SYMBOL_STUB};
       for (const std::string& sectname : text_sectnames) {
          if (sectname == sect.sectname) {
             return new Section<bits>(img, offset, env, TextParser);
          }
+      }
+
+      if (std::string(sect.sectname) == SECT_STUB_HELPER) {
+         return new Section<bits>(img, offset, env, StubHelperParser);
       }
       
       if (flags == S_LAZY_SYMBOL_POINTERS) {
@@ -326,6 +330,16 @@ namespace MachO {
    template <Bits bits>
    void Section<bits>::AssignID(BuildEnv<bits>& env) {
       id = env.section_counter();
+   }
+
+   template <Bits bits>
+   SectionBlob<bits> *Section<bits>::StubHelperParser(const Image& img, const Location& loc,
+                                                      ParseEnv<bits>& env) {
+      try {
+         return StubHelperBlob<bits>::Parse(img, loc, env);
+      } catch (const error& err) {
+         return Instruction<bits>::Parse(img, loc, env);
+      }
    }
 
    template class Section<Bits::M32>;

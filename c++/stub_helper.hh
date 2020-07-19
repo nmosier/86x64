@@ -1,26 +1,19 @@
 #pragma once
 
 #include "types.hh"
-#include "section.hh"
+#include "section_blob.hh"
 
 namespace MachO {
-
-#if 0
-   template <Bits bits>
-   class StubHelper: public Section<bits> {
-   public:
-      
-      
-   private:
-   };
-#endif
 
    template <Bits bits>
    class StubHelperBlob: public SectionBlob<bits> {
    public:
+      template <Bits bb>
+      using LazyBindNode = BindNode<bb, true>;
+      
       Instruction<bits> *push_inst = nullptr;
       Instruction<bits> *jmp_inst = nullptr;
-      const BindNode<bits, true> *bindee = nullptr;
+      const LazyBindNode<bits> *bindee = nullptr;
 
       static StubHelperBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
       { return new StubHelperBlob<bits>(img, loc, env); }
@@ -34,7 +27,9 @@ namespace MachO {
 
    private:
       StubHelperBlob(const Image& img, const Location& loc, ParseEnv<bits>& env);
-      StubHelperBlob(const StubHelperBlob<opposite<bits>>& other, TransformEnv<opposite<bits>>& env);
+      StubHelperBlob(const StubHelperBlob<opposite<bits>>& other,
+                     TransformEnv<opposite<bits>>& env);
+      template <Bits> friend class StubHelperBlob;
    };
 
 }

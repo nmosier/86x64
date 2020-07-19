@@ -3,6 +3,11 @@ extern "C" {
 }
 
 #include "stub_helper.hh"
+#include "instruction.hh"
+#include "dyldinfo.hh"
+#include "transform.hh"
+#include "build.hh"
+#include "parse.hh"
 
 namespace MachO {
 
@@ -33,6 +38,9 @@ namespace MachO {
       /* adjust push immediate */
       push_inst->imm->value = bindee->index;
       
+      // DEBUG
+      fprintf(stderr, "bindee->index = 0x%x\n", bindee->index);
+      
       /* emit insturctions */
       push_inst->Emit(img, offset);
       offset += push_inst->size();
@@ -55,10 +63,13 @@ namespace MachO {
    template <Bits bits>
    StubHelperBlob<bits>::StubHelperBlob(const StubHelperBlob<opposite<bits>>& other,
                                         TransformEnv<opposite<bits>>& env):
-      SectionBlob<bits>(other, env), push_inst(other.push_inst->Transform(env)),
-      jmp_inst(other.push_inst->Transform(env))
+      SectionBlob<bits>(other, env), push_inst(other.push_inst->Transform_one(env)),
+      jmp_inst(other.push_inst->Transform_one(env))
    {
-      env.resolve(other.bindee, &bindee);
+      env.template resolve<LazyBindNode>(other.bindee, &bindee);
    }
+
+   template class StubHelperBlob<Bits::M32>;
+   template class StubHelperBlob<Bits::M64>;
 
 }

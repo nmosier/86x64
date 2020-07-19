@@ -99,6 +99,8 @@ namespace MachO {
 
       static SectionBlob<bits> *TextParser(const Image& img, const Location& loc,
                                            ParseEnv<bits>& env);
+      static SectionBlob<bits> *StubHelperParser(const Image& img, const Location& loc,
+                                                 ParseEnv<bits>& env);
       
       template <Bits> friend class Section;
    };
