@@ -82,7 +82,7 @@ trap "rm $ABI64" EXIT
 macho-tool modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
 
 # gather lazily bound symbols
-SYMS=$(grep -Eo '^[[:alnum:]_]+')
+SYMS=$(grep -Eo '^[[:alnum:]_]+' "$SYMPATH")
 
 # statically interpose lazily bound symbols to libabiconv
 INTERPOSE64=$(mktemp)
