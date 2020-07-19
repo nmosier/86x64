@@ -35,7 +35,7 @@ macho-tool:
 %.asm.o: %.asm Makefile
 	nasm -f macho64 -o $@ $<
 
-ABICONV_OBJS = abiconv.asm.o
+ABICONV_OBJS = printf-abi.asm.o # abiconv.asm.o
 INTERPOSE_OBJS = interpose.c.o
 
 libinterpose.dylib: $(INTERPOSE_OBJS) Makefile

@@ -13,7 +13,8 @@ enum class type_token {C, S, I, L, LL, P,
 
 static type_token str_to_token(const std::string& s) {
    const std::unordered_map<std::string, type_token> map =
-      {{"c", type_token::C},
+      {
+       {"c", type_token::C},
        {"s", type_token::S},
        {"i", type_token::I},
        {"l", type_token::L},
@@ -47,9 +48,7 @@ static std::istream& operator>>(std::istream& is, signature& sign) {
    std::getline(is, line_tmp);
    std::stringstream line(line_tmp);
    
-   if (!(line >> sign.sym)) {
-      throw std::invalid_argument("failed to read symbol");
-   }
+   line >> sign.sym;
 
    std::string tokstr;
    while (line >> tokstr) {
@@ -72,7 +71,27 @@ static std::ostream& emit_inst(std::ostream& os, Opcode&& opcode, OperandHead&& 
 
 enum class reg_width {B, W, D, Q};
 
-static reg_width get_token_width(type_token tok) {
+size_t reg_width_size(reg_width width) {
+   switch (width) {
+   case reg_width::B: return 1;
+   case reg_width::W: return 2;
+   case reg_width::D: return 4;
+   case reg_width::Q: return 8;
+   default: throw std::invalid_argument("bad register width");
+   }
+}
+
+static const char *reg_width_to_str(reg_width width) {
+   switch (width) {
+   case reg_width::B: return "byte";
+   case reg_width::W: return "word";
+   case reg_width::D: return "dword";
+   case reg_width::Q: return "qword";
+   default: throw std::invalid_argument("bad register width");
+   }
+}
+
+static reg_width get_token_width_32(type_token tok) {
    switch (tok) {
    case type_token::C:
    case type_token::UC:
@@ -90,6 +109,49 @@ static reg_width get_token_width(type_token tok) {
    case type_token::LL:
    case type_token::ULL:
       return reg_width::Q;
+   default: throw std::invalid_argument("bad token");
+   }
+}
+
+static reg_width get_token_width_64(type_token tok) {
+   switch (tok) {
+   case type_token::C:
+   case type_token::UC:
+   case type_token::SC:
+      return reg_width::B;
+   case type_token::S:
+   case type_token::US:
+      return reg_width::W;
+   case type_token::I:
+   case type_token::UI:
+      return reg_width::D;
+   case type_token::L:
+   case type_token::UL:
+   case type_token::P:
+   case type_token::LL:
+   case type_token::ULL:
+      return reg_width::Q;
+   default: throw std::invalid_argument("bad token");
+   }
+}
+
+static bool get_token_signed(type_token tok) {
+   switch (tok) {
+   case type_token::C:
+      return std::is_signed<char>();
+   case type_token::UC:
+   case type_token::US:
+   case type_token::UI:
+   case type_token::UL:
+   case type_token::ULL:
+   case type_token::P:
+      return false; // unsigned
+   case type_token::SC:
+   case type_token::S:
+   case type_token::I:
+   case type_token::L:
+   case type_token::LL:
+      return true; // signed
    default: throw std::invalid_argument("bad token");
    }
 }
@@ -119,6 +181,9 @@ static const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
 static const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
 
 void signature::Emit(std::ostream& os, const std::string& prefix) {
+   os << "\tglobal\t" << prefix << sym << std::endl;
+   os << "\textern\t" << sym << std::endl;
+   
    os << prefix << sym << ":" << std::endl;
 
    /* save registers */
@@ -141,13 +206,54 @@ void signature::Emit(std::ostream& os, const std::string& prefix) {
     *  ret
     *  caller rbp <-- callee rbp
     */
-   std::size_t frame_offset;
-   for (auto param_it = params.rbegin(); param_it != params.rend(); ++param_it) {
-      
-   }
-   
+   std::size_t frame_offset = 12;
+   auto param_it = params.rbegin();
+   auto reg_it = arg_regs.begin(); 
+   for (; param_it != params.rend() && reg_it != arg_regs.end(); ++param_it, ++reg_it) {
+      const type_token param_tok = *param_it;
+      const reg_width param_width_32 = get_token_width_32(param_tok);
+      reg_width param_width_64 = get_token_width_64(param_tok);
+      const bool sign = get_token_signed(param_tok);
 
-   
+      
+      const char *opcode;
+
+      
+      if (param_width_32 == param_width_64) {
+         opcode = "mov";
+      } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
+         opcode = "mov";
+         param_width_64 = param_width_32;
+      } else if (sign) {
+         opcode = "movsx";
+      } else {
+         opcode = "movzx";
+      }
+      
+      std::stringstream src;
+      src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
+      std::string src_str = src.str();
+      
+      emit_inst(os, opcode, (*reg_it)->reg(param_width_64), src_str);
+      
+      frame_offset += 4;
+   }
+
+   // TODO: Stand-in for variadi functions
+   emit_inst(os, "xor", "eax", "eax");
+
+   /* call */
+   emit_inst(os, "call", sym);
+
+   /* cleanup */
+   emit_inst(os, "pop", "rsi");
+   emit_inst(os, "pop", "rdi");
+   emit_inst(os, "leave");
+
+   /* return */
+   emit_inst(os, "mov", "r11d", "dword [rsp]");
+   emit_inst(os, "add", "rsp", "4");
+   emit_inst(os, "jmp", "r11");
 }
 
 int main(int argc, char *argv[]) {
@@ -167,10 +273,13 @@ int main(int argc, char *argv[]) {
    }
 
    signature sign;
-   std::cin >> sign;
-   sign.Emit(std::cout, "__");
+
+   std::cout << "\tsegment .text" << std::endl;
    
-   // TODO
+   while (std::cin >> sign) {
+      sign.Emit(std::cout, "__");
+      std::cout << std::endl;
+   }
    
    return 0;
 }
