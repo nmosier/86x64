@@ -35,6 +35,7 @@ namespace MachO {
       const char *sym = nullptr;
       uint8_t flags = 0;
       std::size_t addend = 0;
+      uint32_t index = 0;
                
       while (it != end) {
          const uint8_t byte = img.at<uint8_t>(it);
@@ -78,6 +79,7 @@ namespace MachO {
             addend = 0;
             flags = 0;
             type = 0;
+            index = it - begin;
             break;
             // return;
 
@@ -119,17 +121,17 @@ namespace MachO {
             break;
 
          case BIND_OPCODE_DO_BIND:
-            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags, index);
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
-            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags, index);
             it += leb128_decode(img, it, uleb);
             vmaddr += (ptr_t) uleb;
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
-            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
+            vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags, index);
             vmaddr += imm * sizeof(ptr_t);
             break;
 
@@ -148,33 +150,40 @@ namespace MachO {
       
    template <Bits bits, bool lazy>
    std::size_t BindInfo<bits, lazy>::do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
-                                       ssize_t addend, std::size_t dylib, const char *sym,
-                                       uint8_t flags) {
+                                             ssize_t addend, std::size_t dylib, const char *sym,
+                                             uint8_t flags, uint32_t index) {
       if (vmaddr != 0 && sym != nullptr) {
-         bindees.push_back(BindNode<bits, lazy>::Parse(vmaddr, env, type, addend, dylib, sym, flags));
+         bindees.push_back(BindNode<bits, lazy>::Parse(vmaddr, env, type, addend, dylib, sym,
+                                                       flags, index));
       }
       return vmaddr + sizeof(ptr_t);
    }
 
    template <Bits bits, bool lazy>
    std::size_t BindInfo<bits, lazy>::do_bind_times(std::size_t count, std::size_t vmaddr,
-                                             ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                                             std::size_t dylib, const char *sym, uint8_t flags,
-                                             ptr_t skipping) {
+                                                   ParseEnv<bits>& env, uint8_t type,
+                                                   ssize_t addend, std::size_t dylib,
+                                                   const char *sym, uint8_t flags, uint32_t index, 
+                                                   ptr_t skipping) {
       for (std::size_t i = 0; i < count; ++i) {
-         vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags);
+         vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags, index);
          vmaddr += skipping;
       }
       return vmaddr;
    }
 
    template <Bits bits, bool lazy>
-   BindNode<bits, lazy>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                            std::size_t dylib, const char *sym, uint8_t flags):
-      type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr)
+   BindNode<bits, lazy>::BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type,
+                                  ssize_t addend, std::size_t dylib, const char *sym, uint8_t flags,
+                                  uint32_t index):
+      type(type), addend(addend), dylib(nullptr), sym(sym), flags(flags), blob(nullptr),
+      index(index)
    {
       env.vmaddr_resolver.resolve(vmaddr, &blob);
       env.dylib_resolver.resolve(dylib, &this->dylib);
+      if constexpr (lazy) {
+            env.lazy_bind_node_resolver.add(index, this);
+         }
    }
 
    template <Bits bits>

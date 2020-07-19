@@ -62,13 +62,14 @@ namespace MachO {
       std::string sym;
       uint8_t flags;
       const SectionBlob<bits> *blob;
+      uint32_t index;
 
       std::size_t size() const;
       void Emit(Image& img, std::size_t offset) const;
       bool active() const { return blob == nullptr ? false : blob->active; }
 
-      static BindNode<bits, lazy> *Parse(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend, std::size_t dylib, const char *sym, uint8_t flags) {
-         return new BindNode(vmaddr, env, type, addend, dylib, sym, flags);
+      static BindNode<bits, lazy> *Parse(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend, std::size_t dylib, const char *sym, uint8_t flags, uint32_t index) {
+         return new BindNode(vmaddr, env, type, addend, dylib, sym, flags, index);
       }
 
       BindNode<opposite<bits>, lazy> *Transform(TransformEnv<bits>& env) const {
@@ -79,7 +80,7 @@ namespace MachO {
       
    private:
       BindNode(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-               std::size_t dylib, const char *sym, uint8_t flags);
+               std::size_t dylib, const char *sym, uint8_t flags, uint32_t index);
       BindNode(const BindNode<opposite<bits>, lazy>& other, TransformEnv<opposite<bits>>& env);
       template <Bits, bool> friend class BindNode;
    };
@@ -116,10 +117,10 @@ namespace MachO {
       BindInfo(const BindInfo<opposite<bits>, lazy>& other, TransformEnv<opposite<bits>>& env);
       
       std::size_t do_bind(std::size_t vmaddr, ParseEnv<bits>& env, uint8_t type, ssize_t addend,
-                          std::size_t dylib, const char *sym, uint8_t flags);
+                          std::size_t dylib, const char *sym, uint8_t flags, uint32_t index);
       std::size_t do_bind_times(std::size_t count, std::size_t vmaddr, ParseEnv<bits>& env,
                                 uint8_t type, ssize_t addend, std::size_t dylib, const char *sym,
-                                uint8_t flags, ptr_t skipping = 0);
+                                uint8_t flags, uint32_t index, ptr_t skipping = 0);
       template <Bits, bool> friend class BindInfo;
    };
 

@@ -34,6 +34,7 @@ namespace MachO {
       
       Resolver<std::size_t, SectionBlob<bits>, true> vmaddr_resolver;
       Resolver<std::size_t, SectionBlob<bits>, true> offset_resolver;
+      Resolver<uint32_t, BindNode<bits, true>, false> lazy_bind_node_resolver;
       std::unordered_map<std::size_t, RelocBlob<bits> *> relocs;
       // Resolver<std::size_t, RelocBlob<bits>> reloc_resolver; /*!< resolves by vmaddr */
       CountResolver<DylibCommand<bits>> dylib_resolver;

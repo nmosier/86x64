@@ -57,6 +57,8 @@ namespace MachO {
    template <Bits> class RebaseInfo;
    template <Bits, bool> class BindInfo;
    template <Bits> class ExportInfo;
+
+   template <Bits, bool> class BindNode;
    
    enum class Relation {BEFORE, AFTER};   
    
