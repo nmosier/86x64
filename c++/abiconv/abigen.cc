@@ -195,6 +195,28 @@ static const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
 static const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
 static const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
 
+void emit_load_arg(std::ostream& os, type_token param, const reg_group *group,
+                   std::size_t frame_offset) {
+   const reg_width param_width_32 = get_token_width_32(param);
+   reg_width param_width_64 = get_token_width_64(param);
+   const bool sign = get_token_signed(param);
+   const char *opcode;
+   if (param_width_32 == param_width_64) {
+      opcode = "mov";
+   } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
+      opcode = "mov";
+      param_width_64 = param_width_32;
+   } else if (sign) {
+      opcode = "movsx";
+   } else {
+      opcode = "movzx";
+   }
+   std::stringstream src;
+   src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
+   std::string src_str = src.str();
+   emit_inst(os, opcode, group->reg(param_width_64), src_str);
+}
+
 void signature::Emit(std::ostream& os, const std::string& prefix) {
    os << "\tglobal\t" << prefix << sym << std::endl;
    os << "\textern\t" << sym << std::endl;
@@ -223,39 +245,24 @@ void signature::Emit(std::ostream& os, const std::string& prefix) {
     */
    std::size_t frame_offset = 12;
    auto param_it = params.rbegin();
-   auto reg_it = arg_regs.begin(); 
+   auto reg_it = arg_regs.begin();
    for (; param_it != params.rend() && reg_it != arg_regs.end(); ++param_it, ++reg_it) {
-      const type_token param_tok = *param_it;
-      const reg_width param_width_32 = get_token_width_32(param_tok);
-      reg_width param_width_64 = get_token_width_64(param_tok);
-      const bool sign = get_token_signed(param_tok);
-
-      
-      const char *opcode;
-
-      
-      if (param_width_32 == param_width_64) {
-         opcode = "mov";
-      } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
-         opcode = "mov";
-         param_width_64 = param_width_32;
-      } else if (sign) {
-         opcode = "movsx";
-      } else {
-         opcode = "movzx";
-      }
-      
-      std::stringstream src;
-      src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
-      std::string src_str = src.str();
-      
-      emit_inst(os, opcode, (*reg_it)->reg(param_width_64), src_str);
-      
+      emit_load_arg(os, *param_it, *reg_it, frame_offset);
       frame_offset += 4;
    }
 
-   // TODO: Stand-in for variadi functions
-   emit_inst(os, "xor", "eax", "eax");
+   /* push args that don't fit into registers onto stack */
+   for (; param_it != params.rend(); ++param_it) {
+      /* mov r11, [rbp + <idx>]
+       * push r11
+       */
+      
+   }
+   
+   // TODO: Stand-in for variadic functions
+   if (varargs) {
+      emit_inst(os, "xor", "eax", "eax");
+   }
 
    /* call */
    emit_inst(os, "call", sym);
