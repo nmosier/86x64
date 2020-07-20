@@ -9,23 +9,25 @@
 
 enum class type_token {C, S, I, L, LL, P,
                        UC, US, UI, UL, ULL,
-                       SC};
+                       SC,
+                       V};
 
 static type_token str_to_token(const std::string& s) {
    const std::unordered_map<std::string, type_token> map =
       {
-       {"c", type_token::C},
-       {"s", type_token::S},
-       {"i", type_token::I},
-       {"l", type_token::L},
-       {"ll", type_token::LL},
-       {"p", type_token::P},
-       {"uc", type_token::UC},
-       {"us", type_token::US},
-       {"ui", type_token::UI},
-       {"ul", type_token::UL},
+       {"c",   type_token::C},
+       {"s",   type_token::S},
+       {"i",   type_token::I},
+       {"l",   type_token::L},
+       {"ll",  type_token::LL},
+       {"p",   type_token::P},
+       {"uc",  type_token::UC},
+       {"us",  type_token::US},
+       {"ui",  type_token::UI},
+       {"ul",  type_token::UL},
        {"ull", type_token::ULL},
-       {"sc", type_token::SC},
+       {"sc",  type_token::SC},
+       {"v",   type_token::V},
       };
 
    std::string s_ = strmap(s, tolower);
@@ -36,9 +38,12 @@ static type_token str_to_token(const std::string& s) {
    return it->second;
 }
 
+
+
 struct signature {
    std::string sym;
    std::list<type_token> params;
+   std::optional<unsigned> varargs; /*!< unset if no varargs */
 
    void Emit(std::ostream& os, const std::string& prefix);
 };
@@ -52,7 +57,17 @@ static std::istream& operator>>(std::istream& is, signature& sign) {
 
    std::string tokstr;
    while (line >> tokstr) {
-      sign.params.push_back(str_to_token(tokstr));
+      auto tok = str_to_token(tokstr);
+      switch (tok) {
+      case type_token::V:
+         /* get vararg count */
+         sign.varargs = 0;
+         line >> *sign.varargs;
+         break;
+      default:
+         sign.params.push_back(tok);
+         break;
+      }
    }
 
    return is;
