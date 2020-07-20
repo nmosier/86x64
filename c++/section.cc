@@ -136,13 +136,11 @@ namespace MachO {
    Section<bits>::Section(const Section<opposite<bits>>& other, TransformEnv<opposite<bits>>& env):
       /* relocs(other.relocs.Transform(env)), */ id(other.id)
    {
-#warning TRANSFORM RELOCS
       env.add(&other, this);
       env(other.sect, sect);
       env.resolve(other.segment, &segment);
       for (const auto elem : other.content) {
          content.splice(content.end(), elem->Transform(env));
-         // content.push_back(elem->Transform(env));
       }
    }
 

@@ -54,7 +54,6 @@ int Rebasify::work() {
       if (text_inst) {
          decode_info info(text_inst->xedd, text_it);
          if (handle_inst(text_inst, state, info) < 0) { return -1; }
-         fprintf(stderr, "state %d\n", state.state);
       }
    }
       
@@ -106,13 +105,8 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 
    case 3: /* seen frame store */
       {
-         if (info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) {
-            fprintf(stderr, "state 3: basereg=%s, memdisp=%d, state.frame_index=%d\n",
-                    xed_reg_enum_t2str(info.base_reg), (int) info.memdisp, state.frame_index);
-         }
          if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
              info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
-            fprintf(stderr, "here\n");
             state.reg = info.reg0;
             state.state = 2;
          }

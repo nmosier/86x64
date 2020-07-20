@@ -200,7 +200,7 @@ namespace MachO {
       
       dyld_info.lazy_bind_size = align<bits>(lazy_bind->size());
       dyld_info.lazy_bind_off = env.allocate(dyld_info.lazy_bind_size);
-      bind->Build(env);
+      lazy_bind->Build(env);
 
       dyld_info.export_size = align<bits>(export_info->size());
       dyld_info.export_off = env.allocate(dyld_info.export_size);
@@ -375,6 +375,7 @@ namespace MachO {
    void BindNode<bits, lazy>::Build(BuildEnv<bits>& env) {
       if constexpr (lazy) {
             index = env.lazy_bind_index(size());
+            fprintf(stderr, "[BUILD] index = 0x%x\n", index);
          } else {
          index = 0;
       }

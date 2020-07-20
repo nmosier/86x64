@@ -31,7 +31,7 @@ namespace MachO {
       }
 
       loc = loc_;
-      
+
       /* parse 'push imm32' */
       push_inst = Instruction<bits>::Parse(img, loc, env);
       loc += push_inst->size();
@@ -47,7 +47,7 @@ namespace MachO {
       push_inst->imm->value = bindee->index;
       
       // DEBUG
-      fprintf(stderr, "bindee->index = 0x%x\n", bindee->index);
+      fprintf(stderr, "[EMIT] bindee->index = 0x%x\n", bindee->index);
       
       /* emit insturctions */
       push_inst->Emit(img, offset);
