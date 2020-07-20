@@ -43,12 +43,19 @@ static type_token str_to_token(const std::string& s) {
 struct signature {
    std::string sym;
    std::list<type_token> params;
-   std::optional<unsigned> varargs; /*!< unset if no varargs */
+   std::optional<unsigned> varargs;
 
+   void reset() {
+      sym.clear();
+      params.clear();
+      varargs.reset();
+   }
    void Emit(std::ostream& os, const std::string& prefix);
 };
 
 static std::istream& operator>>(std::istream& is, signature& sign) {
+   sign.reset();
+   
    std::string line_tmp;
    std::getline(is, line_tmp);
    std::stringstream line(line_tmp);
@@ -63,6 +70,9 @@ static std::istream& operator>>(std::istream& is, signature& sign) {
          /* get vararg count */
          sign.varargs = 0;
          line >> *sign.varargs;
+         for (unsigned i = 0; i < *sign.varargs; ++i) {
+            sign.params.push_back(type_token::I);
+         }
          break;
       default:
          sign.params.push_back(tok);
