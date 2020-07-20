@@ -15,6 +15,7 @@ namespace MachO {
       Instruction<bits> *jmp_inst = nullptr;
       const LazyBindNode<bits> *bindee = nullptr;
 
+      static bool can_parse(const Image& img, const Location& loc, ParseEnv<bits>& env);
       static StubHelperBlob<bits> *Parse(const Image& img, const Location& loc, ParseEnv<bits>& env)
       { return new StubHelperBlob<bits>(img, loc, env); }
 

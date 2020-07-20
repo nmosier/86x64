@@ -15,22 +15,12 @@ namespace MachO {
    template <Bits bits>
    StubHelperBlob<bits>::StubHelperBlob(const Image& img, const Location& loc_,
                                         ParseEnv<bits>& env): SectionBlob<bits>(loc_, env, false) {
-      Location loc;
-
+      fprintf(stderr, "[PARSE] here\n");
+      
       /* verify signatures match */
-      loc = loc_;
-      xed_decoded_inst_t push_xedd, jmp_xedd;
-      if (!xed::decode<bits>(img, loc.offset, push_xedd) ||
-          xed_decoded_inst_get_iform_enum(&push_xedd) != XED_IFORM_PUSH_IMMz) {
-         throw error("failed to parse stub helper blob");
-      }
-      loc += xed_decoded_inst_get_length(&push_xedd);
-      if (!xed::decode<bits>(img, loc.offset, jmp_xedd) ||
-          xed_decoded_inst_get_iform_enum(&jmp_xedd) != XED_IFORM_JMP_RELBRz) {
-         throw error("failed to parse stub helper blob");
-      }
+      assert(can_parse(img, loc_, env));
 
-      loc = loc_;
+      Location loc = loc_;
 
       /* parse 'push imm32' */
       push_inst = Instruction<bits>::Parse(img, loc, env);
@@ -40,6 +30,33 @@ namespace MachO {
       /* resolve bindee */
       env.lazy_bind_node_resolver.resolve(push_inst->imm->value, &bindee);
    }
+
+   template <Bits bits>
+   bool StubHelperBlob<bits>::can_parse(const Image& img, const Location& loc_, ParseEnv<bits>& env)
+   {
+      Location loc = loc_;
+      xed_decoded_inst_t push_xedd, jmp_xedd;
+      if (!xed::decode<bits>(img, loc.offset, push_xedd) ||
+          xed_decoded_inst_get_iform_enum(&push_xedd) != XED_IFORM_PUSH_IMMz) {
+         fprintf(stderr, "[PARSE] %s, %s\n", xed::disas(push_xedd, loc.vmaddr).c_str(),
+                 xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&push_xedd)));
+         return false;
+      }
+      loc += xed_decoded_inst_get_length(&push_xedd);
+
+      if (!xed::decode<bits>(img, loc.offset, jmp_xedd)) {
+         return false;
+      }
+      const auto jmp_iform = xed_decoded_inst_get_iform_enum(&jmp_xedd);
+      if (jmp_iform != XED_IFORM_JMP_RELBRz && jmp_iform != XED_IFORM_JMP_RELBRd) {
+         fprintf(stderr, "[PARSE] %s, %s\n", xed::disas(jmp_xedd, loc.vmaddr).c_str(),
+                 xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&jmp_xedd)));
+         return false;
+      }
+      
+      return true;
+   }
+   
 
    template <Bits bits>
    void StubHelperBlob<bits>::Emit(Image& img, std::size_t offset) const {

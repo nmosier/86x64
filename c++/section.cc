@@ -333,9 +333,9 @@ namespace MachO {
    template <Bits bits>
    SectionBlob<bits> *Section<bits>::StubHelperParser(const Image& img, const Location& loc,
                                                       ParseEnv<bits>& env) {
-      try {
+      if (StubHelperBlob<bits>::can_parse(img, loc, env)) {
          return StubHelperBlob<bits>::Parse(img, loc, env);
-      } catch (const error& err) {
+      } else {
          return Instruction<bits>::Parse(img, loc, env);
       }
    }
