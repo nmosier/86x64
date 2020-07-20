@@ -68,6 +68,7 @@ namespace MachO {
       }
       
       ~Resolver() {
+#if 0
          for (auto todo_pair : todo) {
             auto first = todo_pair.first;
             for (auto second : todo_pair.second) {
@@ -76,6 +77,7 @@ namespace MachO {
                          << std::endl;
             }
          }
+#endif
       }
 
       FoundMap found;

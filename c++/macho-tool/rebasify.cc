@@ -47,41 +47,16 @@ int Rebasify::work() {
       return -1;
    }
 
-#if 0   
-   int state = 0;
-   std::size_t reg_vmaddr;
-   xed_reg_enum_t thunk_reg;
-   int frame_offset;
-   const MachO::opcode_t call_opcode = {0xe8, 0x00, 0x00, 0x00, 0x00};
-   const MachO::opcode_t pop_opcode = {0x58};
-   for (auto text_it = text->content.begin(); text_it != text->content.end(); ++text_it) {
-      auto inst = dynamic_cast<MachO::Instruction<MachO::Bits::M32> *>(*text_it);
-      if (inst == nullptr) { continue; }
-      if (state < 2) {
-         if (inst->instbuf == call_opcode) {
-            state = 1;
-         } else if (inst->instbuf == pop_opcode && state == 1) {
-            state = 2;
-            reg_vmaddr = inst->loc.vmaddr;
-            thunk_reg = XED_REG_EAX;
-            frame_offset = -1;
-         } else {
-            state = 0;
-         }
-      } else {
-      }
-   }
-#else
    state_info state(archive32);
    for (auto text_it = state.section->content.begin(); text_it != state.section->content.end();
         ++text_it) {
       auto text_inst = dynamic_cast<MachO::Instruction<MachO::Bits::M32> *>(*text_it);
       if (text_inst) {
          decode_info info(text_inst->xedd, text_it);
-         handle_inst(text_inst, state, info);
+         if (handle_inst(text_inst, state, info) < 0) { return -1; }
+         fprintf(stderr, "state %d\n", state.state);
       }
    }
-#endif
       
    archive32->Build(0);
    archive32->Emit(*out_img);
@@ -121,6 +96,7 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
          if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
              info.reg0 == state.reg && info.base_reg == XED_REG_EBP) {
             /* frame store */
+            state.frame_index = info.memdisp;
             state.state = 3;
          } else {
             handle_inst_thunk(inst, state, info);
@@ -130,8 +106,13 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 
    case 3: /* seen frame store */
       {
+         if (info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) {
+            fprintf(stderr, "state 3: basereg=%s, memdisp=%d, state.frame_index=%d\n",
+                    xed_reg_enum_t2str(info.base_reg), (int) info.memdisp, state.frame_index);
+         }
          if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
              info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
+            fprintf(stderr, "here\n");
             state.reg = info.reg0;
             state.state = 2;
          }
@@ -147,13 +128,16 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
                                  const decode_info& info) const {
    /* check if reads from or writes to eax */
    switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
+#if 0
    case XED_ICLASS_PUSH: /* give up on tracking %eax */
    case XED_ICLASS_POP: /* %eax overwritten */
    case XED_ICLASS_CALL_FAR:
    case XED_ICLASS_CALL_NEAR:
    case XED_ICLASS_JMP:
+#endif
    case XED_ICLASS_RET_NEAR:
    case XED_ICLASS_RET_FAR:
+#if 0
    case XED_ICLASS_JB:
    case XED_ICLASS_JBE: 
    case XED_ICLASS_JCXZ: 
@@ -173,7 +157,8 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    case XED_ICLASS_JP: 
    case XED_ICLASS_JRCXZ: 
    case XED_ICLASS_JS: 
-   case XED_ICLASS_JZ: 
+   case XED_ICLASS_JZ:
+#endif
       state.state = 0;
       break;
 
