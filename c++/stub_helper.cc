@@ -15,8 +15,6 @@ namespace MachO {
    template <Bits bits>
    StubHelperBlob<bits>::StubHelperBlob(const Image& img, const Location& loc_,
                                         ParseEnv<bits>& env): SectionBlob<bits>(loc_, env, false) {
-      fprintf(stderr, "[PARSE] here\n");
-      
       /* verify signatures match */
       assert(can_parse(img, loc_, env));
 
@@ -38,8 +36,6 @@ namespace MachO {
       xed_decoded_inst_t push_xedd, jmp_xedd;
       if (!xed::decode<bits>(img, loc.offset, push_xedd) ||
           xed_decoded_inst_get_iform_enum(&push_xedd) != XED_IFORM_PUSH_IMMz) {
-         fprintf(stderr, "[PARSE] %s, %s\n", xed::disas(push_xedd, loc.vmaddr).c_str(),
-                 xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&push_xedd)));
          return false;
       }
       loc += xed_decoded_inst_get_length(&push_xedd);
@@ -49,8 +45,6 @@ namespace MachO {
       }
       const auto jmp_iform = xed_decoded_inst_get_iform_enum(&jmp_xedd);
       if (jmp_iform != XED_IFORM_JMP_RELBRz && jmp_iform != XED_IFORM_JMP_RELBRd) {
-         fprintf(stderr, "[PARSE] %s, %s\n", xed::disas(jmp_xedd, loc.vmaddr).c_str(),
-                 xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&jmp_xedd)));
          return false;
       }
       
@@ -62,9 +56,6 @@ namespace MachO {
    void StubHelperBlob<bits>::Emit(Image& img, std::size_t offset) const {
       /* adjust push immediate */
       push_inst->imm->value = bindee->index;
-      
-      // DEBUG
-      fprintf(stderr, "[EMIT] bindee->index = 0x%x\n", bindee->index);
       
       /* emit insturctions */
       push_inst->Emit(img, offset);

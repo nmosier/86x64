@@ -165,7 +165,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
                   
          if (info.base_reg == state.reg || info.reg1 == state.reg) {
             auto mov_inst = new MachO::Instruction<MachO::Bits::M32>
-               (MachO::opcode::mov_eax_imm32());
+               (MachO::opcode::mov_r32_imm32(state.reg));
             auto mov_inst_imm = MachO::Immediate<MachO::Bits::M32>::Create(target);
             mov_inst->segment = mov_inst_imm->segment = state.segment;
             mov_inst->section = mov_inst_imm->section = state.section;

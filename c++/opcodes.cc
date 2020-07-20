@@ -95,5 +95,11 @@ namespace MachO::opcode {
       const uint8_t byte = 0x5 | ((r32 - XED_REG_EAX) << 3);
       return {0x8d, byte, 0x00, 0x00, 0x00, 0x00};
    }
+
+   opcode_t mov_r32_imm32(xed_reg_enum_t r32) {
+      assert(r32 >= XED_REG_EAX && r32 <= XED_REG_EDI);
+      const uint8_t byte = 0xb8 | (r32 - XED_REG_EAX);
+      return {byte, 0x00, 0x00, 0x00, 0x00};
+   }
    
 }

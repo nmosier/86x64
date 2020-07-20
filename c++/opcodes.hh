@@ -55,6 +55,9 @@ namespace MachO {
       /* mov eax, imm32 */
       inline opcode_t mov_eax_imm32() { return {0xb8, 0x00, 0x00, 0x00, 0x00}; }
 
+      /* mov r32, imm32 */
+      opcode_t mov_r32_imm32(xed_reg_enum_t r32);
+
       /* jmp r64 */
       opcode_t jmp_r64(xed_reg_enum_t r64);
       

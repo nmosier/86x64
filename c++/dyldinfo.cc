@@ -375,7 +375,6 @@ namespace MachO {
    void BindNode<bits, lazy>::Build(BuildEnv<bits>& env) {
       if constexpr (lazy) {
             index = env.lazy_bind_index(size());
-            fprintf(stderr, "[BUILD] index = 0x%x\n", index);
          } else {
          index = 0;
       }
