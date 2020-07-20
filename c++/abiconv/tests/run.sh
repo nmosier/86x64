@@ -24,11 +24,12 @@ run_test() {
     shift 1
     SYMS="${BASE}.syms"
     EXEC64="${BASE}64"
-    make "$EXEC64" || return 1
+    make -s "$EXEC64" || return 1
     diff "${BASE}.out" <("./${EXEC64}" "$@")
     return $?
 }
 
+TESTS_FAILED=0
 for SRC in $(ls *.c); do
     BASE="${SRC%.c}"
     printf "%s" "testing ${BASE}..."
