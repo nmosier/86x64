@@ -194,8 +194,9 @@ static const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
 static const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
 static const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
 static const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
+static const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
 
-void emit_load_arg(std::ostream& os, type_token param, const reg_group *group,
+void emit_load_arg(std::ostream& os, type_token param, const reg_group& group,
                    std::size_t frame_offset) {
    const reg_width param_width_32 = get_token_width_32(param);
    reg_width param_width_64 = get_token_width_64(param);
@@ -214,7 +215,7 @@ void emit_load_arg(std::ostream& os, type_token param, const reg_group *group,
    std::stringstream src;
    src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
    std::string src_str = src.str();
-   emit_inst(os, opcode, group->reg(param_width_64), src_str);
+   emit_inst(os, opcode, group.reg(param_width_64), src_str);
 }
 
 void signature::Emit(std::ostream& os, const std::string& prefix) {
@@ -247,7 +248,7 @@ void signature::Emit(std::ostream& os, const std::string& prefix) {
    auto param_it = params.rbegin();
    auto reg_it = arg_regs.begin();
    for (; param_it != params.rend() && reg_it != arg_regs.end(); ++param_it, ++reg_it) {
-      emit_load_arg(os, *param_it, *reg_it, frame_offset);
+      emit_load_arg(os, *param_it, **reg_it, frame_offset);
       frame_offset += 4;
    }
 
@@ -256,7 +257,8 @@ void signature::Emit(std::ostream& os, const std::string& prefix) {
       /* mov r11, [rbp + <idx>]
        * push r11
        */
-      
+      emit_load_arg(os, *param_it, r11, frame_offset);
+      frame_offset += 4;
    }
    
    // TODO: Stand-in for variadic functions
