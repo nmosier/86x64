@@ -178,6 +178,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
             }
                      
             mov_inst->imm = mov_inst_imm;
+            mov_inst->loc.vmaddr = (*info.text_it)->loc.vmaddr;
 
             state.section->content.insert(info.text_it, mov_inst);
                      

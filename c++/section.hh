@@ -69,6 +69,12 @@ namespace MachO {
             throw std::invalid_argument(ss.str());
          } else if ((*it)->loc.vmaddr != vmaddr) {
             std::stringstream ss;
+
+            // DEBUG
+            for (auto blob : content) {
+               std::cerr << "\t0x" << std::hex << blob->loc.vmaddr << std::endl;
+            }
+            
             ss << "vmaddr " << std::hex << vmaddr << " not aligned with blob start";
             throw std::invalid_argument(ss.str());
          } else {

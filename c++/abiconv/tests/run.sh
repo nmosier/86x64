@@ -19,24 +19,20 @@ while getopts "h" OPTION; do
     esac
 done
 
-
 run_test() {
-    EXEC32="$1"
+    BASE="$1"
     shift 1
-    EXEC="${EXEC32%32}"
-    EXEC64="${EXEC}64"
-    ../86x64.sh -o "$EXEC64" -s "${EXEC}.syms" "$EXEC32" || return 1
-    diff "${EXEC64}.out" <("./${EXEC64}" "$@")
+    SYMS="${BASE}.syms"
+    EXEC64="${BASE}64"
+    make "$EXEC64" || return 1
+    diff "${BASE}.out" <("./${EXEC64}" "$@")
     return $?
 }
 
-EXEC32S="$(find . -name '*32')"
-TESTS_FAILED=0
-for EXEC32 in $(ls *32); do
-    EXEC64="${EXEC32%32}64"
-    echo "$EXEC64"
-    printf "%s" "testing ${EXEC32}..."
-    if run_test "$EXEC32"; then
+for SRC in $(ls *.c); do
+    BASE="${SRC%.c}"
+    printf "%s" "testing ${BASE}..."
+    if run_test "$BASE"; then
         echo "success"
     else
         echo "failed"
