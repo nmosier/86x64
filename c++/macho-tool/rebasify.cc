@@ -120,6 +120,19 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 
 int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
                                  const decode_info& info) const {
+   /* check if eax is destroyed */
+   if (info.reg0 == state.reg) {
+      switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
+      case XED_ICLASS_MOV:
+         state.reset();
+         return 0;
+
+      default:
+         break;
+      }
+   }
+
+   
    /* check if reads from or writes to eax */
    switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
 #if 0
