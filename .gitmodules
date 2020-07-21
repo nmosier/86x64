@@ -1,0 +1,6 @@
+[submodule "extern/xed"]
+	path = extern/xed
+	url = https://github.com/intelxed/xed
+[submodule "extern/mbuild"]
+	path = extern/mbuild
+	url = https://github.com/intelxed/mbuild
