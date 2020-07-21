@@ -1,3 +1,4 @@
+_exit i
 _putchar i
 _puts p
 _printf p v 5

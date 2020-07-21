@@ -184,11 +184,13 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
                      
             /* adjust displacement if necessary */
             if (info.base_reg == state.reg) {
-               const xed_enc_displacement_t encdisp =
-                  {0, xed_decoded_inst_get_memory_displacement_width_bits(&inst->xedd, 0)};
-               if (!xed_patch_disp(&inst->xedd, inst->instbuf.data(), encdisp)) {
-                  log("error while patching displacement");
-                  return -1;
+               const unsigned dispbits = xed_decoded_inst_get_memory_displacement_width_bits(&inst->xedd, 0);
+               if (dispbits != 0) {
+                  const xed_enc_displacement_t encdisp = {0, dispbits};
+                  if (!xed_patch_disp(&inst->xedd, inst->instbuf.data(), encdisp)) {
+                     log("error while patching displacement");
+                     return -1;
+                  }
                }
             }
                      
