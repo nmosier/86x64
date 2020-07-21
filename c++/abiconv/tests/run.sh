@@ -2,15 +2,20 @@
 
 usage() {
 cat <<EOF
-usage: $0 [-h]
+usage: $0 [-hv]
 EOF
 }
 
-while getopts "h" OPTION; do
+VERBOSE=""
+
+while getopts "hv" OPTION; do
     case $OPTION in
         "h")
             usage
             exit 0
+            ;;
+        "v")
+            VERBOSE=1
             ;;
         "?")
             usage >&2
@@ -19,12 +24,18 @@ while getopts "h" OPTION; do
     esac
 done
 
+if [ $VERBOSE ]; then
+    MAKE_FLAGS="VERBOSE=-v"
+else
+    MAKE_FLAGS="-s"
+fi
+
 run_test() {
     BASE="$1"
     shift 1
     SYMS="${BASE}.syms"
     EXEC64="${BASE}64"
-    make -s "$EXEC64" || return 1
+    make $MAKE_FLAGS "$EXEC64" || return 1
     diff "${BASE}.out" <("./${EXEC64}" "$@")
     return $?
 }

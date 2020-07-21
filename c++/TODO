@@ -10,3 +10,5 @@
 
 [ ] statically interpose lazily bound symbols
     - need to specify symbol name, new name and library
+
+[ ] need to interpose dyld_stub_binder to ensure 16-byte alignment
