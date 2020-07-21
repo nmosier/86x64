@@ -234,6 +234,17 @@ void signature::Emit(std::ostream& os, const std::string& prefix) {
    
    os << prefix << sym << ":" << std::endl;
 
+   /* check if freshly bound */
+   emit_inst(os, "cmp", "qword [rel __dyld_stub_binder_flag]", "0");
+   emit_inst(os, "je", ".l1");
+
+   /* fix stack */
+   emit_inst(os, "mov", "rsp", "qword [rel __dyld_stub_binder_flag]");
+   emit_inst(os, "add", "rsp", "16");
+   emit_inst(os, "mov", "qword [rel __dyld_stub_binder_flag]", "0");
+   
+   os << ".l1:" << std::endl;
+
    /* save registers */
    emit_inst(os, "push", "rbp");
    emit_inst(os, "mov", "rbp", "rsp");
@@ -309,6 +320,7 @@ int main(int argc, char *argv[]) {
    signature sign;
 
    std::cout << "\tsegment .text" << std::endl;
+   std::cout << "\textern __dyld_stub_binder_flag" << std::endl;
    
    while (std::cin >> sign) {
       sign.Emit(std::cout, "__");

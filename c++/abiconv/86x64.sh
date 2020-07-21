@@ -95,11 +95,17 @@ SYMS=$(macho-tool print --lazy-bind "$ABI64" | tail +2 | cut -d" " -f5)
 
 # statically interpose lazily bound symbols to libabiconv
 INTERPOSE64=$(mktemp)
-trap "rm $INTERPOSE64" EXIT
+trap "rm -f $INTERPOSE64" EXIT
 v ./static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$ABI64" $SYMS || error
 
+# interpose dyld_stub_binder
+DYLD64=$(mktemp)
+trap "rm -f $DYLD64" EXIT
+DYLD_ORD=$(macho-tool translate --load-dylib "$LIBABICONV" "$INTERPOSE64")
+v macho-tool modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stub_binder",new_dylib="$DYLD_ORD" "$INTERPOSE64" "$DYLD64"
+
 # convert result to dylib
-v macho-tool convert --archive DYLIB "$INTERPOSE64" "$DYLIB64" || error
+v macho-tool convert --archive DYLIB "$DYLD64" "$DYLIB64" || error
 
 # link wrapper
 v ld -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE"

@@ -2,7 +2,7 @@
 
 usage() {
     cat <<EOF
-usage: $0 [-h] [-o libabiconv] [-l ldlib] [-L libpath] [sympath=<stdin>]
+usage: $0 [-h] [-o libabiconv] [-l ldlib] [-L libpath] [-d dyld_stub_binder.asm] [sympath=<stdin>]
 EOF
 }
 
@@ -15,8 +15,9 @@ OUTPATH="a.out"
 SYMBOLS=""
 LDFLAGS=()
 LDLIBS=("-lsystem")
+DYLD_STUB_BINDER_ASM="dyld_stub_binder.asm"
 
-while getopts "ho:l:L:" OPTION; do
+while getopts "ho:l:L:d:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -30,6 +31,9 @@ while getopts "ho:l:L:" OPTION; do
             ;;
         L)
             LDFLAGS=("${LDFLAGS[@]}" "-L$OPTARG")
+            ;;
+        d)
+            DYLD_STUB_BINDER_ASM="$OPTARG"
             ;;
         ?)
             usage >&2
@@ -53,7 +57,8 @@ fi
 # generate 32-to-64 ABI converter
 ABICONV_ASM=$(mktemp)
 ABICONV_O=$(mktemp)
-trap "rm $ABICONV_ASM $ABICONV_O" EXIT
+DYLD_STUB_BINDER_O=$(mktemp)
+trap "rm -f $ABICONV_ASM $ABICONV_O $DYLD_STUB_BINDER_O" EXIT
 
 if [ "$SYMBOLS" ]; then
     ./abigen < "$SYMBOLS"
@@ -61,5 +66,6 @@ else
     ./abigen
 fi > "$ABICONV_ASM" || error
 
-nasm -f macho64 -o "$ABICONV_O" "$ABICONV_ASM"
-cc "${LDFLAGS[@]}" "${LDLIBS[@]}" -dynamiclib -o "$OUTPATH" "$ABICONV_O"
+nasm -f macho64 -o "$ABICONV_O" "$ABICONV_ASM" || error
+nasm -f macho64 -o "$DYLD_STUB_BINDER_O" "$DYLD_STUB_BINDER_ASM" || error 
+cc "${LDFLAGS[@]}" "${LDLIBS[@]}" -dynamiclib -o "$OUTPATH" "$ABICONV_O" "$DYLD_STUB_BINDER_O" || error
