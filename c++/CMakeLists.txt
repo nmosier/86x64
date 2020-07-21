@@ -41,3 +41,8 @@ add_executable(trie-test
   )
 
 add_subdirectory(abiconv)
+
+install(TARGETS macho-tool
+  RUNTIME
+  DESTINATION bin
+  )

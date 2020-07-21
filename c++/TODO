@@ -8,7 +8,9 @@
 
 [X] Add instruction transformation rules
 
-[ ] statically interpose lazily bound symbols
+[X] statically interpose lazily bound symbols
     - need to specify symbol name, new name and library
 
-[ ] need to interpose dyld_stub_binder to ensure 16-byte alignment
+[X] need to interpose dyld_stub_binder to ensure 16-byte alignment
+
+[ ] single script that can be run
