@@ -55,17 +55,22 @@ _main_wrapper:
    mov rdx, [rsp + 24]          ; argv
    add rdx, rax                 ; new argv
    mov [rsp + 24], rdx
-.argv_loop: 
-   add qword [rdx], rax
+   mov rcx, rdx                 ; rcx -- output it; rdx -- input it
+.argv_loop:
+   mov rbx, [rdx]
+   add rbx, rax
+   mov [rcx], ebx
+   add rcx, 4
    add rdx, 8
    cmp qword [rdx], 0
    jne .argv_loop
+   mov dword [rcx], 0
 
    ;; success
    lea rdi, [rel success_msg]
    mov rsi, rsp
    ;; call _printf
-
+   
    ;; work
    mov rdi, [rsp + 16]          ; argc
    mov rsi, [rsp + 24]          ; argv
