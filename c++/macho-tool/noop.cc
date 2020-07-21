@@ -1,6 +1,6 @@
 #include "noop.hh"
-#include "macho.hh"
-#include "image.hh"
+#include "core/macho.hh"
+#include "core/image.hh"
 
 
 int NoopCommand::opthandler(int optchar) {

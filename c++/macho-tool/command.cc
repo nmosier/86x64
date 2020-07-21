@@ -4,7 +4,7 @@
 #include <fcntl.h>
 
 #include "command.hh"
-#include "image.hh"
+#include "core/image.hh"
 
 int Command::handle(int argc, char *argv[]) {
    int optstat = parseopts(argc, argv);

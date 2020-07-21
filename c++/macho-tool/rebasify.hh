@@ -4,8 +4,8 @@ extern "C" {
 #include <xed-interface.h>
 }
 #include "command.hh"
-#include "segment.hh"
-#include "section.hh"
+#include "core/segment.hh"
+#include "core/section.hh"
 
 struct Rebasify: InOutCommand {
    struct state_info {

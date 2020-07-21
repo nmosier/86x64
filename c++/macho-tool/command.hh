@@ -5,7 +5,7 @@
 #include <string>
 
 #include "macho-tool.h"
-#include "types.hh"
+#include "core/types.hh"
 
 struct Command {
    const char *name;

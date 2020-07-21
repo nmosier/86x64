@@ -3,8 +3,8 @@
 #include <fcntl.h>
 
 #include "translate.hh"
-#include "macho.hh"
-#include "archive.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
 #include "util.hh"
 
 int TranslateCommand::opthandler(int optchar) {

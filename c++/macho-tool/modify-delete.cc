@@ -1,7 +1,7 @@
 #include "modify-delete.hh"
-#include "archive.hh"
-#include "instruction.hh"
-#include "symtab.hh"
+#include "core/archive.hh"
+#include "core/instruction.hh"
+#include "core/symtab.hh"
 
 int ModifyCommand::Delete::Instruction::subopthandler(int index, char *value) {
    switch (index) {

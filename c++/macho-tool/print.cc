@@ -2,11 +2,11 @@
 #include <fcntl.h>
 
 #include "print.hh"
-#include "macho.hh"
-#include "archive.hh"
-#include "dyldinfo.hh"
-#include "rebase_info.hh"
-#include "symtab.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
+#include "core/dyldinfo.hh"
+#include "core/rebase_info.hh"
+#include "core/symtab.hh"
 
 int PrintCommand::opthandler(int optchar) {
    switch (optchar) {

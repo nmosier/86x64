@@ -16,9 +16,9 @@
 #include <sstream>
 #include <libgen.h>
 
-#include "macho.hh"
-#include "archive.hh"
-#include "instruction.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
+#include "core/instruction.hh"
 #include "tweak.hh"
 
 #include "command.hh"

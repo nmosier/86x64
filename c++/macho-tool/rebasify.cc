@@ -1,13 +1,13 @@
 #include <iostream>
 
 #include "rebasify.hh"
-#include "macho.hh"
-#include "archive.hh"
-#include "opcodes.hh"
-#include "section_blob.hh"
-#include "instruction.hh"
-#include "rebase_info.hh"
-#include "dyldinfo.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
+#include "core/opcodes.hh"
+#include "core/section_blob.hh"
+#include "core/instruction.hh"
+#include "core/rebase_info.hh"
+#include "core/dyldinfo.hh"
 
 int Rebasify::opthandler(int optchar) {
    switch (optchar) {

@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "transform.hh"
-#include "archive.hh"
+#include "core/archive.hh"
 
 int TransformCommand::opthandler(int optchar) {
    switch (optchar) {

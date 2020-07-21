@@ -4,9 +4,9 @@
 
 #include "convert.hh"
 #include "util.hh"
-#include "macho.hh"
-#include "archive.hh"
-#include "symtab.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
+#include "core/symtab.hh"
 
 int ConvertCommand::opthandler(int optchar) {
    switch (optchar) {

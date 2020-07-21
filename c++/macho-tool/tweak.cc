@@ -1,8 +1,8 @@
 #include <fcntl.h>
 #include <iostream>
 
-#include "../tweak.hh"
-#include "tweak.hh"
+#include "core/tweak.hh"
+#include "./tweak.hh"
 
 int TweakCommand::opthandler(int optchar) {
    switch (optchar) {

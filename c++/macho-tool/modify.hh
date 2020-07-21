@@ -3,7 +3,7 @@
 #include <list>
 
 #include "command.hh"
-#include "loc.hh"
+#include "core/loc.hh"
 
 struct ModifyCommand: public InOutCommand {
    struct Insert;

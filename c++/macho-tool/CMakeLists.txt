@@ -1,4 +1,4 @@
-include_directories("..")
+include_directories("${PROJECT_SOURCE_DIR}/core")
 
 add_executable(macho-tool
   macho-tool.cc
@@ -16,10 +16,9 @@ add_executable(macho-tool
   transform.cc
   print.cc
   rebasify.cc
-  $<TARGET_OBJECTS:macho_cxx_objs>
+  $<TARGET_OBJECTS:core_objs>
   )
 
 target_link_libraries(macho-tool PRIVATE ${xed_LIBRARIES} scanopt)
 target_include_directories(macho-tool PRIVATE ${xed_INCLUDE_DIRS})
-target_compile_options(macho-tool PRIVATE -pedantic -Wall -Wno-format-security
-  -Wno-writable-strings)
+target_compile_options(macho-tool PRIVATE -pedantic -Wall -Wno-format-security -Wno-writable-strings)

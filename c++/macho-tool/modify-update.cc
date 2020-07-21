@@ -1,9 +1,9 @@
 #include "modify-update.hh"
 #include "util.hh"
-#include "lc.hh"
-#include "macho.hh"
-#include "archive.hh"
-#include "dyldinfo.hh"
+#include "core/lc.hh"
+#include "core/macho.hh"
+#include "core/archive.hh"
+#include "core/dyldinfo.hh"
 
 Operation *ModifyCommand::Update::getop(int index) {
    switch (index) {

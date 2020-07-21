@@ -1,6 +1,6 @@
 #include "modify-insert.hh"
-#include "archive.hh"
-#include "instruction.hh"
+#include "core/archive.hh"
+#include "core/instruction.hh"
 #include "util.hh"
 
 void ModifyCommand::Insert::Instruction::operator()(MachO::MachO *macho) {
