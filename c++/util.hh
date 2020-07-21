@@ -44,7 +44,7 @@ namespace MachO {
 
    class cerror: public std::exception {
    public:
-      cerror(const char *s) { asprintf(&errstr, "%s: %s\n", s, strerror(errno)); }
+      inline cerror(const char *s) { asprintf(&errstr, "%s: %s\n", s, strerror(errno)); }
       ~cerror() { free(errstr); }
 
       virtual const char *what() const throw() { return errstr; }

@@ -202,7 +202,7 @@ namespace MachO {
             syms.insert(sym->Transform(env));
          }
       }
-#warning DEBUG
+
       for (const auto str : other.strs) {
          if (str->str != Nlist<bits>::DYLD_PRIVATE || 1) {
             strs.push_back(str->Transform(env));

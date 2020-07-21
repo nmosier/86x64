@@ -32,7 +32,7 @@ add_library(macho_cxx_objs
 
 target_link_libraries(macho_cxx_objs PRIVATE ${xed_LIBRARIES})
 target_include_directories(macho_cxx_objs PRIVATE ${xed_INCLUDE_DIRS})
-target_compile_options(macho_cxx_objs PRIVATE -pedantic -Wall) # -Wno-format-security)
+target_compile_options(macho_cxx_objs PRIVATE -pedantic -Wall -Wno-format-security)
 
 add_subdirectory(macho-tool)
 
