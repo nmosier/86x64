@@ -21,5 +21,5 @@ ExternalProject_Add(xed
 
 ExternalProject_Get_Property(xed BINARY_DIR)
 set(xed_BINARY_DIR "${BINARY_DIR}")
-set(xed_LIBRARIES "${xed_BINARY_DIR}/lib/libxed.a" CACHE INTERNAL "xed_LIBRARIES")
-set(xed_INCLUDE_DIRS "${xed_BINARY_DIR}/include" CACHE INTERNAL "xed_INCLUDE_DIRS")
+set(xed_LIBRARIES "${xed_BINARY_DIR}/obj/libxed.a" CACHE INTERNAL "xed_LIBRARIES")
+set(xed_INCLUDE_DIRS "${xed_BINARY_DIR}/obj/wkit/include" CACHE INTERNAL "xed_INCLUDE_DIRS")
