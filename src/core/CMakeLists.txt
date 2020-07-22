@@ -1,5 +1,5 @@
-link_directories($ENV{HOME}/lib)
-include_directories($ENV{HOME}/include)
+# link_directories($ENV{HOME}/lib)
+# include_directories($ENV{HOME}/include)
 include_directories("${PROJECT_SOURCE_DIR}/include/core")
 
 add_library(core_objs

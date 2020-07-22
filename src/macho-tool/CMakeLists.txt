@@ -1,6 +1,6 @@
 include_directories("${PROJECT_SOURCE_DIR}/include/macho-tool")
-include_directories("$ENV{HOME}/include")
-link_directories("$ENV{HOME}/lib")
+# include_directories("$ENV{HOME}/include")
+# link_directories("$ENV{HOME}/lib")
 
 add_executable(macho-tool
   macho-tool.cc
@@ -21,7 +21,7 @@ add_executable(macho-tool
   $<TARGET_OBJECTS:core_objs>
   )
 
-target_link_libraries(macho-tool PRIVATE ${xed_LIBRARIES} scanopt)
+target_link_libraries(macho-tool PRIVATE ${xed_LIBRARIES})
 target_include_directories(macho-tool PRIVATE ${xed_INCLUDE_DIRS})
 target_compile_options(macho-tool PRIVATE -pedantic -Wall -Wno-format-security -Wno-writable-strings)
 
