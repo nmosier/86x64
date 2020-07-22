@@ -1,10 +1,6 @@
 #!/bin/bash
 
-local HARD_PATH="$(readlink "$0")"
-if [ "$HARD_PATH" ]; then
-    export 86x64_DIR="$(basename "$HARD_PATH")"
-else
-    export 86x64_DIR="$PWD"
-fi
-
-exec "$86x64_DIR/86x64.sh" "$@"
+ACTUAL_PATH="$(which "$0")"
+HARD_PATH="$(readlink "$ACTUAL_PATH")"
+export _86x64_DIR="$(dirname "${HARD_PATH:-$ACTUAL_PATH}")"
+exec "$_86x64_DIR/86x64.sh" "$@"
