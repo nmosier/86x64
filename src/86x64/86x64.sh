@@ -110,4 +110,4 @@ v macho-tool modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stu
 v macho-tool convert --archive DYLIB "$DYLD64" "$DYLIB64" || error
 
 # link wrapper
-v ld -arch x86_64 -rpath "$ROOTDIR" -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE"
+v ld -arch x86_64 -rpath "$ROOTDIR" -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE" 2>&1
