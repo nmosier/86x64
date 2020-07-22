@@ -14,7 +14,7 @@ ExternalProject_Add(xed
   PREFIX xed
   GIT_REPOSITORY https://github.com/intelxed/xed.git
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed/mfile.py" --install-dir="${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed-build" --jobs=8 -s install > "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed-stamp/build.log"
+  BUILD_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/build-xed.sh" "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed" "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed-build"
   INSTALL_COMMAND ""
   DEPENDS mbuild
   )
