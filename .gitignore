@@ -28,3 +28,6 @@ c++/macho
 c++/a.out
 mach-o
 dyld/
+extern/xed/
+trash/
+src/abiconv/abigen
