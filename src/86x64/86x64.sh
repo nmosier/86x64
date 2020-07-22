@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export ROOTDIR="$(dirname "$(readlink "$0")")"
+
 usage() {
     cat<<EOF
 usage: 86x64 [-hv] [-o archive64] [-l libabiconv] -s sympath [-w wrapper] [-i libinterpose] [-a archive64.dylib] archive32
@@ -19,9 +21,9 @@ abort() {
 
 ARCHIVE64="a.out"
 SYMPATH=""
-LIBABICONV="libabiconv.dylib"
-WRAPPER_OBJ="wrapper.o"
-LIBINTERPOSE="libinterpose.dylib"
+LIBABICONV="$ROOTDIR/libabiconv.dylib"
+WRAPPER_OBJ="$ROOTDIR/libwrapper.a"
+LIBINTERPOSE="$ROOTDIR/libinterpose.dylib"
 DYLIB64=""
 VERBOSE=""
 
@@ -83,7 +85,7 @@ trap "rm $TRANSFORM64" EXIT
 v macho-tool transform "$REBASE32" "$TRANSFORM64" || error
 
 # generate abi conversion dylib
-./abiconv.sh -o "$LIBABICONV" "$SYMPATH" || error
+v "$ROOTDIR"/abiconv.sh -o "$LIBABICONV" "$SYMPATH" || error
 
 # link 64-bit archive with libabiconv.dylib
 ABI64=$(mktemp)
@@ -96,7 +98,7 @@ SYMS=$(macho-tool print --lazy-bind "$ABI64" | tail +2 | cut -d" " -f5)
 # statically interpose lazily bound symbols to libabiconv
 INTERPOSE64=$(mktemp)
 trap "rm -f $INTERPOSE64" EXIT
-v ./static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$ABI64" $SYMS || error
+v "$ROOTDIR"/static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$ABI64" $SYMS || error
 
 # interpose dyld_stub_binder
 DYLD64=$(mktemp)
@@ -108,4 +110,4 @@ v macho-tool modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stu
 v macho-tool convert --archive DYLIB "$DYLD64" "$DYLIB64" || error
 
 # link wrapper
-v ld -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE"
+v ld -arch x86_64 -rpath "$ROOTDIR" -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE"
