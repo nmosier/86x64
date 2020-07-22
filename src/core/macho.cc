@@ -2,7 +2,7 @@
 #include <mach-o/loader.h>
 
 extern "C" {
-#include <xed-interface.h>
+#include <xed/xed-interface.h>
 }
 
 #include "archive.hh"

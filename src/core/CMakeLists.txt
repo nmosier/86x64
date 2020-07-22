@@ -30,7 +30,9 @@ add_library(core_objs
   transform.cc
   stub_helper.cc
   )
+add_dependencies(core_objs xed)
 
+message(xed_INCLUDE_DIRS=${xed_INCLUDE_DIRS})
 target_link_libraries(core_objs PRIVATE ${xed_LIBRARIES})
 target_include_directories(core_objs PRIVATE ${xed_INCLUDE_DIRS})
 target_compile_options(core_objs PRIVATE -pedantic -Wall -Wno-format-security)

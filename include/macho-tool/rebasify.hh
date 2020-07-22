@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include <xed-interface.h>
+#include <xed/xed-interface.h>
 }
 #include "command.hh"
 #include "core/segment.hh"
