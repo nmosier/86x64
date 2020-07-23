@@ -3,6 +3,8 @@
 
 #include <ostream>
 
+#include "cgen-fwd.hpp"
+
 namespace zc {
 
    class Declaration;
@@ -21,8 +23,14 @@ namespace zc {
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
       
       /* Semantic Analysis */
+      virtual void TypeCheck(SemantEnv& env);
       ASTType *Type() const;
+      virtual void Enscope(SemantEnv& env) const;
+      virtual void Descope(SemantEnv& env) const;
 
+      /* Code Generation */
+      virtual void CodeGen(CgenEnv& env);
+      
       /* AST Transformations */
       virtual void ReduceConst() {}
       virtual void DAG() {}
@@ -50,6 +58,19 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override;
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
 
+      /* Semantic Analysis */
+      virtual void TypeCheck(SemantEnv& env) override;
+      virtual void Enscope(SemantEnv& env) const override;
+      virtual void Descope(SemantEnv& env) const override;
+
+      /* Code Generation */
+      virtual void CodeGen(CgenEnv& env) override;
+      void FrameGen(StackFrame& frame) const;
+
+      /* AST Transformation */
+      virtual void ReduceConst() override;
+      virtual void DAG() override;
+      
    protected:
       CompoundStat *comp_stat_;
 

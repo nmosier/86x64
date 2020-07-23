@@ -7,6 +7,8 @@
 
 #include <set>
 
+#include "semant.hpp"
+
 namespace zc {
 
    std::ostream& indent(std::ostream& os, int level);
@@ -39,6 +41,13 @@ namespace zc {
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override {
          for (const Node *node : vec_) {
             node->Dump(os, level, with_types);
+         }
+      }
+
+      template <typename... Args>
+      void TypeCheck(SemantEnv& env, Args... args) {
+         for (Node *node : vec_) {
+            node->TypeCheck(env, args...);
          }
       }
 
