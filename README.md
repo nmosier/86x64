@@ -9,11 +9,9 @@ These instructions will guide you through setting up 86x64 on your Mac.
 
 ## Installing
 
-### Brief
 86x64 can be installed with the usual `cmake ..; make; make install` combo.
 
-### Detailed
-Obtain a copy of the repository and enter it, e.g.
+Obtain a copy of the repository and enter it:
 
 ```git clone https://github.com/nmosier/86x64.git && cd 86x64```
 
@@ -21,15 +19,15 @@ Create a build directory and enter it:
 
 ```mkdir build && cd build```
 
-Configure the build with
+Configure the build:
 
 ```cmake ..```
 
-Build the project with
+Build the project;
 
 ```make```
 
-Install the project with
+Install the project:
 
 ```make install```
 
