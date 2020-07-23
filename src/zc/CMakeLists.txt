@@ -27,8 +27,8 @@ add_library(zc_objs
   env.cpp
 )
 
-add_executable(zc
-  cgen-main.cc
+add_executable(parser
+  parser-main.cc
   $<TARGET_OBJECTS:zc_objs>
   $<TARGET_OBJECTS:ast_objs>
   $<TARGET_OBJECTS:asm_objs>
@@ -38,4 +38,4 @@ add_executable(zc
   $<TARGET_OBJECTS:semant_objs>
   $<TARGET_OBJECTS:crt_objs>
   $<TARGET_OBJECTS:alg_objs>
-)
+  )  
