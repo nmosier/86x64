@@ -28,3 +28,20 @@ add_library(dyld_stub_binder STATIC dyld_stub_binder.asm)
 install(TARGETS dyld_stub_binder DESTINATION opt/86x64)
 
 install(FILES symdefs.txt DESTINATION opt/86x64)
+
+find_package(FLEX REQUIRED)
+find_package(BISON REQUIRED)
+
+FLEX_TARGET(scanner c.l "${CMAKE_CURRENT_BINARY_DIR}/lexer.cc")
+BISON_TARGET(parser c.ypp "${CMAKE_CURRENT_BINARY_DIR}/parse.cc"
+  DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parse.hh"
+  )
+ADD_FLEX_BISON_DEPENDENCY(scanner parser)
+
+add_executable(parser-main
+  parser-main.cc
+  "${FLEX_scanner_OUTPUTS}"
+  "${BISON_scanner_OUTPUTS}"
+  )
+# target_link_libraries(parser-main ${FLEX_LIBRARIES})
+
