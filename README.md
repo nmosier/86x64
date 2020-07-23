@@ -13,23 +13,33 @@ These instructions will guide you through setting up 86x64 on your Mac.
 
 Obtain a copy of the repository and enter it:
 
-```git clone https://github.com/nmosier/86x64.git && cd 86x64```
+```
+git clone https://github.com/nmosier/86x64.git && cd 86x64
+```
 
 Create a build directory and enter it:
 
-```mkdir build && cd build```
+```
+mkdir build && cd build
+```
 
 Configure the build:
 
-```cmake ..```
+```
+cmake ..
+```
 
 Build the project;
 
-```make```
+```
+make
+```
 
 Install the project:
 
-```make install```
+```
+make install
+```
 
 By default, 86x64 files will be installed to `/usr/local/opt/86x64`.
 
