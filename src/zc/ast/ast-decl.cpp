@@ -4,7 +4,6 @@
 
 #include "ast.hpp"
 #include "util.hpp"
-#include "cgen.hpp"
 
 namespace zc {
 
@@ -70,8 +69,6 @@ namespace zc {
    }
 
    TypeDeclaration::TypeDeclaration(DeclarableType *type): Declaration(type, type->loc()) {}
-
-   int VarDeclaration::bytes() const { return type()->bytes(); }
 
    Symbol *ExternalDecl::sym() const {
       const auto var = dynamic_cast<const VarDeclaration *>(decl());

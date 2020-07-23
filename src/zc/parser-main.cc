@@ -40,8 +40,6 @@ limitations under the License.
 #include <stdio.h>
 
 #include "ast.hpp"
-// #include "cgen.hpp"
-// #include "optim.hpp"
 #include "symtab.hpp"
 
 // Lexer and parser associated variables

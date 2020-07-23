@@ -6,10 +6,7 @@
 #include <list>
 #include <any>
 
-#include "cgen-fwd.hpp"
-#include "asm-fwd.hpp"
 #include "symtab.hpp"
-#include "alg/alg-dag.hpp"
 
 namespace zc {
 
@@ -29,17 +26,8 @@ namespace zc {
          };
       virtual ExprKind expr_kind() const = 0;
       virtual bool is_const() const = 0;
-      virtual intmax_t int_const() const {
-         throw std::logic_error("attempt to evaluate expression that is not constant");
-      }
       
       virtual void TypeCheck(SemantEnv& env) = 0;
-
-      /**
-       * Push cast down expr.
-       */
-      virtual ASTExpr *Cast(ASTType *type);
-      
                            
       void DumpType(std::ostream& os) const;
                            
@@ -170,7 +158,6 @@ namespace zc {
       const char *kindstr() const;
       virtual ExprKind expr_kind() const override;
       virtual bool is_const() const override;
-      virtual intmax_t int_const() const override;
       
       static UnaryExpr *Create(Kind kind, ASTExpr *expr, const SourceLoc& loc) {
          return new UnaryExpr(kind, expr, loc);
@@ -180,7 +167,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const UnaryExpr *>(other);
          return other_ && kind() == other_->kind() && ASTUnaryExpr::ExprEq(other);
@@ -214,7 +200,6 @@ namespace zc {
       Kind kind() const { return kind_; }
       bool is_logical() const;
       virtual bool is_const() const override;
-      virtual intmax_t int_const() const override;      
 
       template <typename... Args>
       static BinaryExpr *Create(Args... args) { return new BinaryExpr(args...); }
@@ -225,7 +210,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override;
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const BinaryExpr *>(other);
          return other_ && kind() == other_->kind() && ASTBinaryExpr::ExprEq(other);
@@ -246,7 +230,6 @@ namespace zc {
       const intmax_t& val() const { return val_; }
       virtual ExprKind expr_kind() const override;
       virtual bool is_const() const override { return true; }
-      virtual intmax_t int_const() const override { return val_; }
 
       template <typename... Args>
       static LiteralExpr *Create(Args... args) {
@@ -260,7 +243,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const LiteralExpr *>(other);
          return other_ && val() == other_->val() && ASTExpr::ExprEq(other);
@@ -310,7 +292,6 @@ namespace zc {
       Identifier *id() const { return id_; }
       virtual ExprKind expr_kind() const override;
       virtual bool is_const() const override { return is_const_; }
-      virtual intmax_t int_const() const override;
       
       static IdentifierExpr *Create(Identifier *id, const SourceLoc& loc) {
          return new IdentifierExpr(id, loc);
@@ -349,8 +330,6 @@ namespace zc {
       }
 
       virtual void TypeCheck(SemantEnv& env) override;
-
-      virtual ASTExpr *Cast(ASTType *type) override { abort(); }      
 
    protected:
       NoExpr(const SourceLoc& loc): ASTExpr(loc) {}
@@ -394,7 +373,6 @@ namespace zc {
    public:
       virtual ExprKind expr_kind() const override { return ExprKind::EXPR_RVALUE; }
       virtual bool is_const() const override { return expr()->is_const(); }
-      virtual intmax_t int_const() const override;
 
       template <typename... Args>
       static CastExpr *Create(Args... args) { return new CastExpr(args...); }
@@ -404,7 +382,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override { 
          auto other_ = dynamic_cast<const CastExpr *>(other);
          return other_ && ASTExpr::ExprEq(other);
@@ -456,7 +433,6 @@ namespace zc {
    public:
       virtual ExprKind expr_kind() const override { return ExprKind::EXPR_RVALUE; }
       virtual bool is_const() const override { return true; }
-      virtual intmax_t int_const() const override;
       
       template <typename... Args>
       static SizeofExpr *Create(Args... args) { return new SizeofExpr(args...); }
@@ -466,14 +442,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual ASTExpr *Cast(ASTType *type) override;      
-      virtual bool ExprEq(ASTExpr *other) override {
-         /* NOTE: This doesn't check strict equality of the variant; rather, only checks equality
-          * of the constants. This shouldn't matter after a ReduceConst() pass is made, though. */
-         auto other_ = dynamic_cast<const SizeofExpr *>(other);
-         return other_ && int_const() == other_->int_const() && ASTExpr::ExprEq(other);
-      }
-      
    protected:
       Variant variant_;
 
@@ -497,7 +465,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override { os << "IndexExpr"; }
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
       virtual void TypeCheck(SemantEnv& env) override;
-      virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const IndexExpr *>(other);
          return other_ && ASTExpr::ExprEq(other);

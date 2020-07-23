@@ -3,8 +3,6 @@
 
 #include <ostream>
 
-#include "cgen-fwd.hpp"
-
 namespace zc {
 
    class Declaration;

@@ -8,19 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(BISON)
 find_package(FLEX 2.5.35 REQUIRED)
 
-add_compile_options("-pedantic;-DEZ80")
+add_compile_options("-pedantic")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
-
-
 add_subdirectory(ast)
-# add_subdirectory(asm)
-# add_subdirectory(cgen)
-# add_subdirectory(optim)
-# add_subdirectory(ralloc)
 add_subdirectory(semant)
-# add_subdirectory(crt)
-# add_subdirectory(alg)
 
 add_library(zc_objs
   OBJECT
@@ -31,10 +23,5 @@ add_executable(parser
   parser-main.cc
   $<TARGET_OBJECTS:zc_objs>
   $<TARGET_OBJECTS:ast_objs>
-#   $<TARGET_OBJECTS:asm_objs>
-#   $<TARGET_OBJECTS:cgen_objs>
-#   $<TARGET_OBJECTS:optim_objs>
-#   $<TARGET_OBJECTS:ralloc_objs>
   $<TARGET_OBJECTS:semant_objs>
-#   $<TARGET_OBJECTS:crt_objs>
   )  

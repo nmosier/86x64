@@ -4,7 +4,6 @@
 #include "env.hpp"
 #include "ast.hpp"
 #include "semant.hpp"
-#include "cgen.hpp"
 
 namespace zc {
 
@@ -22,6 +21,5 @@ namespace zc {
    }   
 
    template class Env<Declaration, TaggedType, ASTStat, SemantExtEnv>;
-   template class Env<SymInfo, TaggedType, StatInfo, CgenExtEnv>;
    
 }

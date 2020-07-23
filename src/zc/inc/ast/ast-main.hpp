@@ -7,8 +7,6 @@
 
 #include <iostream>
 
-#include "cgen-fwd.hpp"
-
 namespace zc {
 
    class TranslationUnit: public ASTNode {

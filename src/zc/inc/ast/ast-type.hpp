@@ -9,7 +9,6 @@
 
 #include "uniq_vector.hpp"
 #include "ast-decl.hpp"
-#include "asm-fwd.hpp"
 
 extern const char *g_filename;
 
@@ -72,9 +71,6 @@ namespace zc {
       virtual bool decays() const { return false; }
       virtual ASTType *Decay() { return this; }
 
-      virtual int bytes() const = 0;
-      virtual int bits() const = 0;
-      
       static ASTType *Create(ASTType *specs, ASTDeclarator *declarator) {
          return declarator->Type(specs);         
       }
@@ -116,8 +112,6 @@ namespace zc {
       virtual ASTType *Address() override;
       virtual ASTType *Dereference(SemantEnv *env = nullptr) override;
 
-      virtual int bytes() const override { return z80::long_size; }
-      virtual int bits() const override { return unsigned_bits(bytes()); }
       
    protected:
       int depth_;
@@ -152,9 +146,6 @@ namespace zc {
       virtual ASTType *Address() override;
       virtual ASTType *Dereference(SemantEnv *env = nullptr) override;
 
-      virtual int bytes() const override { return z80::long_size; }
-      virtual int bits() const override { return unsigned_bits(bytes()); }
-      
    protected:
       ASTType *return_type_ = nullptr;
       VarDeclarations *params_ = nullptr;
@@ -186,9 +177,6 @@ namespace zc {
          throw std::logic_error("attempted to dereference 'void' type");
       }
 
-      virtual int bytes() const override { return 0; }
-      virtual int bits() const override { return 0; }
-      
       template <typename... Args>
       static VoidType *Create(Args... args) { return new VoidType(args...); }
       
@@ -219,11 +207,6 @@ namespace zc {
       virtual ASTType *Address() override;
       virtual ASTType *Dereference(SemantEnv *env) override {
          throw std::logic_error("attempted to dereference integral type");
-      }
-
-      virtual int bytes() const override;
-      virtual int bits() const override {
-         return (is_signed() ? signed_bits : unsigned_bits)(bytes());
       }
 
       template <typename... Args>
@@ -398,9 +381,6 @@ namespace zc {
       virtual ASTType *TypeResolve(SemantEnv& env) override;
       virtual bool TypeCoerce(const ASTType *from) const override;
 
-      virtual int bytes() const override = 0;
-      virtual int offset(const Symbol *sym) const = 0;
-
       virtual void TypeCheckMembs(SemantEnv& env) override {
          if (membs()) {
             for (auto decl : *membs()) {
@@ -438,10 +418,6 @@ namespace zc {
       template <typename... Args>
       static StructType *Create(Args... args) { return new StructType(args...); }
 
-      virtual int bytes() const override;
-      virtual int bits() const override { return unsigned_bits(bytes()); }
-      virtual int offset(const Symbol *sym) const override;
-
    protected:
       virtual const char *name() const override { return "struct"; }
 
@@ -456,10 +432,6 @@ namespace zc {
       template <typename... Args>
       static UnionType *Create(Args... args) { return new UnionType(args...); }
 
-      virtual int bytes() const override;
-      virtual int bits() const override { return unsigned_bits(bytes()); }
-      virtual int offset(const Symbol *sym) const override { return 0; }
-      
    protected:
       virtual const char *name() const override { return "union"; }
 
@@ -475,18 +447,6 @@ namespace zc {
       EnumType *enum_type() const { return enum_type_; }
 
       void Declare(SemantEnv& env);
-
-      intmax_t eval() const {
-         if (val() == nullptr) {
-            if (prev_ == nullptr) {
-               return 0;
-            } else {
-               return prev_->eval() + 1;
-            }
-         } else {
-            return val()->int_const();
-         }
-      }
 
       virtual void DumpNode(std::ostream& os) const override;
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
@@ -518,9 +478,6 @@ namespace zc {
 
       virtual void Declare(SemantEnv& env) override;
       
-      virtual int bytes() const override { return int_type_->bytes(); }
-      virtual int bits() const override { return int_type_->bits(); }
-
       template <typename... Args>
       static EnumType *Create(Args... args) { return new EnumType(args...); }
       
@@ -569,9 +526,6 @@ namespace zc {
       virtual bool decays() const override { return true; }
       virtual ASTType *Decay() override;
 
-      virtual int bytes() const override;
-      virtual int bits() const override { return unsigned_bits(bytes()); }
-
       template <typename... Args>
       static ArrayType *Create(Args... args) { return new ArrayType(args...); }
       
@@ -608,8 +562,6 @@ namespace zc {
       virtual ASTType *Dereference(SemantEnv *env) override {
          throw std::logic_error("unresolved named type");
       }
-      virtual int bytes() const override { throw std::logic_error("unresolved named type"); }
-      virtual int bits() const override { throw std::logic_error("unresolved named type"); }
       
       template <typename... Args>
       static NamedType *Create(Args... args) { return new NamedType(args...); }

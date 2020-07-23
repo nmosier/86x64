@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "ast.hpp"
-#include "asm.hpp"
 
 extern const char *g_filename;
 extern zc::SemantError g_semant_error;
@@ -354,47 +353,6 @@ namespace zc {
 
    /*** BYTES & BITS ***/
 
-   int IntegralType::bytes() const {
-      using Kind = IntegralType::IntKind;
-      switch (int_kind()) {
-      case Kind::SPEC_BOOL: return z80::flag_size;
-      case Kind::SPEC_CHAR: return z80::byte_size;
-      case Kind::SPEC_SHORT: return z80::word_size;
-      case Kind::SPEC_INT:
-      case Kind::SPEC_LONG:
-      case Kind::SPEC_LONG_LONG:
-         return z80::long_size;
-      }
-   }
-
-   int StructType::bytes() const {
-      return std::accumulate(membs()->begin(), membs()->end(), 0,
-                             [](int acc, auto it) -> int {
-                                return acc + it->bytes();
-                             });
-   }
-
-   int UnionType::bytes() const {
-      std::vector<int> sizes;
-      std::transform(membs()->begin(), membs()->end(), std::back_inserter(sizes),
-                     [](auto it) { return it->bytes(); });
-      return *std::max_element(sizes.begin(), sizes.end());
-   }
-
-   int ArrayType::bytes() const {
-      return elem()->bytes() * int_count();
-   }
-
-   int StructType::offset(const Symbol *sym) const {
-      auto it = std::find_if(membs()->begin(), membs()->end(),
-                             [&](auto it) -> bool {
-                                return it->sym() == sym;
-                             });
-      return std::accumulate(membs()->begin(), it, 0,
-                             [](int acc, auto it) -> int {
-                                return acc + it->bytes();
-                             });
-   }   
    
    int unsigned_bits(int bytes) {
       return bytes * 8;

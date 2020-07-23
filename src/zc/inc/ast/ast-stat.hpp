@@ -5,8 +5,6 @@
 #ifndef __AST_STAT_HPP
 #define __AST_STAT_HPP
 
-#include "asm-fwd.hpp"
-
 namespace zc {
 
    class ASTStat: public ASTNode {

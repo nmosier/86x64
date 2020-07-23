@@ -1,12 +1,10 @@
 #include <unordered_set>
 
 #include "ast.hpp"
-#include "asm.hpp"
 #include "symtab.hpp"
 #include "semant.hpp"
 #include ZC_PARSER_HEADER
 #include "util.hpp"
-#include "optim.hpp"
 
  extern const char *g_filename;
 
@@ -249,15 +247,6 @@
 
        count()->TypeCheck(env);
 
-       if (count()->is_const()) {
-          if ((int_count_ = count()->int_const()) < 0) {
-             env.error()(g_filename, this) << "array has negative size" << std::endl;
-             int_count_ *= -1;
-          }
-       } else {
-          env.error()(g_filename, this) << "array size must be constant expression" << std::endl;
-          int_count_ = 0;
-       }
     }
 
     void TaggedType::EnscopeTag(SemantEnv& env) {
@@ -361,7 +350,6 @@
                                         << std::endl;
        } else if (!ret_type->TypeEq(expr_type)) {
           /* add explicit cast */
-          expr_ = expr()->Cast(ret_type);
        }
     }
 
@@ -438,7 +426,6 @@
 
       /* add cast expression to coerce rhs value */
       if (!lhs_->type()->TypeEq(rhs_->type())) {
-         rhs_ = rhs()->Cast(lhs_->type());
       }
    }
 
@@ -478,7 +465,6 @@
              env.error()(g_filename, this) << "cannot coerce type of argument " << i << std::endl;
           } else if (!(*type_it)->type()->TypeEq(arg_type)) {
              /* add explicit cast */
-             *arg_it = (*arg_it)->Cast((*type_it)->type());
           }
        }
 
@@ -530,10 +516,6 @@
                                         << std::endl;
        } else {
           const IntegralType *int_type = dynamic_cast<const IntegralType *>(index()->type());
-          if (int_type->bytes() != z80::long_size) {
-             index_ = CastExpr::Create(IntegralType::Create(IntKind::SPEC_LONG, true, loc()),
-                                       index(), loc());
-          }
        }
        type_ = base()->type()->get_containee();
     }
@@ -640,9 +622,7 @@
 
                /* make implicit casts explicit */
                if (!lhs_->type()->TypeEq(type_)) {
-                  lhs_ = lhs()->Cast(type_);
                } else if (!rhs_->type()->TypeEq(type_)) {
-                  rhs_ = rhs()->Cast(type_);
                }
             } else {
                if (!lhs_int) {
@@ -780,16 +760,6 @@
        } else {
           return ExprKind::EXPR_LVALUE;
        }
-    }
-
-    intmax_t IdentifierExpr::int_const() const {
-       /* TODO -- improve this */
-       auto enum_type = dynamic_cast<const EnumType *>(type());
-       auto it = enum_type->membs()->find(id()->id());
-       if (it == enum_type->membs()->end()) {
-          throw std::logic_error("enumerator not found");
-       }
-       return (*it)->eval();
     }
 
     /*** TYPE EQUALITY ***/
