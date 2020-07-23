@@ -27,13 +27,6 @@ namespace zc {
       ASTType *Type() const;
       virtual void Enscope(SemantEnv& env) const;
       virtual void Descope(SemantEnv& env) const;
-
-      /* Code Generation */
-      virtual void CodeGen(CgenEnv& env);
-      
-      /* AST Transformations */
-      virtual void ReduceConst() {}
-      virtual void DAG() {}
       
    protected:
       Declaration *decl_;
@@ -63,14 +56,6 @@ namespace zc {
       virtual void Enscope(SemantEnv& env) const override;
       virtual void Descope(SemantEnv& env) const override;
 
-      /* Code Generation */
-      virtual void CodeGen(CgenEnv& env) override;
-      void FrameGen(StackFrame& frame) const;
-
-      /* AST Transformation */
-      virtual void ReduceConst() override;
-      virtual void DAG() override;
-      
    protected:
       CompoundStat *comp_stat_;
 
@@ -93,7 +78,7 @@ namespace zc {
    public:
       enum class Kind {TS_VOID, TS_CHAR, TS_SHORT, TS_INT, TS_LONG, TS_UNSIGNED, TS_SIGNED};
       Kind kind() const { return kind_; }
-
+      
       virtual void AddTo(DeclSpecs *decl_specs) override;
 
       template <typename... Args>
@@ -143,7 +128,7 @@ namespace zc {
    public:
       enum class Kind {SC_TYPEDEF, SC_AUTO, SC_REGISTER, SC_STATIC, SC_EXTERN};
       Kind kind() const { return kind_; }
-
+      
       void AddTo(DeclSpecs *decl_specs);
       
       template <typename... Args>
@@ -169,9 +154,9 @@ namespace zc {
       TypenameSpecs typename_specs;
       StorageClassSpecs storage_class_specs;
 
-       ASTType *Type(SemantError& err);
+      ASTType *Type(SemantError& err);
 
-       Declaration *GetDecl(SemantError& err, ASTDeclarator *declarator);
+      Declaration *GetDecl(SemantError& err, ASTDeclarator *declarator);
 
       template <typename... Args>
       static DeclSpecs *Create(Args... args) { return new DeclSpecs(args...); }
@@ -191,13 +176,10 @@ namespace zc {
       ASTType *type() const { return type_; }
 
       virtual void Declare(SemantEnv& env) = 0;
-      virtual void Declare(CgenEnv& env) = 0;
 
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
 
       void TypeResolve(SemantEnv& env);
-
-      virtual void FrameGen(StackFrame& frame) const = 0;
 
    protected:
       ASTType *type_;
@@ -215,13 +197,9 @@ namespace zc {
       bool is_valid() const { return sym() != nullptr; }
 
       virtual void Declare(SemantEnv& env) override;
-      virtual void Declare(CgenEnv& env) override;
       void TypeCheck(SemantEnv& env);
 
       virtual void DumpNode(std::ostream& os) const override;
-
-      
-      virtual void FrameGen(StackFrame& frame) const override;
 
       int bytes() const;
 
@@ -240,11 +218,8 @@ namespace zc {
    class TypeDeclaration: public Declaration {
    public:
       virtual void Declare(SemantEnv& env) override;
-      virtual void Declare(CgenEnv& env) override;
 
       virtual void DumpNode(std::ostream& os) const override;
-
-      virtual void FrameGen(StackFrame& frame) const override {}
 
       template <typename... Args>
       static TypeDeclaration *Create(Args... args) { return new TypeDeclaration(args...); }
@@ -260,9 +235,6 @@ namespace zc {
       Symbol *sym() const { return sym_; }
       
       virtual void Declare(SemantEnv& env) override;
-      virtual void Declare(CgenEnv& env) override {} /* substitution should have already happened */
-      
-      virtual void FrameGen(StackFrame& frame) const override {}
 
       template <typename... Args>
       static TypenameDeclaration *Create(Args... args) { return new TypenameDeclaration(args...); }
@@ -404,7 +376,6 @@ namespace zc {
 
       virtual void DumpNode(std::ostream& os) const override { os << "ArrayDeclarator"; }
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
-      // virtual void TypeCheck(SemantEnv& env) override;
       virtual ASTType *Type(ASTType *init_type) const override;
       virtual void JoinPointers() override { declarator()->JoinPointers(); }
 
@@ -430,8 +401,6 @@ namespace zc {
          /* no children */
       }
 
-      // void TypeCheck(SemantEnv& env) {}
-      
    protected:
       Symbol *id_;
       

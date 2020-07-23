@@ -367,7 +367,6 @@
 
     void IfStat::TypeCheck(SemantEnv& env) {
        cond()->TypeCheck(env);
-       cond_ = cond()->Cast(g_optim.bool_type());
        if_body()->TypeCheck(env);
        if (else_body() != nullptr) {
           else_body()->TypeCheck(env);
@@ -377,7 +376,6 @@
     void WhileStat::TypeCheck(SemantEnv& env) {
        env.stat_stack().Push(this);
        pred()->TypeCheck(env);
-       pred_ = pred()->Cast(g_optim.bool_type());
        body()->TypeCheck(env);
        env.stat_stack().Pop();
     }
@@ -386,7 +384,6 @@
        env.stat_stack().Push(this);
        init()->TypeCheck(env);
        pred()->TypeCheck(env);
-       pred_ = pred()->Cast(g_optim.bool_type());
        after()->TypeCheck(env);
        body()->TypeCheck(env);
        env.stat_stack().Pop();
@@ -572,19 +569,6 @@
          break;
 
       case Kind::UOP_LOGICAL_NOT:
-         {
-            IntegralType *bool_type = g_optim.bool_type();
-            if (expr()->type()->kind() != ASTType::Kind::TYPE_INTEGRAL &&
-             expr()->type()->kind() != ASTType::Kind::TYPE_POINTER) {
-               env.error()(g_filename, this) << "logical not requires integral or pointer type"
-                                             << std::endl;
-            } else {
-               /* cast expr to bool */
-               
-               expr_ = expr()->Cast(bool_type);
-            }
-            type_ = bool_type;
-         }
          break;
 
       case Kind::UOP_INC_PRE:
@@ -629,10 +613,6 @@
                            };
             expr_ok(lhs());
             expr_ok(rhs());
-            auto bool_type = g_optim.bool_type();
-            lhs_ = lhs()->Cast(bool_type);
-            rhs_ = rhs()->Cast(bool_type);
-            type_ = bool_type;
          }
          break;
 
@@ -674,10 +654,6 @@
                                                 << "is of non-integral type" << std::endl;
                }
                type_ = lhs_->type();
-            }
-
-            if (is_logical()) {
-               type_ = g_optim.bool_type();
             }
          }
          break;

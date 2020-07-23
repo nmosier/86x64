@@ -17,14 +17,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) = 0;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) = 0;
-      virtual void FrameGen(StackFrame& frame) const = 0;
-
-      /* AST Transformations */
-      virtual ASTStat *ReduceConst() = 0;
-      virtual void DAG() = 0;
-      
    protected:
       ASTStat(const SourceLoc& loc): ASTNode(loc) {}
    };
@@ -47,17 +39,6 @@ namespace zc {
       virtual void TypeCheck(SemantEnv& env) override { return TypeCheck(env, true); }
       void TypeCheck(SemantEnv& env, bool scoped);
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override {
-         return CodeGen(env, block, false);
-      }
-      Block *CodeGen(CgenEnv& env, Block *block, bool new_scope);
-      virtual void FrameGen(StackFrame& env) const override;
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override;
-      virtual void DAG() override { for (auto stat : *stats()) { stat->DAG(); } }
-      
    protected:
       Declarations *decls_;
       ASTStats *stats_;
@@ -83,14 +64,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override {}
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override;
-      virtual void DAG() override;
-      
    protected:
       ASTExpr *expr_;
 
@@ -121,14 +94,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override {}    
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override;
-      virtual void DAG() override;
-      
    protected:
       ASTExpr *expr_;
 
@@ -143,14 +108,6 @@ namespace zc {
 
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
-
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *) override;
-      virtual void FrameGen(StackFrame& frame) const override {}
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override { return this; }
-      virtual void DAG() override {}
       
       template <typename... Args>
       static BreakStat *Create(Args... args) { return new BreakStat(args...); }
@@ -168,14 +125,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *) override;
-      virtual void FrameGen(StackFrame& frame) const override {}
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override { return this; }
-      virtual void DAG() override {}
-      
       template <typename... Args>
       static ContinueStat *Create(Args... args) { return new ContinueStat(args...); }
       
@@ -213,14 +162,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override;          
-      
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override;
-      virtual void DAG() override;
-
    protected:
       ASTExpr *cond_;
       ASTStat *if_body_;
@@ -240,11 +181,6 @@ namespace zc {
       virtual bool can_break() const override { return true; }
       virtual bool can_continue() const override { return true; }
       
-      /* AST Optimization */
-      virtual ASTStat *ReduceConst() override;
-      virtual ASTStat *ReduceConst_aux() = 0;
-      virtual void DAG() override;
-
    protected:
       ASTExpr *pred_;
       ASTStat *body_;
@@ -267,14 +203,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override {}
       
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& frame) const override;
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override { return this; }
-      virtual void DAG() override { body()->DAG(); }
-
       template <typename... Args>
       static LoopStat *Create(Args... args) { return new LoopStat(args...); }
       
@@ -298,13 +226,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override;
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst_aux() override;
-      
    protected:
       template <typename... Args>
       WhileStat(Args... args): IterationStat(args...) {}
@@ -317,14 +238,6 @@ namespace zc {
 
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
-
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override;
-      
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst_aux() override;
-      virtual void DAG() override;
 
       template <typename... Args>
       static ForStat *Create(Args... args) { return new ForStat(args...); }
@@ -353,14 +266,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override {}
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override { return this; }
-      virtual void DAG() override {}
-      
    private:
       Identifier *label_id_;
       
@@ -379,13 +284,6 @@ namespace zc {
 
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
-
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override;
-      virtual void DAG() override { stat()->DAG(); }
 
    protected:
       ASTStat *stat_;
@@ -408,10 +306,6 @@ namespace zc {
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override;
 
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override;
-      virtual void FrameGen(StackFrame& env) const override {}
-      
    private:
       Identifier *label_id_;
 
@@ -428,14 +322,6 @@ namespace zc {
 
       /* Semantic Analysis */
       virtual void TypeCheck(SemantEnv& env) override {}
-
-      /* Code Generation */
-      virtual Block *CodeGen(CgenEnv& env, Block *block) override { return block; }
-      virtual void FrameGen(StackFrame& env) const override {}
-
-      /* AST Transformation */
-      virtual ASTStat *ReduceConst() override { return this; }
-      virtual void DAG() override {}
 
    private:
       template <typename... Args>

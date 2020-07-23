@@ -40,8 +40,8 @@ limitations under the License.
 #include <stdio.h>
 
 #include "ast.hpp"
-#include "cgen.hpp"
-#include "optim.hpp"
+// #include "cgen.hpp"
+// #include "optim.hpp"
 #include "symtab.hpp"
 
 // Lexer and parser associated variables
@@ -59,14 +59,10 @@ StringTable g_str_tab;
 namespace {
 
    void usage(const char *program) {
-      std::cerr << "Usage: " << program << " [-Ah] [-O <optims>] [-p print_opts] [-o file]"
+      std::cerr << "usage: " << program << " [-Ah] [-p print_opts] [-o file]"
                 << std::endl;
    }
 }
-
-zc::PrintOpts zc::g_print({{"peephole-stats", &PrintOpts::peephole_stats},
-                           {"ralloc-info", &PrintOpts::ralloc_info},
-   });
 
 int main(int argc, char *argv[]) {
   yy_flex_debug = 0;
@@ -74,36 +70,11 @@ int main(int argc, char *argv[]) {
 
   int c;
   opterr = 0;  // getopt shouldn't print any messages
-  while ((c = getopt(argc, argv, "O:o:p:Ah")) != -1) {
+  while ((c = getopt(argc, argv, "ho:")) >= 0) {
     switch (c) {
     case 'o':  // set the name of the output file
        out_filename = optarg;
        break;
-    case 'O':  // enable optimization
-       if (zc::g_optim.set_flags(optarg,
-                   [=](const char *flag) {
-                      std::cerr << argv[0] << ": -O: unknown flag '" << flag << "'" << std::endl;
-                   },
-                   [](const char *flag) {
-                      std::cerr << "\t" << flag << std::endl;
-                   })
-           < 0) {
-          return 85;
-       }
-       break;
-    case 'p': // print options
-       if (zc::g_print.set_flags(optarg,
-                             [=](auto flag) {
-                                std::cerr << argv[0] << ": -p: unknown flag '" << flag << "'"
-                                          << std::endl;
-                             },
-                             [](auto flag) {
-                                std::cerr << "\t" << flag << std::endl;
-                             }) < 0) {
-          return 85;
-       }
-       break;
-       
     case 'h':
        usage(argv[0]);
        return 0;

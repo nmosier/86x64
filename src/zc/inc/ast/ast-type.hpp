@@ -75,8 +75,6 @@ namespace zc {
       virtual int bytes() const = 0;
       virtual int bits() const = 0;
       
-      void FrameGen(StackFrame& frame) const;
-
       static ASTType *Create(ASTType *specs, ASTDeclarator *declarator) {
          return declarator->Type(specs);         
       }
@@ -261,7 +259,6 @@ namespace zc {
       virtual Symbol *get_declarable_sym() const = 0;
       
       virtual void Declare(SemantEnv& env) = 0;
-      virtual void Declare(CgenEnv& env) = 0;
       
    protected:
       template <typename... Args>
@@ -299,7 +296,6 @@ namespace zc {
       virtual void complete(const TaggedType *def) = 0;
       
       virtual void Declare(SemantEnv& env) override;
-      virtual void Declare(CgenEnv& env) override {}
 
       virtual void DumpNode(std::ostream& os) const override;
       
@@ -479,7 +475,6 @@ namespace zc {
       EnumType *enum_type() const { return enum_type_; }
 
       void Declare(SemantEnv& env);
-      void Declare(CgenEnv& env);
 
       intmax_t eval() const {
          if (val() == nullptr) {
@@ -521,9 +516,7 @@ namespace zc {
       virtual void TypeCheckMembs(SemantEnv& env) override;
       virtual bool TypeCoerce(const ASTType *other) const override;
 
-      // virtual void CodeGen(CgenEnv& env) override;
       virtual void Declare(SemantEnv& env) override;
-      virtual void Declare(CgenEnv& env) override;
       
       virtual int bytes() const override { return int_type_->bytes(); }
       virtual int bits() const override { return int_type_->bits(); }

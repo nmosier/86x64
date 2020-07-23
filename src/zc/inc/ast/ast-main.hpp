@@ -27,16 +27,8 @@ namespace zc {
 
       /* Semantic Analysis */
       void TypeCheck(SemantEnv& env);
-      void Enscope(SemantEnv& env) const; void Enscope(CgenEnv& env) const;
-      void Descope(SemantEnv& env) const; void Descope(CgenEnv& env) const;
-
-      /* Code Generation */
-      void CodeGen(CgenEnv& env);
-
-      /* AST Transformations */
-      void ReduceConst();
-      void DAG();
-
+      void Enscope(SemantEnv& env) const;
+      void Descope(SemantEnv& env) const;
 
    protected:
       ExternalDecls *decls_;

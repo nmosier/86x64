@@ -13,8 +13,6 @@
 
 namespace zc {
 
-   using z80::Value;
-
    class ASTExpr: public ASTNode {
    public:
       typedef std::list<ASTExpr **> Subexprs;
@@ -34,14 +32,8 @@ namespace zc {
       virtual intmax_t int_const() const {
          throw std::logic_error("attempt to evaluate expression that is not constant");
       }
-      virtual const Value *val_const(const CgenEnv& env) const { return nullptr; }
       
       virtual void TypeCheck(SemantEnv& env) = 0;
-
-      /**
-       * Collapse constant subexpressions to constants.
-       */
-      ASTExpr *ReduceConst();
 
       /**
        * Push cast down expr.
@@ -50,16 +42,6 @@ namespace zc {
       
                            
       void DumpType(std::ostream& os) const;
-                           
-      /**
-       * Abstract code generation function.
-       * @param env code generation environment
-       * @param block current block
-       * @param out value to generate result into
-       * @param mode how to evaluate expression (as lvalue or rvalue)
-       */
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out,
-                             ExprKind mode) = 0;
                            
       template <typename... Args>
       ASTExpr *transform(ASTExpr *(ASTExpr::*method)(Args...), Args&&... args) {
@@ -104,17 +86,8 @@ namespace zc {
        */
       ASTType *type_ = nullptr;
 
-      /**
-       * Variable containing result of expression, if the result was stored in a variable.
-       * Populated by @see CodeGen.
-       */
-      const z80::VariableValue *lval_var_ = nullptr, *rval_var_ = nullptr;
-
-      ASTExpr *DAG_aux(alg::DAGSet& dagset);      
-
       virtual Subexprs subexprs() { return {}; } /* default: no subexprs */
 
-      virtual void ReduceConst_rec() {} /*!< aux. function that reduces subexpressions */
       template <typename... Args>
       ASTExpr(Args... args): ASTNode(args...), type_(nullptr) {}
 
@@ -133,7 +106,6 @@ namespace zc {
       ASTExpr *expr_;
 
       virtual Subexprs subexprs() override { return {&expr_}; }
-      virtual void ReduceConst_rec() override;
 
       template <typename... Args>
       ASTUnaryExpr(ASTExpr *expr, Args... args): ASTExpr(args...), expr_(expr) {}
@@ -151,7 +123,6 @@ namespace zc {
       ASTExpr *rhs_;
 
       virtual Subexprs subexprs() override { return {&lhs_, &rhs_}; }
-      virtual void ReduceConst_rec() override;
 
       template <typename... Args>
       ASTBinaryExpr(ASTExpr *lhs, ASTExpr *rhs, Args... args):
@@ -172,7 +143,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override { os << "AssignmentExpr"; }
 
       virtual void TypeCheck(SemantEnv& env) override;
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
 
       virtual bool ExprEq(ASTExpr *other) override {
          return dynamic_cast<const AssignmentExpr *>(other) && ASTBinaryExpr::ExprEq(other);
@@ -209,8 +179,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override;
 
       virtual void TypeCheck(SemantEnv& env) override;
-
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
 
       virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
@@ -257,8 +225,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override;
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-
       virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const BinaryExpr *>(other);
@@ -294,8 +260,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-
       virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const LiteralExpr *>(other);
@@ -325,8 +289,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const StringExpr *>(other);
          return other_ && *str() == *other_->str() && ASTExpr::ExprEq(other);
@@ -349,7 +311,6 @@ namespace zc {
       virtual ExprKind expr_kind() const override;
       virtual bool is_const() const override { return is_const_; }
       virtual intmax_t int_const() const override;
-      virtual const Value *val_const(const CgenEnv& env) const override;
       
       static IdentifierExpr *Create(Identifier *id, const SourceLoc& loc) {
          return new IdentifierExpr(id, loc);
@@ -360,8 +321,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-      
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const IdentifierExpr *>(other);
          return other_ && *id()->id() == *other_->id()->id() && scope_id_ == other_->scope_id_ &&
@@ -391,9 +350,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override
-      { return block; }
-
       virtual ASTExpr *Cast(ASTType *type) override { abort(); }      
 
    protected:
@@ -415,11 +371,7 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override { os << "CallExpr"; }
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
 
-      virtual void ReduceConst_rec() override;
-      
       virtual void TypeCheck(SemantEnv& env) override;
-
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
 
       virtual bool ExprEq(ASTExpr *other) override { 
          auto other_ = dynamic_cast<const CallExpr *>(other);
@@ -452,8 +404,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-
       virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override { 
          auto other_ = dynamic_cast<const CastExpr *>(other);
@@ -483,8 +433,6 @@ namespace zc {
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
 
       virtual void TypeCheck(SemantEnv& env) override;
-
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
 
       virtual bool ExprEq(ASTExpr *other) override { 
          auto other_ = dynamic_cast<const MembExpr *>(other);
@@ -518,8 +466,6 @@ namespace zc {
 
       virtual void TypeCheck(SemantEnv& env) override;
 
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode) override;
-
       virtual ASTExpr *Cast(ASTType *type) override;      
       virtual bool ExprEq(ASTExpr *other) override {
          /* NOTE: This doesn't check strict equality of the variant; rather, only checks equality
@@ -551,8 +497,6 @@ namespace zc {
       virtual void DumpNode(std::ostream& os) const override { os << "IndexExpr"; }
       virtual void DumpChildren(std::ostream& os, int level, bool with_types) const override;
       virtual void TypeCheck(SemantEnv& env) override;
-      virtual Block *CodeGen(CgenEnv& env, Block *block, const Value **out, ExprKind mode)
-         override;
       virtual ASTExpr *Cast(ASTType *type) override;
       virtual bool ExprEq(ASTExpr *other) override {
          auto other_ = dynamic_cast<const IndexExpr *>(other);
