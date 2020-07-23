@@ -48,6 +48,8 @@ make install
 
 By default, 86x64 files will be installed to `/usr/local/opt/86x64`.
 
+## Usage
+
 ## Authors
 - Nicholas Mosier (nmosier)
 

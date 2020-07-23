@@ -20,7 +20,7 @@ abort() {
 }
 
 ARCHIVE64="a.out"
-SYMPATH=""
+SYMPATH="$ROOTDIR/symdefs.txt"
 LIBABICONV="$ROOTDIR/libabiconv.dylib"
 WRAPPER_OBJ="$ROOTDIR/libwrapper.a"
 LIBINTERPOSE="$ROOTDIR/libinterpose.dylib"
@@ -62,7 +62,6 @@ done
 
 shift $((OPTIND-1))
 
-[ "$SYMPATH" ] || abort "specify path to symbol info with '-s'"
 [ "$DYLIB64" ] || DYLIB64="$ARCHIVE64.dylib"
 
 ARCHIVE32="$1"

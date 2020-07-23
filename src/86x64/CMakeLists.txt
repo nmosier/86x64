@@ -27,3 +27,4 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMA
 add_library(dyld_stub_binder STATIC dyld_stub_binder.asm)
 install(TARGETS dyld_stub_binder DESTINATION opt/86x64)
 
+install(FILES symdefs.txt DESTINATION opt/86x64)
