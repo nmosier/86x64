@@ -80,6 +80,7 @@ static bool get_type_signed(CXType type) {
    case CXType_Int:
    case CXType_Long:
    case CXType_LongLong:
+   case CXType_Enum:
       return true;
 
    default:
@@ -179,6 +180,7 @@ reg_width get_type_width(CXType type, arch a) {
       return reg_width::W;
    case CXType_Int:
    case CXType_UInt:
+   case CXType_Enum:
       return reg_width::D;
    case CXType_Long:
    case CXType_ULong:

@@ -60,11 +60,12 @@ ABICONV_O=$(mktemp)
 trap "rm -f $ABICONV_ASM $ABICONV_O $DYLD_STUB_BINDER_O" EXIT
 
 if [ "$SYMBOLS" ]; then
-    "$ROOTDIR/abigen" < "$SYMBOLS"
+    "$ROOTDIR/abigen" "$SYMBOLS"
 else
     "$ROOTDIR/abigen"
 fi > "$ABICONV_ASM" || error
 
+cat "$ABICONV_ASM"
+
 nasm -f macho64 -o "$ABICONV_O" "$ABICONV_ASM" || error
-# nasm -f macho64 -o "$DYLD_STUB_BINDER_O" "$DYLD_STUB_BINDER_ASM" || error 
 cc "${LDFLAGS[@]}" "${LDLIBS[@]}" -dynamiclib -o "$OUTPATH" "$ABICONV_O" "$DYLD_STUB_BINDER_LIB" || error
