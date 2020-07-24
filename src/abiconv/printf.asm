@@ -40,8 +40,3 @@ ___printf:
 
    leave
    ret
-
-
-   global hello_world
-hello_world:
-   ret
