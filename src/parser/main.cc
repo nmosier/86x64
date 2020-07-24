@@ -6,12 +6,17 @@
 #include <unistd.h>
 #include <clang-c/Index.h>
 
-enum class type_token {C, S, I, L, LL, P,
-                       UC, US, UI, UL, ULL,
-                       SC,
-                       V};
+template <typename T>
+constexpr T div_up(T a, T b) {
+   return (a + b - 1) / b;
+}
 
+template <typename T>
+constexpr T align_up(T n, T align) {
+   return div_up(n, align) * align;
+}
 
+enum class arch {i386, x86_64};
 
 enum class reg_width {B, W, D, Q};
 
@@ -35,68 +40,34 @@ static const char *reg_width_to_str(reg_width width) {
    }
 }
 
-static reg_width get_token_width_32(type_token tok) {
-   switch (tok) {
-   case type_token::C:
-   case type_token::UC:
-   case type_token::SC:
-      return reg_width::B;
-   case type_token::S:
-   case type_token::US:
-      return reg_width::W;
-   case type_token::I:
-   case type_token::UI:
-   case type_token::L:
-   case type_token::UL:
-   case type_token::P:
-      return reg_width::D;
-   case type_token::LL:
-   case type_token::ULL:
-      return reg_width::Q;
-   default: throw std::invalid_argument("bad token");
-   }
-}
+static bool get_type_signed(CXType type) {
+   switch (type.kind) {
+   case CXType_Invalid:
+   case CXType_Unexposed:
+   case CXType_Void:
+      throw std::invalid_argument("invalid type");
+      
+   case CXType_Pointer:
+   case CXType_IncompleteArray:
+   case CXType_Bool:
+   case CXType_UChar:
+   case CXType_Char_U:
+   case CXType_UShort:
+   case CXType_UInt:
+   case CXType_ULong:
+   case CXType_ULongLong:
+      return false;
+      
+   case CXType_SChar:
+   case CXType_Char_S:
+   case CXType_Short:
+   case CXType_Int:
+   case CXType_Long:
+   case CXType_LongLong:
+      return true;
 
-static reg_width get_token_width_64(type_token tok) {
-   switch (tok) {
-   case type_token::C:
-   case type_token::UC:
-   case type_token::SC:
-      return reg_width::B;
-   case type_token::S:
-   case type_token::US:
-      return reg_width::W;
-   case type_token::I:
-   case type_token::UI:
-      return reg_width::D;
-   case type_token::L:
-   case type_token::UL:
-   case type_token::P:
-   case type_token::LL:
-   case type_token::ULL:
-      return reg_width::Q;
-   default: throw std::invalid_argument("bad token");
-   }
-}
-
-static bool get_token_signed(type_token tok) {
-   switch (tok) {
-   case type_token::C:
-      return std::is_signed<char>();
-   case type_token::UC:
-   case type_token::US:
-   case type_token::UI:
-   case type_token::UL:
-   case type_token::ULL:
-   case type_token::P:
-      return false; // unsigned
-   case type_token::SC:
-   case type_token::S:
-   case type_token::I:
-   case type_token::L:
-   case type_token::LL:
-      return true; // signed
-   default: throw std::invalid_argument("bad token");
+   default:
+      throw std::invalid_argument("unhandled type");
    }
 }
 
@@ -151,27 +122,6 @@ static std::ostream& emit_inst(std::ostream& os, Opcode&& opcode, OperandHead&& 
    return strjoin(os << "\t" << opcode << "\t", ",\t", head, tail...) << std::endl;
 }
 
-void emit_load_arg(std::ostream& os, type_token param, const reg_group& group,
-                   std::size_t frame_offset) {
-   const reg_width param_width_32 = get_token_width_32(param);
-   reg_width param_width_64 = get_token_width_64(param);
-   const bool sign = get_token_signed(param);
-   const char *opcode;
-   if (param_width_32 == param_width_64) {
-      opcode = "mov";
-   } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
-      opcode = "mov";
-      param_width_64 = param_width_32;
-   } else if (sign) {
-      opcode = "movsx";
-   } else {
-      opcode = "movzx";
-   }
-   std::stringstream src;
-   src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
-   std::string src_str = src.str();
-   emit_inst(os, opcode, group.reg(param_width_64), src_str);
-}
 
 
 std::ostream& operator<<(std::ostream& os, const CXString& str) {
@@ -195,7 +145,62 @@ void for_each(const CXTranslationUnit& unit, Func func) {
    for_each(clang_getTranslationUnitCursor(unit), func);
 }
 
+reg_width get_type_width(CXType type, arch a) {
+   switch (type.kind) {
+   case CXType_Invalid:
+   case CXType_Unexposed:
+   case CXType_Void:
+      throw std::invalid_argument("invalid type");
+   case CXType_Bool:
+   case CXType_UChar:
+   case CXType_Char_U:
+   case CXType_SChar:
+   case CXType_Char_S:
+      return reg_width::B;
+   case CXType_Short:
+   case CXType_UShort:
+      return reg_width::W;
+   case CXType_Int:
+   case CXType_UInt:
+      return reg_width::D;
+   case CXType_Long:
+   case CXType_ULong:
+      return a == arch::i386 ? reg_width::D : reg_width::Q;
+   case CXType_LongLong:
+   case CXType_ULongLong:
+      return reg_width::Q;
 
+   case CXType_Pointer:
+   case CXType_IncompleteArray:
+      return a == arch::i386 ? reg_width::D : reg_width::Q;
+
+   default:
+      throw std::invalid_argument("unhandled type");
+   }
+}
+
+void emit_load_arg(std::ostream& os, CXType param, const reg_group& group,
+                   std::size_t frame_offset) {
+   const reg_width param_width_32 = get_type_width(param, arch::i386);
+   reg_width param_width_64 = get_type_width(param, arch::x86_64);
+   const bool sign = get_type_signed(param);
+   const char *opcode;
+   if (param_width_32 == param_width_64) {
+      opcode = "mov";
+   } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
+      opcode = "mov";
+      param_width_64 = param_width_32;
+   } else if (sign) {
+      opcode = "movsx";
+   } else {
+      opcode = "movzx";
+   }
+   std::stringstream src;
+   src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
+   src << "\t" << "; " << clang_getTypeSpelling(param);
+   std::string src_str = src.str();
+   emit_inst(os, opcode, group.reg(param_width_64), src_str);
+}
 
 struct ABIConversion {
    using Cursors = std::list<CXCursor>;
@@ -204,20 +209,21 @@ struct ABIConversion {
    CXCursor function_decl;
    CXType function_type;
    
-   ABIConversion(CXCursor function_decl):
+   ABIConversion(CXCursor function_decl, const std::string& symprefix = "_"):
       function_decl(function_decl), function_type(clang_getCursorType(function_decl)) {
       auto cxsym = clang_getCursorSpelling(function_decl);
-      sym = clang_getCString(cxsym);
+      sym = symprefix + clang_getCString(cxsym);
       clang_disposeString(cxsym);
       assert(function_type.kind == CXType_FunctionProto);
    }
 
-   void emit(std::ostream& os, const std::string& override_prefix = "__",
-             const std::string& universal_prefix = "_") const {
-      os << "\tglobal\t" << universal_prefix << override_prefix << sym << std::endl;
-      os << "\textern\t" << universal_prefix << sym << std::endl;
+   void emit(std::ostream& os, const std::string& override_prefix = "__") const {
+      const bool variadic = clang_isFunctionTypeVariadic(function_type);
+      
+      os << "\tglobal\t" << override_prefix << sym << std::endl;
+      os << "\textern\t" << sym << std::endl;
 
-      os << universal_prefix << override_prefix << sym << ":" << std::endl;
+      os << override_prefix << sym << ":" << std::endl;
 
       /* check if freshly bound */
       emit_inst(os, "cmp", "qword [rel __dyld_stub_binder_flag]", "0");
@@ -239,11 +245,36 @@ struct ABIConversion {
       /* align stack */
       emit_inst(os, "and", "rsp", "~0xf");
 
-      /* parameter info */
-      for (int i = 0; i < clang_getNumArgTypes(function_type); ++i) {
-         CXType type = clang_getArgType(function_type, i);
-         os << "\t" << clang_getTypeSpelling(type) << std::endl;
+      /* transfer arguments */
+      const std::list<const reg_group *> regs = {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
+      std::size_t frame_offset = 12;
+      int param_it;
+      int param_end = clang_getNumArgTypes(function_type);
+      auto reg_it = regs.begin();
+      for (param_it = 0; param_it != param_end && reg_it != regs.end(); ++param_it, ++reg_it) {
+         CXType param_type = clang_getArgType(function_type, param_it);
+         emit_load_arg(os, param_type, **reg_it, frame_offset);
+         frame_offset += align_up<size_t>(reg_width_size(get_type_width(param_type, arch::i386)), 4);
       }
+
+      /* variadic function placeholder */
+      if (variadic) {
+         emit_inst(os, "xor", "eax", "eax");
+      }
+
+      /* call */
+      emit_inst(os, "call", sym);
+
+      /* cleanup */
+      emit_inst(os, "pop", "rsi");
+      emit_inst(os, "pop", "rdi");
+      emit_inst(os, "leave");
+
+      /* return */
+      emit_inst(os, "mov", "r11d", "dword [rsp]");
+      emit_inst(os, "add", "rsp", "4");
+      emit_inst(os, "jmp", "r11");
+      
    }
    
 };
