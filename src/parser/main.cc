@@ -227,7 +227,7 @@ struct ABIConversion {
    std::string sym;
    CXCursor function_decl;
    CXType function_type;
-   
+
    ABIConversion(CXCursor function_decl, const std::string& symprefix = "_"):
       function_decl(function_decl), function_type(clang_getCursorType(function_decl)) {
       auto cxsym = clang_getCursorSpelling(function_decl);
