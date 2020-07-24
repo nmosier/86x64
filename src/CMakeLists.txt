@@ -4,4 +4,5 @@ add_subdirectory(core)
 add_subdirectory(macho-tool)
 add_subdirectory(86x64)
 
-add_subdirectory(parser)
+add_subdirectory(abiconv)
+

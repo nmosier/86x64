@@ -315,15 +315,9 @@ struct ABIGenerator {
    using Syms = std::unordered_set<std::string>;
    
    CXIndex index = clang_createIndex(0, 0);
-   Syms syms;
    std::ostream& os;
 
-   ABIGenerator(std::istream& syms_is, std::ostream& os): os(os) {
-      std::string tmp_sym;
-      while (syms_is >> tmp_sym) {
-         syms.insert(tmp_sym);
-      }
-   }
+   ABIGenerator(std::ostream& os): os(os) {}
 
    ~ABIGenerator() {
       clang_disposeIndex(index);
@@ -360,38 +354,26 @@ struct ABIGenerator {
 
    void handle_function_decl(CXCursor c) {
       ABIConversion conv(c);
-#if 0
-      auto syms_it = syms.find(conv.sym);
-      if (syms_it != syms.end()) {
-         syms.erase(syms_it);
-         conv.emit(os);
-      }
-#else
       conv.emit(os);
-#endif
    }
    
 };
 
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
-                   const char *usage = "usage: %s [-h] [-s <symfile>] [-o <outpath>] <header>...\n";
+                   const char *usage = "usage: %s [-h] [-o <outpath>] <header>...\n";
                    fprintf(f, usage, argv[0]);
                 };
 
-   const char *sympath = nullptr;
    const char *outpath = nullptr;
    
-   const char *optstring = "hs:o:";
+   const char *optstring = "ho:";
    int optchar;
    if ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
       case 'h':
          usage(stdout);
          return 0;
-      case 's':
-         sympath = optarg;
-         break;
       case 'o':
          outpath = optarg;
          break;
@@ -401,20 +383,13 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   /* open symbol stream */
-   std::ifstream symf;
-   if (sympath) {
-      symf.open(sympath);
-   }
-   std::istream& sym_is = sympath ? symf : std::cin;
-
    std::ofstream of;
    if (outpath) {
       of.open(outpath);
    }
    std::ostream& os = outpath ? of : std::cout;
 
-   ABIGenerator abigen(sym_is, os);
+   ABIGenerator abigen(os);
    abigen.emit_header();
    
    /* handle each header */
