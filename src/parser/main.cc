@@ -6,6 +6,21 @@
 #include <unistd.h>
 #include <clang-c/Index.h>
 
+template <typename CXT, typename Func>
+std::string to_string_aux(CXT val, Func func) {
+   CXString cxs = func(val);
+   std::string str = clang_getCString(cxs);
+   clang_disposeString(cxs);
+   return str;
+}
+
+std::string to_string(CXType type) { return to_string_aux(type, clang_getTypeSpelling); }
+std::string to_string(CXCursorKind kind) {
+   return to_string_aux(kind, clang_getCursorKindSpelling);
+}
+std::string to_string(CXCursor cursor) { return to_string_aux(cursor, clang_getCursorSpelling); }
+std::string to_string(CXTypeKind kind) { return to_string_aux(kind, clang_getTypeKindSpelling) ;}
+
 template <typename T>
 constexpr T div_up(T a, T b) {
    return (a + b - 1) / b;
@@ -49,6 +64,7 @@ static bool get_type_signed(CXType type) {
       
    case CXType_Pointer:
    case CXType_IncompleteArray:
+   case CXType_ConstantArray:
    case CXType_Bool:
    case CXType_UChar:
    case CXType_Char_U:
@@ -67,7 +83,8 @@ static bool get_type_signed(CXType type) {
       return true;
 
    default:
-      throw std::invalid_argument("unhandled type");
+      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
+                                  to_string(type.kind) + "'");
    }
 }
 
@@ -172,10 +189,12 @@ reg_width get_type_width(CXType type, arch a) {
 
    case CXType_Pointer:
    case CXType_IncompleteArray:
+   case CXType_ConstantArray:
       return a == arch::i386 ? reg_width::D : reg_width::Q;
 
    default:
-      throw std::invalid_argument("unhandled type");
+      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
+                                  to_string(type.kind) + "'");
    }
 }
 
@@ -217,6 +236,10 @@ struct ABIConversion {
       assert(function_type.kind == CXType_FunctionProto);
    }
 
+   static CXType handle_type(CXType type) {
+      return clang_getCanonicalType(type);
+   }
+
    void emit(std::ostream& os, const std::string& override_prefix = "__") const {
       const bool variadic = clang_isFunctionTypeVariadic(function_type);
       
@@ -252,9 +275,16 @@ struct ABIConversion {
       int param_end = clang_getNumArgTypes(function_type);
       auto reg_it = regs.begin();
       for (param_it = 0; param_it != param_end && reg_it != regs.end(); ++param_it, ++reg_it) {
-         CXType param_type = clang_getArgType(function_type, param_it);
+         CXType param_type = handle_type(clang_getArgType(function_type, param_it));
+
          emit_load_arg(os, param_type, **reg_it, frame_offset);
-         frame_offset += align_up<size_t>(reg_width_size(get_type_width(param_type, arch::i386)), 4);
+         frame_offset += align_up<size_t>(reg_width_size(get_type_width(param_type, arch::i386)),
+                                          4);
+      }
+
+      if (param_it != param_end && reg_it == regs.end()) {
+         fprintf(stderr, "registers exhaused\n");
+         abort();
       }
 
       /* variadic function placeholder */
@@ -328,11 +358,15 @@ struct ABIGenerator {
 
    void handle_function_decl(CXCursor c) {
       ABIConversion conv(c);
+#if 0
       auto syms_it = syms.find(conv.sym);
       if (syms_it != syms.end()) {
          syms.erase(syms_it);
          conv.emit(os);
       }
+#else
+      conv.emit(os);
+#endif
    }
    
 };
