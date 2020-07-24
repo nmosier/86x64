@@ -1,5 +1,3 @@
-enable_language(ASM_NASM)
-
 add_library(wrapper STATIC wrapper.asm)
 add_library(interpose SHARED interpose.c)
 

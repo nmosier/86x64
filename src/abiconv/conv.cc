@@ -91,5 +91,5 @@ extern "C" unsigned printf_conversion_f(const void *args32, void *args64, reg_wi
       }
    }
    
-   return 0;
+   return arg_count;
 }
