@@ -2,7 +2,7 @@
 
 usage() {
 cat <<EOF
-usage: $0 [-hv]
+usage: $0 [-hv] [test...]
 EOF
 }
 
@@ -30,6 +30,11 @@ else
     MAKE_FLAGS="-s"
 fi
 
+TESTS=("$@")
+if ! [ "$TESTS" ]; then
+    TESTS=(*.c)
+fi
+
 run_test() {
     BASE="$1"
     shift 1
@@ -41,7 +46,7 @@ run_test() {
 }
 
 TESTS_FAILED=0
-for SRC in $(ls *.c); do
+for SRC in "${TESTS[@]}"; do
     BASE="${SRC%.c}"
     printf "%s" "testing ${BASE}..."
     if run_test "$BASE"; then

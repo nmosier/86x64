@@ -84,7 +84,7 @@ trap "rm $TRANSFORM64" EXIT
 v macho-tool transform "$REBASE32" "$TRANSFORM64" || error
 
 # generate abi conversion dylib
-v "$ROOTDIR"/abiconv.sh -o "$LIBABICONV" "$SYMPATH" || error
+# v "$ROOTDIR"/abiconv.sh -o "$LIBABICONV" "$SYMPATH" || error
 
 # link 64-bit archive with libabiconv.dylib
 ABI64=$(mktemp)
