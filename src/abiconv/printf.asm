@@ -1,13 +1,15 @@
+%define SYMBOL printf
+   
    segment .text
-   global ___printf
-   extern _printf_conversion_f
-   extern _printf
+   global __%+SYMBOL
+   extern _%+SYMBOL%+_conversion_f
+   extern _%+SYMBOL
    extern __dyld_stub_binder_flag
 
 %define ARGS64_COUNT 16
 %define  ARGS64_SIZE 128
-   
-___printf:
+
+___%+SYMBOL:
    cmp qword [rel __dyld_stub_binder_flag], 0
    je .l1
    mov rsp, qword [rel __dyld_stub_binder_flag]
@@ -29,7 +31,7 @@ ___printf:
    mov rsi, rsp                 ; void *args64
    lea rdi, [rbp + 12]          ; const void *args32
 
-   call _printf_conversion_f
+   call _%+SYMBOL%+_conversion_f
    ;; eax -- arg count
    pop rdi
    pop rsi
@@ -40,7 +42,7 @@ ___printf:
 
    xor eax, eax
 
-   call _printf
+   call _%+SYMBOL
 
    lea rsp, [rbp - 16]
    pop rsi
