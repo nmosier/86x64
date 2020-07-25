@@ -20,7 +20,7 @@ tmp1=$(mktemp)
 tmp2=$(mktemp)
 trap "rm -rf $tmp1 $tmp2" EXIT
 
-if ! "$1" > "$tmp1" || ! "$2" > "$tmp2"; then
+if ! "$1" > "$tmp1" || ! sudo chroot / sh -c "cd \"$(dirname "$2")\"; \"$2\"" > "$tmp2"; then
     exit 1
 fi
 
