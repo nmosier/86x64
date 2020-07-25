@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <string>
 #include <sys/errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -46,6 +47,8 @@ namespace MachO {
    public:
       inline cerror(const char *s) { asprintf(&errstr, "%s: %s\n", s, strerror(errno)); }
       ~cerror() { free(errstr); }
+
+      inline cerror(const std::string& s): errstr(strdup(s.c_str())) {}
 
       virtual const char *what() const throw() { return errstr; }
       

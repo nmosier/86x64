@@ -17,7 +17,7 @@ namespace MachO {
       }
       
       if ((fd = open(path, mode, mode2)) < 0) {
-         throw cerror("open");
+         throw cerror(std::string("open: ") + path);
       }
 
       struct stat st;

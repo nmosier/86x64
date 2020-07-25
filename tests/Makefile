@@ -76,17 +76,17 @@ CMAKE_BINARY_DIR = /Users/nicholas/Projects/86x64
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
 
-# Special rule for the target install/strip
-install/strip/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip/fast
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
 
 # Special rule for the target install
 install: preinstall
@@ -99,16 +99,6 @@ install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
 	/usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
-
-# Special rule for the target list_install_components
-list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
-.PHONY : list_install_components
-
-# Special rule for the target list_install_components
-list_install_components/fast: list_install_components
-
-.PHONY : list_install_components/fast
 
 # Special rule for the target rebuild_cache
 rebuild_cache:
@@ -132,18 +122,6 @@ edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
 
-# Special rule for the target install/local
-install/local: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local
-
-# Special rule for the target install/local
-install/local/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local/fast
-
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
@@ -154,6 +132,28 @@ test:
 test/fast: test
 
 .PHONY : test/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+
+.PHONY : list_install_components/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -187,6 +187,156 @@ depend:
 	cd /Users/nicholas/Projects/86x64 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
+# Convenience name for target.
+tests/CMakeFiles/sum64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum64_tgt.dir/rule
+
+# Convenience name for target.
+sum64_tgt: tests/CMakeFiles/sum64_tgt.dir/rule
+
+.PHONY : sum64_tgt
+
+# fast build rule for target.
+sum64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum64_tgt.dir/build.make tests/CMakeFiles/sum64_tgt.dir/build
+.PHONY : sum64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit32_tgt.dir/rule
+
+# Convenience name for target.
+exit32_tgt: tests/CMakeFiles/exit32_tgt.dir/rule
+
+.PHONY : exit32_tgt
+
+# fast build rule for target.
+exit32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit32_tgt.dir/build.make tests/CMakeFiles/exit32_tgt.dir/build
+.PHONY : exit32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum32_tgt.dir/rule
+
+# Convenience name for target.
+sum32_tgt: tests/CMakeFiles/sum32_tgt.dir/rule
+
+.PHONY : sum32_tgt
+
+# fast build rule for target.
+sum32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum32_tgt.dir/build.make tests/CMakeFiles/sum32_tgt.dir/build
+.PHONY : sum32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf64_tgt.dir/rule
+
+# Convenience name for target.
+printf64_tgt: tests/CMakeFiles/printf64_tgt.dir/rule
+
+.PHONY : printf64_tgt
+
+# fast build rule for target.
+printf64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf64_tgt.dir/build.make tests/CMakeFiles/printf64_tgt.dir/build
+.PHONY : printf64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf32_tgt.dir/rule
+
+# Convenience name for target.
+printf32_tgt: tests/CMakeFiles/printf32_tgt.dir/rule
+
+.PHONY : printf32_tgt
+
+# fast build rule for target.
+printf32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf32_tgt.dir/build.make tests/CMakeFiles/printf32_tgt.dir/build
+.PHONY : printf32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file64_tgt.dir/rule
+
+# Convenience name for target.
+file64_tgt: tests/CMakeFiles/file64_tgt.dir/rule
+
+.PHONY : file64_tgt
+
+# fast build rule for target.
+file64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file64_tgt.dir/build.make tests/CMakeFiles/file64_tgt.dir/build
+.PHONY : file64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many64_tgt.dir/rule
+
+# Convenience name for target.
+printf-many64_tgt: tests/CMakeFiles/printf-many64_tgt.dir/rule
+
+.PHONY : printf-many64_tgt
+
+# fast build rule for target.
+printf-many64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many64_tgt.dir/build.make tests/CMakeFiles/printf-many64_tgt.dir/build
+.PHONY : printf-many64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many32_tgt.dir/rule
+
+# Convenience name for target.
+printf-many32_tgt: tests/CMakeFiles/printf-many32_tgt.dir/rule
+
+.PHONY : printf-many32_tgt
+
+# fast build rule for target.
+printf-many32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many32_tgt.dir/build.make tests/CMakeFiles/printf-many32_tgt.dir/build
+.PHONY : printf-many32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit64_tgt.dir/rule
+
+# Convenience name for target.
+exit64_tgt: tests/CMakeFiles/exit64_tgt.dir/rule
+
+.PHONY : exit64_tgt
+
+# fast build rule for target.
+exit64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit64_tgt.dir/build.make tests/CMakeFiles/exit64_tgt.dir/build
+.PHONY : exit64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file32_tgt.dir/rule
+
+# Convenience name for target.
+file32_tgt: tests/CMakeFiles/file32_tgt.dir/rule
+
+.PHONY : file32_tgt
+
+# fast build rule for target.
+file32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file32_tgt.dir/build.make tests/CMakeFiles/file32_tgt.dir/build
+.PHONY : file32_tgt/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -200,6 +350,16 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... exit32_tgt"
+	@echo "... exit64_tgt"
+	@echo "... file32_tgt"
+	@echo "... file64_tgt"
+	@echo "... printf-many32_tgt"
+	@echo "... printf-many64_tgt"
+	@echo "... printf32_tgt"
+	@echo "... printf64_tgt"
+	@echo "... sum32_tgt"
+	@echo "... sum64_tgt"
 .PHONY : help
 
 

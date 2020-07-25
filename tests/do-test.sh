@@ -11,7 +11,17 @@ if [[ $# -ne 2 ]]; then
     exit 1
 fi
 
-[ -f "$1" ] || (echo "file not found" >&2; exit 1)
-[ -f "$2" ] || (echo "file not found" >&2; exit 1)
+if ! [ -x "$1" ] || ! [ -x "$2" ]; then
+    echo "file not found" >&2
+    exit 1
+fi
 
-diff <("$1") <(sudo chroot / "$2")
+tmp1=$(mktemp)
+tmp2=$(mktemp)
+trap "rm -rf $tmp1 $tmp2" EXIT
+
+if ! "$1" > "$tmp1" || ! "$2" > "$tmp2"; then
+    exit 1
+fi
+
+diff "$tmp1" "$tmp2"
