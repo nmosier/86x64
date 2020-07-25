@@ -1,10 +1,11 @@
 #!/bin/bash
 
-export ROOTDIR="$(dirname "$(readlink "$0")")"
+LINKDST="$(readlink "$0")"
+export ROOTDIR="$(dirname "${LINKDST:-"$0"}")"
 
 usage() {
     cat<<EOF
-usage: 86x64 [-hv] [-o archive64] [-l libabiconv] -s sympath [-w wrapper] [-i libinterpose] [-a archive64.dylib] archive32
+usage: 86x64 [-hv] [-o archive64] [-r root] [-l libabiconv] [-w wrapper] [-i libinterpose] [-a archive64.dylib] archive32
 EOF
 }
 
@@ -20,14 +21,13 @@ abort() {
 }
 
 ARCHIVE64="a.out"
-SYMPATH="$ROOTDIR/symdefs.txt"
 LIBABICONV="$ROOTDIR/libabiconv.dylib"
 WRAPPER_OBJ="$ROOTDIR/libwrapper.a"
 LIBINTERPOSE="$ROOTDIR/libinterpose.dylib"
 DYLIB64=""
 VERBOSE=""
 
-while getopts "hvo:s:l:w:i:a:" OPTION; do
+while getopts "hvo:l:w:i:a:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -35,9 +35,6 @@ while getopts "hvo:s:l:w:i:a:" OPTION; do
             ;;
         o)
             ARCHIVE64="$OPTARG"
-            ;;
-        s)
-            SYMPATH="$OPTARG"
             ;;
         l)
             LIBABICONV="$OPTARG"
@@ -110,4 +107,5 @@ v macho-tool modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stu
 v macho-tool convert --archive DYLIB "$DYLD64" "$DYLIB64" || error
 
 # link wrapper
-v ld -arch x86_64 -rpath "$ROOTDIR" -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE" 2>&1
+# v ld -arch x86_64 -rpath "$ROOTDIR" -rpath $(dirname "$ARCHIVE32") -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE" 2>&1
+v ld -arch x86_64 -rpath "$(dirname $LIBINTERPOSE)" -pagezero_size 0x1000 -lsystem -e _main_wrapper -o "$ARCHIVE64" "$DYLIB64" "$WRAPPER_OBJ" "$LIBINTERPOSE" 2>&1
