@@ -91,4 +91,3 @@ struct Subcommand: Functor {
    virtual int parse(char *option) override;
    virtual ~Subcommand() {}
 };
-

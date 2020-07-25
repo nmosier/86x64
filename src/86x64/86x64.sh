@@ -83,21 +83,22 @@ TRANSFORM64=$(mktemp)
 trap "rm $TRANSFORM64" EXIT
 v macho-tool transform "$REBASE32" "$TRANSFORM64" || error
 
-# generate abi conversion dylib
-# v "$ROOTDIR"/abiconv.sh -o "$LIBABICONV" "$SYMPATH" || error
-
 # link 64-bit archive with libabiconv.dylib
 ABI64=$(mktemp)
 trap "rm $ABI64" EXIT
 v macho-tool modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
 
+# strip dollar signs (???)
+DOLLAR64=$(mktemp)
+v macho-tool modify --update strip-dollar-suffixes "$ABI64" "$DOLLAR64"
+
 # gather lazily bound symbols
-SYMS=$(macho-tool print --lazy-bind "$ABI64" | tail +2 | cut -d" " -f5)
+SYMS=$(macho-tool print --lazy-bind "$DOLLAR64" | tail +2 | cut -d" " -f5)
 
 # statically interpose lazily bound symbols to libabiconv
 INTERPOSE64=$(mktemp)
 trap "rm -f $INTERPOSE64" EXIT
-v "$ROOTDIR"/static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$ABI64" $SYMS || error
+v "$ROOTDIR"/static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$DOLLAR64" $SYMS || error
 
 # interpose dyld_stub_binder
 DYLD64=$(mktemp)

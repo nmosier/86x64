@@ -119,53 +119,11 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 }
 
 int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
-                                 const decode_info& info) const {
-   /* check if eax is destroyed */
-   if (info.reg0 == state.reg) {
-      switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
-      case XED_ICLASS_MOV:
-         state.reset();
-         return 0;
-
-      default:
-         break;
-      }
-   }
-
-   
+                                 const decode_info& info) const {   
    /* check if reads from or writes to eax */
    switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
-#if 0
-   case XED_ICLASS_PUSH: /* give up on tracking %eax */
-   case XED_ICLASS_POP: /* %eax overwritten */
-   case XED_ICLASS_CALL_FAR:
-   case XED_ICLASS_CALL_NEAR:
-   case XED_ICLASS_JMP:
-#endif
    case XED_ICLASS_RET_NEAR:
    case XED_ICLASS_RET_FAR:
-#if 0
-   case XED_ICLASS_JB:
-   case XED_ICLASS_JBE: 
-   case XED_ICLASS_JCXZ: 
-   case XED_ICLASS_JECXZ: 
-   case XED_ICLASS_JL: 
-   case XED_ICLASS_JLE:
-   case XED_ICLASS_JMP_FAR: 
-   case XED_ICLASS_JNB: 
-   case XED_ICLASS_JNBE: 
-   case XED_ICLASS_JNL: 
-   case XED_ICLASS_JNLE: 
-   case XED_ICLASS_JNO: 
-   case XED_ICLASS_JNP: 
-   case XED_ICLASS_JNS: 
-   case XED_ICLASS_JNZ: 
-   case XED_ICLASS_JO: 
-   case XED_ICLASS_JP: 
-   case XED_ICLASS_JRCXZ: 
-   case XED_ICLASS_JS: 
-   case XED_ICLASS_JZ:
-#endif
       state.state = 0;
       break;
 
@@ -219,6 +177,18 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
             auto rebase_info = dyld_info->rebase;
             rebase_info->rebasees.push_back(rebase_node);
          }
+         break;
+      }
+   }
+
+   /* check if eax is destroyed */
+   if (info.reg0 == state.reg) {
+      switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
+      case XED_ICLASS_MOV:
+         state.reset();
+         return 0;
+
+      default:
          break;
       }
    }

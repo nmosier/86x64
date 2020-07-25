@@ -7,7 +7,7 @@
 	$(LD) -lsystem $(LDFLAGS) -o $@ $<
 
 %64: %32
-	86x64 -o $@ -s symdefs.h $< > /dev/null
+	86x64 -o $@ -s symdefs.h $< # > /dev/null
 
 .PHONY: clean
 clean:

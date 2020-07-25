@@ -14,6 +14,9 @@ Operation *ModifyCommand::Update::getop(int index) {
    case 2: // bind
       return new BindNode;
 
+   case 3: // strip-dollar-suffixes
+      return new StripBindDollarSuffixes;
+
    default: abort();
    }
 }
@@ -172,4 +175,44 @@ void ModifyCommand::Update::BindNode::workT(MachO::Archive<b> *archive) {
    if (new_dylib_ord) { bindee->dylib = load_dylibs[*new_dylib_ord - 1]; }
    if (new_sym) { bindee->sym = *new_sym; }
    if (new_flags) { bindee->flags = *new_flags; }
+}
+
+void ModifyCommand::Update::StripBindDollarSuffixes::operator()(MachO::MachO *macho) {
+   switch (macho->bits()) {
+   case MachO::Bits::M32:
+      {
+         auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M32> *>(macho);
+         workT<MachO::Bits::M32>(archive);
+         break;
+      }
+   case MachO::Bits::M64:
+      {
+         auto archive = dynamic_cast<MachO::Archive<MachO::Bits::M64> *>(macho);
+         workT<MachO::Bits::M64>(archive);
+         break;
+      }
+   default: abort();
+   }   
+}
+
+template <MachO::Bits b>
+void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::Archive<b> *archive) {
+   auto dyld_info = archive->template subcommand<MachO::DyldInfo>();
+   if (dyld_info == nullptr) {
+      throw std::string("missing dyld info");
+   }
+   
+   workT(dyld_info->bind);
+   workT(dyld_info->lazy_bind);
+}
+
+template <MachO::Bits b, bool lazy>
+void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::BindInfo<b, lazy> *bind_info) {
+   for (auto bindee : bind_info->bindees) {
+      std::string& sym = bindee->sym;
+      auto sym_pos = sym.find('$');
+      if (sym_pos != std::string::npos) {
+         sym.erase(sym_pos, sym.size() - sym_pos);
+      }
+   }
 }

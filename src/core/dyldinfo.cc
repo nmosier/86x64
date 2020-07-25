@@ -117,7 +117,7 @@ namespace MachO {
 
          case BIND_OPCODE_ADD_ADDR_ULEB:
             it += leb128_decode(img, it, uleb);
-            vmaddr += (ptr_t) uleb;
+            vmaddr += uleb;
             break;
 
          case BIND_OPCODE_DO_BIND:
@@ -127,7 +127,7 @@ namespace MachO {
          case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
             vmaddr = do_bind(vmaddr, env, type, addend, dylib, sym, flags, index);
             it += leb128_decode(img, it, uleb);
-            vmaddr += (ptr_t) uleb;
+            vmaddr += uleb;
             break;
 
          case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
@@ -139,7 +139,7 @@ namespace MachO {
             it += leb128_decode(img, it, uleb);
             it += leb128_decode(img, it, uleb2);
             vmaddr = do_bind_times(uleb, vmaddr, env, type, addend, dylib, sym, flags,
-                                   (ptr_t) uleb2);
+                                   uleb2);
             break;
 
          case BIND_OPCODE_THREADED:
