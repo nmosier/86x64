@@ -4,6 +4,7 @@
 #include "core/macho.hh"
 #include "core/archive.hh"
 #include "core/dyldinfo.hh"
+#include "core/symtab.hh"
 
 Operation *ModifyCommand::Update::getop(int index) {
    switch (index) {
@@ -204,15 +205,27 @@ void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::Archive<b> *ar
    
    workT(dyld_info->bind);
    workT(dyld_info->lazy_bind);
+
+   auto symtab = archive->template subcommand<MachO::Symtab>();
+   if (symtab == nullptr) {
+      throw std::string("missing symbol table");
+   }
+   for (auto str : symtab->strs) {
+      strip(str->str);
+   }
 }
 
 template <MachO::Bits b, bool lazy>
 void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::BindInfo<b, lazy> *bind_info) {
    for (auto bindee : bind_info->bindees) {
-      std::string& sym = bindee->sym;
-      auto sym_pos = sym.find('$');
-      if (sym_pos != std::string::npos) {
-         sym.erase(sym_pos, sym.size() - sym_pos);
-      }
+      strip(bindee->sym);
+   }
+}
+
+
+void ModifyCommand::Update::StripBindDollarSuffixes::strip(std::string& s) const {
+   auto pos = s.find('$');
+   if (pos != std::string::npos) {
+      s.erase(pos, s.size() - pos);
    }
 }

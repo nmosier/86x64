@@ -68,4 +68,5 @@ struct ModifyCommand::Update::StripBindDollarSuffixes: Operation {
    virtual void operator()(MachO::MachO *macho) override;
    template <MachO::Bits b> void workT(MachO::Archive<b> *archive);
    template <MachO::Bits b, bool lazy> void workT(MachO::BindInfo<b, lazy> *bind_info);
+   void strip(std::string& s) const;
 };
