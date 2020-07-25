@@ -5,6 +5,12 @@
 typedef uint32_t ptr32_t;
 typedef uint64_t ptr64_t;
 
+typedef uint32_t size32_t;
+typedef uint64_t size64_t;
+
+typedef int32_t i32_t;
+typedef int32_t i64_t;
+
 enum class reg_width_t {B, W, D, Q};
 
 namespace {
@@ -92,4 +98,35 @@ extern "C" unsigned printf_conversion_f(const void *args32, void *args64, reg_wi
    }
    
    return arg_count;
+}
+
+extern "C" unsigned sprintf_conversion_f(const void *args32, void *args64, reg_width_t *argtypes) {
+   unsigned arg_count = 0;
+   convert_arg<ptr32_t, ptr64_t>(args32, args64, argtypes, arg_count);
+   return printf_conversion_f(args32, args64, argtypes) + 1;
+}
+
+extern "C" unsigned fprintf_conversion_f(const void *args32, void *args64, reg_width_t *argtypes) {
+   unsigned arg_count = 0;
+   convert_arg<ptr32_t, ptr64_t>(args32, args64, argtypes, arg_count);
+   return printf_conversion_f(args32, args64, argtypes) + 1;
+}
+
+extern "C" unsigned snprintf_conversion_f(const void *args32, void *args64, reg_width_t *argtypes) {
+   unsigned arg_count = 0;
+   convert_arg<ptr32_t, ptr64_t>(args32, args64, argtypes, arg_count);
+   convert_arg<size32_t, size64_t>(args32, args64, argtypes, arg_count);
+   return printf_conversion_f(args32, args64, argtypes) + 1;
+}
+
+extern "C" unsigned asprintf_conversion_f(const void *args32, void *args64, reg_width_t *argtypes) {
+   unsigned arg_count = 0;
+   convert_arg<ptr32_t, ptr64_t>(args32, args64, argtypes, arg_count);
+   return sprintf_conversion_f(args32, args64, argtypes) + 1;
+}
+
+extern "C" unsigned dprintf_conversion_f(const void *args32, void *args64, reg_width_t *argtypes) {
+   unsigned arg_count = 0;
+   convert_arg<i32_t, i64_t>(args32, args64, argtypes, arg_count);
+   return printf_conversion_f(args32, args64, argtypes) + 1;
 }
