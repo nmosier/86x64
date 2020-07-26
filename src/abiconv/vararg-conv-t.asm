@@ -1,7 +1,5 @@
-%define SYMBOL printf
-   
    segment .text
-   global __%+SYMBOL
+   global ___%+SYMBOL
    extern _%+SYMBOL%+_conversion_f
    extern _%+SYMBOL
    extern __dyld_stub_binder_flag
