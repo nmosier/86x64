@@ -72,6 +72,7 @@ static bool get_type_signed(CXType type) {
    case CXType_UInt:
    case CXType_ULong:
    case CXType_ULongLong:
+   case CXType_BlockPointer:
       return false;
       
    case CXType_SChar:
@@ -153,10 +154,11 @@ void for_each(CXCursor root, Func func) {
    clang_visitChildren(root,
                        [] (CXCursor c, CXCursor parent, CXClientData client_data) {
                           Func func = * (Func *) client_data;
-                          return func(c);
+                          return func(c, parent);
                        },
                        &func);
 }
+
 
 template <typename Func>
 void for_each(const CXTranslationUnit& unit, Func func) {
@@ -192,6 +194,7 @@ reg_width get_type_width(CXType type, arch a) {
    case CXType_Pointer:
    case CXType_IncompleteArray:
    case CXType_ConstantArray:
+   case CXType_BlockPointer:
       return a == arch::i386 ? reg_width::D : reg_width::Q;
 
    default:
@@ -246,9 +249,16 @@ struct ABIConversion {
       return clang_getCanonicalType(type);
    }
 
-   void emit(std::ostream& os, const std::string& override_prefix = "__") const {
-      const bool variadic = clang_isFunctionTypeVariadic(function_type);
+   template <typename Syms>
+   void emit(std::ostream& os, Syms&& generated_syms) const {
+      if (generated_syms.find(sym) != generated_syms.end()) {
+         return;
+      }
+      generated_syms.insert(sym);
       
+      const bool variadic = clang_isFunctionTypeVariadic(function_type);
+      const std::string& override_prefix = "__";
+
       os << "\tglobal\t" << override_prefix << sym << std::endl;
       os << "\textern\t" << sym << std::endl;
 
@@ -320,6 +330,7 @@ struct ABIGenerator {
    
    CXIndex index = clang_createIndex(0, 0);
    std::ostream& os;
+   Syms generated_syms;
 
    ABIGenerator(std::ostream& os): os(os) {}
 
@@ -340,18 +351,18 @@ struct ABIGenerator {
          exit(-1);
       }
       
-      for_each(unit, [&] (CXCursor c) { return handle_cursor(c); });
+      for_each(unit, [&] (CXCursor c, CXCursor p) { return handle_cursor(c, p); });
       
       clang_disposeTranslationUnit(unit);
    }
 
-   CXChildVisitResult handle_cursor(CXCursor c) {
+   CXChildVisitResult handle_cursor(CXCursor c, CXCursor p) {
       switch (clang_getCursorKind(c)) {
       case CXCursor_FunctionDecl:
          handle_function_decl(c);
          break;
       case CXCursor_AsmLabelAttr:
-         handle_asm_label_attr(c);
+         handle_asm_label_attr(c, p);
          break;
       default:
          break;
@@ -360,13 +371,26 @@ struct ABIGenerator {
    }
 
    void handle_function_decl(CXCursor c) {
+      switch (clang_getCursorType(c).kind) {
+      case CXType_BlockPointer:
+         return;
+         
+      default:
+         break;
+      }
+      
       ABIConversion conv(c);
-      conv.emit(os);
+      conv.emit(os, generated_syms);
    }
 
-   void handle_asm_label_attr(CXCursor c) {
-      ABIConversion conv(clang_getCursorType(clang_getCursorLexicalParent(c)), to_string(c));
-      conv.emit(os);
+   void handle_asm_label_attr(CXCursor c, CXCursor p) {
+      const std::string sym = to_string(c);
+      if (sym.find('$') == std::string::npos) {
+         return; /* this is something else */
+      }
+      
+      ABIConversion conv(clang_getCursorType(p), to_string(c));
+      conv.emit(os, generated_syms);
    }
    
 };
