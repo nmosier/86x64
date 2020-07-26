@@ -6,8 +6,11 @@ target_link_libraries(abigen libclang)
 target_include_directories(abigen PRIVATE ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+find_path(c_headers stdlib.h)
+message(${c_headers})
+
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/dirent.h
+  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h
   DEPENDS abigen # symdefs.h
   )
 
