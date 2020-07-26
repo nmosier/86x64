@@ -16,8 +16,8 @@ struct Rebasify: InOutCommand {
        */
       int state;
       std::size_t vmaddr;
-      xed_reg_enum_t reg;
-      int frame_index;
+      std::optional<xed_reg_enum_t> reg;
+      std::optional<int> frame_index;
 
       MachO::Archive<MachO::Bits::M32> *archive = nullptr;
       MachO::Segment<MachO::Bits::M32> *segment = nullptr;

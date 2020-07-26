@@ -90,30 +90,23 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
       }
       return 0;
 
-   case 2: /* seen pop */
-      {
+   case 2:
+      if (state.reg) {
          if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
              info.reg0 == state.reg && info.base_reg == XED_REG_EBP) {
             /* frame store */
             state.frame_index = info.memdisp;
-            state.state = 3;
          } else {
             handle_inst_thunk(inst, state, info);
          }
-         return 0;
-      }
-
-   case 3: /* seen frame store */
-      {
+      } else {
          if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
              info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
             state.reg = info.reg0;
-            state.state = 2;
          }
-         return 0;
       }
-      
-      // TODO
+      return 0;
+
    default: abort();
    }
 }
@@ -124,6 +117,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
    case XED_ICLASS_RET_NEAR:
    case XED_ICLASS_RET_FAR:
+      state.reset();
       state.state = 0;
       break;
 
@@ -136,7 +130,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
                   
          if (info.base_reg == state.reg || info.reg1 == state.reg) {
             auto mov_inst = new MachO::Instruction<MachO::Bits::M32>
-               (MachO::opcode::mov_r32_imm32(state.reg));
+               (MachO::opcode::mov_r32_imm32(*state.reg));
             auto mov_inst_imm = MachO::Immediate<MachO::Bits::M32>::Create(target);
             mov_inst->segment = mov_inst_imm->segment = state.segment;
             mov_inst->section = mov_inst_imm->section = state.section;
@@ -185,7 +179,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    if (info.reg0 == state.reg) {
       switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
       case XED_ICLASS_MOV:
-         state.reset();
+         state.reg = std::nullopt;
          return 0;
 
       default:

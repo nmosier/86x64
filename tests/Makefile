@@ -100,6 +100,17 @@ install/fast: preinstall/fast
 	/usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
+	/usr/local/Cellar/cmake/3.17.3/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+
+.PHONY : test/fast
+
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -121,17 +132,6 @@ edit_cache:
 edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
-
-# Special rule for the target test
-test:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/usr/local/Cellar/cmake/3.17.3/bin/ctest --force-new-ctest-process $(ARGS)
-.PHONY : test
-
-# Special rule for the target test
-test/fast: test
-
-.PHONY : test/fast
 
 # Special rule for the target list_install_components
 list_install_components:
@@ -186,6 +186,51 @@ preinstall/fast:
 depend:
 	cd /Users/nicholas/Projects/86x64 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf64_tgt.dir/rule
+
+# Convenience name for target.
+fprintf64_tgt: tests/CMakeFiles/fprintf64_tgt.dir/rule
+
+.PHONY : fprintf64_tgt
+
+# fast build rule for target.
+fprintf64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf64_tgt.dir/build.make tests/CMakeFiles/fprintf64_tgt.dir/build
+.PHONY : fprintf64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf64_tgt.dir/rule
+
+# Convenience name for target.
+sprintf64_tgt: tests/CMakeFiles/sprintf64_tgt.dir/rule
+
+.PHONY : sprintf64_tgt
+
+# fast build rule for target.
+sprintf64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf64_tgt.dir/build.make tests/CMakeFiles/sprintf64_tgt.dir/build
+.PHONY : sprintf64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf32_tgt.dir/rule
+
+# Convenience name for target.
+sprintf32_tgt: tests/CMakeFiles/sprintf32_tgt.dir/rule
+
+.PHONY : sprintf32_tgt
+
+# fast build rule for target.
+sprintf32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf32_tgt.dir/build.make tests/CMakeFiles/sprintf32_tgt.dir/build
+.PHONY : sprintf32_tgt/fast
 
 # Convenience name for target.
 tests/CMakeFiles/sum64_tgt.dir/rule:
@@ -323,6 +368,21 @@ exit64_tgt/fast:
 .PHONY : exit64_tgt/fast
 
 # Convenience name for target.
+tests/CMakeFiles/fprintf32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf32_tgt.dir/rule
+
+# Convenience name for target.
+fprintf32_tgt: tests/CMakeFiles/fprintf32_tgt.dir/rule
+
+.PHONY : fprintf32_tgt
+
+# fast build rule for target.
+fprintf32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf32_tgt.dir/build.make tests/CMakeFiles/fprintf32_tgt.dir/build
+.PHONY : fprintf32_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/file32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/file32_tgt.dir/rule
@@ -354,10 +414,14 @@ help:
 	@echo "... exit64_tgt"
 	@echo "... file32_tgt"
 	@echo "... file64_tgt"
+	@echo "... fprintf32_tgt"
+	@echo "... fprintf64_tgt"
 	@echo "... printf-many32_tgt"
 	@echo "... printf-many64_tgt"
 	@echo "... printf32_tgt"
 	@echo "... printf64_tgt"
+	@echo "... sprintf32_tgt"
+	@echo "... sprintf64_tgt"
 	@echo "... sum32_tgt"
 	@echo "... sum64_tgt"
 .PHONY : help
