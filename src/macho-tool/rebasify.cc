@@ -14,6 +14,10 @@ int Rebasify::opthandler(int optchar) {
    case 'h':
       usage(std::cout);
       return 0;
+
+   case 'v':
+      verbose = true;
+      return 1;
       
    default: abort();
    }
@@ -75,15 +79,20 @@ Rebasify::decode_info::decode_info(const xed_decoded_inst_t& xedd,
 
 int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
                            const decode_info& info) const {
+   const MachO::opcode_t call_0({0xe8, 0x00, 0x00, 0x00, 0x00});
+   const MachO::opcode_t pop({0x58});
+
+   if (inst->instbuf == call_0) {
+      state.state = 1;
+      return 0;
+   }
+   
    switch (state.state) {
    case 0: /* init */
-      if (inst->instbuf == MachO::opcode_t({0xe8, 0x00, 0x00, 0x00, 0x00})) {
-         state.state = 1;
-      }
       return 0;
       
    case 1: /* seen call */
-      if (inst->instbuf == MachO::opcode_t({0x58})) {
+      if (inst->instbuf == pop) {
          state.state = 2;
          state.reg = XED_REG_EAX;
          state.vmaddr = inst->loc.vmaddr;
@@ -91,11 +100,18 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
       return 0;
 
    case 2:
+      if (info.iclass == XED_ICLASS_CALL_NEAR) {
+         state.reg = std::nullopt;
+         return 0;
+      }
       if (state.reg) {
          if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
              info.reg0 == state.reg && info.base_reg == XED_REG_EBP) {
             /* frame store */
             state.frame_index = info.memdisp;
+            if (verbose) {
+               fprintf(stderr, "[REBASIFY] frame store @ vmaddr=0x%zx\n", inst->loc.vmaddr);
+            }
          } else {
             handle_inst_thunk(inst, state, info);
          }
@@ -103,6 +119,10 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
          if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
              info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
             state.reg = info.reg0;
+
+            if (verbose) {
+               fprintf(stderr, "[REBASIFY] frame load @ vmaddr 0x%zx\n", inst->loc.vmaddr);
+            }
          }
       }
       return 0;
@@ -129,6 +149,11 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
          }
                   
          if (info.base_reg == state.reg || info.reg1 == state.reg) {
+            if (verbose) {
+               fprintf(stderr, "[REBASIFY] ref @ vmaddr=0x%zx dst=0x%zx\n", inst->loc.vmaddr,
+                       target);
+            }
+            
             auto mov_inst = new MachO::Instruction<MachO::Bits::M32>
                (MachO::opcode::mov_r32_imm32(*state.reg));
             auto mov_inst_imm = MachO::Immediate<MachO::Bits::M32>::Create(target);

@@ -76,18 +76,6 @@ CMAKE_BINARY_DIR = /Users/nicholas/Projects/86x64
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target install/local
-install/local: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local
-
-# Special rule for the target install/local
-install/local/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local/fast
-
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
@@ -110,6 +98,18 @@ test:
 test/fast: test
 
 .PHONY : test/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
 
 # Special rule for the target rebuild_cache
 rebuild_cache:
@@ -186,6 +186,36 @@ preinstall/fast:
 depend:
 	cd /Users/nicholas/Projects/86x64 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
+
+# Convenience name for target.
+tests/CMakeFiles/myls64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls64_tgt.dir/rule
+
+# Convenience name for target.
+myls64_tgt: tests/CMakeFiles/myls64_tgt.dir/rule
+
+.PHONY : myls64_tgt
+
+# fast build rule for target.
+myls64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls64_tgt.dir/build.make tests/CMakeFiles/myls64_tgt.dir/build
+.PHONY : myls64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/myls32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls32_tgt.dir/rule
+
+# Convenience name for target.
+myls32_tgt: tests/CMakeFiles/myls32_tgt.dir/rule
+
+.PHONY : myls32_tgt
+
+# fast build rule for target.
+myls32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls32_tgt.dir/build.make tests/CMakeFiles/myls32_tgt.dir/build
+.PHONY : myls32_tgt/fast
 
 # Convenience name for target.
 tests/CMakeFiles/fprintf64_tgt.dir/rule:
@@ -416,6 +446,8 @@ help:
 	@echo "... file64_tgt"
 	@echo "... fprintf32_tgt"
 	@echo "... fprintf64_tgt"
+	@echo "... myls32_tgt"
+	@echo "... myls64_tgt"
 	@echo "... printf-many32_tgt"
 	@echo "... printf-many64_tgt"
 	@echo "... printf32_tgt"

@@ -40,16 +40,19 @@ struct Rebasify: InOutCommand {
                   typename MachO::Section<MachO::Bits::M32>::Content::iterator text_it);
    };
 
-   virtual const char *optstring() const override { return "h"; }
+   bool verbose = false;
+
+   virtual const char *optstring() const override { return "hv"; }
    virtual std::vector<option> longopts() const override {
       return {{"help", no_argument, nullptr, 'h'},
+              {"verbose", no_argument, nullptr, 'v'},
               {0}};
    }
    virtual int opthandler(int optchar) override;
-   virtual std::string optusage() const override { return "[-h]"; }
+   virtual std::string optusage() const override { return "[-hv]"; }
    virtual int work() override;
    Rebasify(): InOutCommand("rebasify") {}
-
+   
    int handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
                    const decode_info& info) const;
    int handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,

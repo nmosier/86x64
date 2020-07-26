@@ -37,3 +37,10 @@ add_library(abiconv SHARED
 target_link_libraries(abiconv System)
 
 install(TARGETS abiconv DESTINATION opt/86x64)
+
+
+add_executable(info info.cc)
+target_link_libraries(info libclang)
+target_include_directories(info PRIVATE ${CLANG_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+

@@ -1,10 +1,30 @@
 #!/bin/bash
 
 usage() {
-    echo <<EOF
-usage: $0 exec
+    cat <<EOF
+usage: $0 [-hd] exec
 EOF
 }
+
+DEBUG_CMD=
+
+while getopts "hd" OPTCHAR; do
+    case $OPTCHAR in
+        h)
+            usage
+            exit 0
+            ;;
+        d)
+            DEBUG_CMD=lldb
+            ;;
+        "?")
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+shift $((OPTIND-1))
 
 if [[ $# -ne 1 ]]; then
     usage >&2
