@@ -34,6 +34,7 @@ constexpr T align_up(T n, T align) {
 enum class arch {i386, x86_64};
 
 enum class reg_width {B, W, D, Q};
+enum class fp_width {REAL4, REAL8, TBYTE};
 
 size_t reg_width_size(reg_width width) {
    switch (width) {
@@ -83,6 +84,46 @@ static bool get_type_signed(CXType type) {
    case CXType_LongLong:
    case CXType_Enum:
       return true;
+
+   default:
+      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
+                                  to_string(type.kind) + "'");
+   }
+}
+
+enum class storage_type {ALU, FPU};
+
+static storage_type get_storage_type(CXType type) {
+   switch (type.kind) {
+   case CXType_Invalid:
+   case CXType_Unexposed:
+   case CXType_Void:
+      throw std::invalid_argument("invalid type");
+      
+   case CXType_Pointer:
+   case CXType_IncompleteArray:
+   case CXType_ConstantArray:
+   case CXType_Bool:
+   case CXType_UChar:
+   case CXType_Char_U:
+   case CXType_UShort:
+   case CXType_UInt:
+   case CXType_ULong:
+   case CXType_ULongLong:
+   case CXType_BlockPointer:
+   case CXType_SChar:
+   case CXType_Char_S:
+   case CXType_Short:
+   case CXType_Int:
+   case CXType_Long:
+   case CXType_LongLong:
+   case CXType_Enum:
+      return storage_type::ALU;
+
+   case CXType_Float:
+   case CXType_Double:
+   case CXType_LongDouble:
+      return storage_type::FPU;
 
    default:
       throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
