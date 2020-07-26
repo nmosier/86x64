@@ -227,16 +227,20 @@ struct ABIConversion {
    using Cursors = std::list<CXCursor>;
    
    std::string sym;
-   CXCursor function_decl;
+   // CXCursor function_decl;
    CXType function_type;
 
-   ABIConversion(CXCursor function_decl, const std::string& symprefix = "_"):
-      function_decl(function_decl), function_type(clang_getCursorType(function_decl)) {
+   ABIConversion(CXCursor function_decl): function_type(clang_getCursorType(function_decl))
+   {
+      const std::string symprefix = "_";
       auto cxsym = clang_getCursorSpelling(function_decl);
       sym = symprefix + clang_getCString(cxsym);
       clang_disposeString(cxsym);
       assert(function_type.kind == CXType_FunctionProto);
    }
+
+   ABIConversion(CXType function_type, const std::string& sym):
+      sym(sym), function_type(function_type) {}
 
    static CXType handle_type(CXType type) {
       return clang_getCanonicalType(type);
@@ -346,6 +350,9 @@ struct ABIGenerator {
       case CXCursor_FunctionDecl:
          handle_function_decl(c);
          break;
+      case CXCursor_AsmLabelAttr:
+         handle_asm_label_attr(c);
+         break;
       default:
          break;
       }
@@ -354,6 +361,11 @@ struct ABIGenerator {
 
    void handle_function_decl(CXCursor c) {
       ABIConversion conv(c);
+      conv.emit(os);
+   }
+
+   void handle_asm_label_attr(CXCursor c) {
+      ABIConversion conv(clang_getCursorType(clang_getCursorLexicalParent(c)), to_string(c));
       conv.emit(os);
    }
    
