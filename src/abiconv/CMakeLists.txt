@@ -5,6 +5,7 @@ add_executable(abigen abigen.cc)
 target_link_libraries(abigen libclang)
 target_include_directories(abigen PRIVATE ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
+target_compile_options(abigen PRIVATE -Wno-format-security)
 
 find_path(c_headers stdlib.h)
 message(${c_headers})
