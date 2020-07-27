@@ -339,13 +339,19 @@ struct ABIConversion {
    }
 
    void emit(std::ostream& os, Symbols& symbols) const {
+      const bool variadic = clang_isFunctionTypeVariadic(function_type);
+      const std::string& override_prefix = "__";
+
+      if (variadic) {
+         /* skip variadic functions */
+         return;
+      }
+      
       if (symbols.find(sym) == symbols.end()) {
          return;
       }
       symbols.erase(sym);
       
-      const bool variadic = clang_isFunctionTypeVariadic(function_type);
-      const std::string& override_prefix = "__";
 
       os << "\tglobal\t" << override_prefix << sym << std::endl;
       os << "\textern\t" << sym << std::endl;
@@ -488,8 +494,9 @@ int main(int argc, char *argv[]) {
 
    const char *outpath = nullptr;
    const char *sympath = nullptr;
+   const char *symignorepath = nullptr;
    
-   const char *optstring = "ho:s:";
+   const char *optstring = "ho:s:i:";
    int optchar;
    if ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
@@ -501,6 +508,9 @@ int main(int argc, char *argv[]) {
          break;
       case 's':
          sympath = optarg;
+         break;
+      case 'i':
+         symignorepath = optarg;
          break;
       case '?':
          usage(stderr);
@@ -523,7 +533,7 @@ int main(int argc, char *argv[]) {
    ABIGenerator abigen(os);
 
    std::string symbol_tmp;
-   while (std::cin >> symbol_tmp) {
+   while (is >> symbol_tmp) {
       abigen.symbols.insert(symbol_tmp);
    }
 
