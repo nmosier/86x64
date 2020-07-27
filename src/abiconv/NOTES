@@ -1,0 +1,14 @@
+$UNIX2003
+- Appears to only be present in 32-bit binaries.
+- Open Question: compatibility between the 32-bit mangled version and the 64-bit unmangled version?
+  => Most answers indicate `yes, is compatible'.
+$INODE64
+- Appears to be present in both 32-bit and 64-bit binaries, so shouldn't be touched.
+
+
+General:
+abigen can generate both copies, the standard as well as the mangled version.
+
+----
+
+TODO: also accept dynamic libraries as command-line arguments. Take the intersection of the symbols in these with the symbols defined in the headers.

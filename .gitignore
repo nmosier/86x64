@@ -18,3 +18,7 @@ dyld/
 extern/xed/
 trash/
 src/abiconv/abigen
+install_manifest.txt
+_deps/
+CTestTestfile.cmake
+Testing/

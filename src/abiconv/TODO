@@ -1,0 +1,29 @@
+parse in a getopt-style?
+
+TYPE_INFO variadic_conversion_f(Args*... args);
+TYPE_INFO variadic_cleanup_f(Args*... args);
+
+
+#define ARGS64_MAXSIZE ...
+#define ARGS64_MAXCOUNT ...
+
+unsigned variadic_conversion_f(Args... args, const void *stack_args_32, void *args_64, arg64_t argtypes[ARGS64_MAXCOUNT]);
+void variadic_cleanup_f(Args... args, const void *stack_args_32, void *args_64, unsigned bytes);
+
+variadic_conversion_f pushes arguments to stack (in reverse order) and returns the size of the arguments.
+
+(conv data)
+---
+|3|
+|2|
+|1|
+|0|
+---
+
+
+---
+Alternate Idea
+
+- Compile printf parser for 32-bit
+- Call external 32-bit wrapper for 64-bit function that writes 
+- Translate to 64-bit 
