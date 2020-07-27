@@ -10,7 +10,7 @@ find_path(c_headers stdlib.h)
 message(${c_headers})
 
 add_custom_command(OUTPUT abiconv.syms
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib > abiconv.syms
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib /usr/lib/system/libsystem_kernel.dylib > abiconv.syms
   DEPENDS print_exports_trie.sh
   )
 
@@ -19,7 +19,7 @@ add_custom_target(abiconv_syms
   )
 
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h < abiconv.syms
+  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h < abiconv.syms
   DEPENDS abigen abiconv_syms
   )
 

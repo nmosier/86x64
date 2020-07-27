@@ -6,7 +6,11 @@
 #include <unistd.h>
 #include <clang-c/Index.h>
 
+#include "util.hh"
+
 using Symbols = std::unordered_set<std::string>;
+
+bool force_all = false;
 
 template <typename CXT, typename Func>
 std::string to_string_aux(CXT val, Func func) {
@@ -38,7 +42,7 @@ enum class arch {i386, x86_64};
 enum class reg_width {B, W, D, Q};
 enum class fp_width {REAL4, REAL8, TBYTE};
 
-size_t reg_width_size(reg_width width) {
+static size_t reg_width_size(reg_width width) {
    switch (width) {
    case reg_width::B: return 1;
    case reg_width::W: return 2;
@@ -189,14 +193,14 @@ static std::ostream& emit_inst(std::ostream& os, Opcode&& opcode, OperandHead&& 
 
 
 
-std::ostream& operator<<(std::ostream& os, const CXString& str) {
+static std::ostream& operator<<(std::ostream& os, const CXString& str) {
    os << clang_getCString(str);
    clang_disposeString(str);
    return os;
 }
 
 template <typename Func>
-void for_each(CXCursor root, Func func) {
+static void for_each(CXCursor root, Func func) {
    clang_visitChildren(root,
                        [] (CXCursor c, CXCursor parent, CXClientData client_data) {
                           Func func = * (Func *) client_data;
@@ -287,7 +291,8 @@ void emit_load_arg(std::ostream& os, CXType param, param_info& info) {
       } else {
          opcode = "movzx";
       }
-      assert(info.reg_it != info.reg_end);
+
+      assert_msg(info.reg_it != info.reg_end, "exhausted registers");
       regstr = (*info.reg_it++)->reg(param_width_64);
       break;
    case type_domain::REAL:
@@ -300,7 +305,7 @@ void emit_load_arg(std::ostream& os, CXType param, param_info& info) {
          break;
       default: abort();
       }
-      assert(info.fp_idx != info.fp_end);
+      assert_msg(info.fp_idx != info.fp_end, "exhausted xmms");
       regstr = std::string("xmm") + std::to_string(info.fp_idx++);
       break;
    default: abort();
@@ -383,20 +388,10 @@ struct ABIConversion {
       param_info info(regs, 8, 12);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
-      auto reg_it = regs.begin();
-      for (param_it = 0; param_it != param_end && reg_it != regs.end(); ++param_it, ++reg_it) {
+      // auto reg_it = regs.begin();
+      for (param_it = 0; param_it != param_end /* && reg_it != regs.end() */; ++param_it /*, ++reg_it */) {
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
          emit_load_arg(os, param_type, info);
-      }
-
-      if (param_it != param_end && reg_it == regs.end()) {
-         fprintf(stderr, "registers exhaused\n");
-         abort();
-      }
-      
-      /* variadic function placeholder */
-      if (variadic) {
-         emit_inst(os, "xor", "eax", "eax");
       }
 
       /* call */
@@ -422,6 +417,7 @@ struct ABIGenerator {
    CXIndex index = clang_createIndex(0, 0);
    std::ostream& os;
    Symbols symbols;
+   bool force_all;
 
    ABIGenerator(std::ostream& os): os(os) {}
 
@@ -488,7 +484,7 @@ struct ABIGenerator {
 
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
-                   const char *usage = "usage: %s [-h] [-o <outpath>] [-s <symfile>] <header>...\n";
+                   const char *usage = "usage: %s [-ha] [-o <outpath>] [-s <symfile>] <header>...\n";
                    fprintf(f, usage, argv[0]);
                 };
 
@@ -496,7 +492,7 @@ int main(int argc, char *argv[]) {
    const char *sympath = nullptr;
    const char *symignorepath = nullptr;
    
-   const char *optstring = "ho:s:i:";
+   const char *optstring = "ho:s:i:a:";
    int optchar;
    if ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
@@ -511,6 +507,9 @@ int main(int argc, char *argv[]) {
          break;
       case 'i':
          symignorepath = optarg;
+         break;
+      case 'a':
+         force_all = true;
          break;
       case '?':
          usage(stderr);
@@ -532,14 +531,13 @@ int main(int argc, char *argv[]) {
 
    ABIGenerator abigen(os);
 
-   std::string symbol_tmp;
-   while (is >> symbol_tmp) {
-      abigen.symbols.insert(symbol_tmp);
+   if (!force_all) {
+      std::string symbol_tmp;
+      while (is >> symbol_tmp) {
+         abigen.symbols.insert(symbol_tmp);
+      }
    }
 
-   // DEBUG
-   fprintf(stderr, "parsed %zu syms\n", abigen.symbols.size());
-   
    abigen.emit_header();
    
    /* handle each header */
