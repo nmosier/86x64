@@ -15,8 +15,8 @@ Operation *ModifyCommand::Update::getop(int index) {
    case 2: // bind
       return new BindNode;
 
-   case 3: // strip-dollar-suffixes
-      return new StripBindDollarSuffixes;
+   case 3: // strip-bind
+      return new StripBind;
 
    default: abort();
    }
@@ -178,7 +178,16 @@ void ModifyCommand::Update::BindNode::workT(MachO::Archive<b> *archive) {
    if (new_flags) { bindee->flags = *new_flags; }
 }
 
-void ModifyCommand::Update::StripBindDollarSuffixes::operator()(MachO::MachO *macho) {
+int ModifyCommand::Update::StripBind::subopthandler(int index, char *value) {
+   switch (index) {
+   case 0: // suffix
+      suffixes.emplace_back(value);
+      return 1;
+   default: abort();
+   }
+}
+
+void ModifyCommand::Update::StripBind::operator()(MachO::MachO *macho) {
    switch (macho->bits()) {
    case MachO::Bits::M32:
       {
@@ -197,7 +206,7 @@ void ModifyCommand::Update::StripBindDollarSuffixes::operator()(MachO::MachO *ma
 }
 
 template <MachO::Bits b>
-void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::Archive<b> *archive) {
+void ModifyCommand::Update::StripBind::workT(MachO::Archive<b> *archive) {
    auto dyld_info = archive->template subcommand<MachO::DyldInfo>();
    if (dyld_info == nullptr) {
       throw std::string("missing dyld info");
@@ -206,6 +215,7 @@ void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::Archive<b> *ar
    workT(dyld_info->bind);
    workT(dyld_info->lazy_bind);
 
+#if 0
    auto symtab = archive->template subcommand<MachO::Symtab>();
    if (symtab == nullptr) {
       throw std::string("missing symbol table");
@@ -213,19 +223,22 @@ void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::Archive<b> *ar
    for (auto str : symtab->strs) {
       strip(str->str);
    }
+#endif
 }
 
 template <MachO::Bits b, bool lazy>
-void ModifyCommand::Update::StripBindDollarSuffixes::workT(MachO::BindInfo<b, lazy> *bind_info) {
+void ModifyCommand::Update::StripBind::workT(MachO::BindInfo<b, lazy> *bind_info) {
    for (auto bindee : bind_info->bindees) {
       strip(bindee->sym);
    }
 }
 
 
-void ModifyCommand::Update::StripBindDollarSuffixes::strip(std::string& s) const {
-   auto pos = s.find('$');
-   if (pos != std::string::npos) {
-      s.erase(pos, s.size() - pos);
+void ModifyCommand::Update::StripBind::strip(std::string& s) const {
+   for (const std::string& suffix : suffixes) {
+      const auto index = s.find(suffix);
+      if (index != std::string::npos) {
+         s.erase(index, suffix.size());
+      }
    }
 }

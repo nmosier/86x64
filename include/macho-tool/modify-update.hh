@@ -7,12 +7,12 @@
 struct ModifyCommand::Update: Subcommand {
    struct LoadDylib;
    struct BindNode;
-   struct StripBindDollarSuffixes;
+   struct StripBind; 
 
    virtual std::vector<char *> keylist() const override {
       return {"load_dylib", "load-dylib",
               "bind",
-              "strip-dollar-suffixes",
+              "strip-bind",
               nullptr};
    }
 
@@ -61,9 +61,13 @@ struct ModifyCommand::Update::BindNode: Operation {
    template <MachO::Bits b, bool lazy> void workT(MachO::Archive<b> *archive);
 };
 
-struct ModifyCommand::Update::StripBindDollarSuffixes: Operation {
-   virtual std::vector<char *> keylist() const override { return {nullptr}; }
-   virtual int subopthandler(int index, char *value) override { abort(); }
+struct ModifyCommand::Update::StripBind: Operation {
+   std::list<std::string> suffixes;
+   
+   virtual std::vector<char *> keylist() const override {
+      return {"suffix", nullptr};
+   }
+   virtual int subopthandler(int index, char *value) override;
    virtual void validate() const override {}
    virtual void operator()(MachO::MachO *macho) override;
    template <MachO::Bits b> void workT(MachO::Archive<b> *archive);

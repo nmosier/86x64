@@ -91,7 +91,8 @@ v "$MACHO_TOOL" modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$A
 
 # strip dollar signs (???)
 DOLLAR64=$(mktemp)
-v "$MACHO_TOOL" modify --update strip-dollar-suffixes "$ABI64" "$DOLLAR64"
+# v "$MACHO_TOOL" modify --update strip-dollar-suffixes "$ABI64" "$DOLLAR64"
+v "$MACHO_TOOL" modify --update strip-bind,suffix='$UNIX2003' "$ABI64" "$DOLLAR64"
 # DOLLAR64="$ABI64"
 
 # gather lazily bound symbols
