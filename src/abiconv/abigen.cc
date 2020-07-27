@@ -83,6 +83,9 @@ static bool get_type_signed(CXType type) {
    case CXType_Long:
    case CXType_LongLong:
    case CXType_Enum:
+   case CXType_Float:
+   case CXType_Double:
+   case CXType_LongDouble:
       return true;
 
    default:
@@ -91,9 +94,9 @@ static bool get_type_signed(CXType type) {
    }
 }
 
-enum class storage_type {ALU, FPU};
+enum class type_domain {INT, REAL};
 
-static storage_type get_storage_type(CXType type) {
+static type_domain get_type_domain(CXType type) {
    switch (type.kind) {
    case CXType_Invalid:
    case CXType_Unexposed:
@@ -118,12 +121,12 @@ static storage_type get_storage_type(CXType type) {
    case CXType_Long:
    case CXType_LongLong:
    case CXType_Enum:
-      return storage_type::ALU;
+      return type_domain::INT;
 
    case CXType_Float:
    case CXType_Double:
    case CXType_LongDouble:
-      return storage_type::FPU;
+      return type_domain::REAL;
 
    default:
       throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
@@ -224,12 +227,14 @@ reg_width get_type_width(CXType type, arch a) {
    case CXType_Int:
    case CXType_UInt:
    case CXType_Enum:
+   case CXType_Float:
       return reg_width::D;
    case CXType_Long:
    case CXType_ULong:
       return a == arch::i386 ? reg_width::D : reg_width::Q;
    case CXType_LongLong:
    case CXType_ULongLong:
+   case CXType_Double:
       return reg_width::Q;
 
    case CXType_Pointer:
@@ -238,40 +243,81 @@ reg_width get_type_width(CXType type, arch a) {
    case CXType_BlockPointer:
       return a == arch::i386 ? reg_width::D : reg_width::Q;
 
+   case CXType_LongDouble:
+      throw std::invalid_argument("long doubles not supported yet");
+
    default:
       throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
                                   to_string(type.kind) + "'");
    }
 }
 
-void emit_load_arg(std::ostream& os, CXType param, const reg_group& group,
-                   std::size_t frame_offset) {
+using reg_groups = std::list<const reg_group *>;
+
+struct param_info {
+   using reg_iterator = typename reg_groups::const_iterator;
+   reg_iterator reg_it;
+   const reg_iterator reg_end;
+   unsigned fp_idx = 0;
+   const unsigned fp_end;
+   unsigned frame_offset;
+
+   param_info(const reg_groups& groups, unsigned fp_count, unsigned frame_offset):
+      reg_it(groups.begin()), reg_end(groups.end()), fp_idx(0), fp_end(fp_count), frame_offset(frame_offset) {}
+};
+
+void emit_load_arg(std::ostream& os, CXType param, param_info& info) {
    const reg_width param_width_32 = get_type_width(param, arch::i386);
    reg_width param_width_64 = get_type_width(param, arch::x86_64);
    const bool sign = get_type_signed(param);
    const char *opcode;
-   if (param_width_32 == param_width_64) {
-      opcode = "mov";
-   } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
-      opcode = "mov";
-      param_width_64 = param_width_32;
-   } else if (sign) {
-      opcode = "movsx";
-   } else {
-      opcode = "movzx";
+   std::string regstr;
+
+   switch (get_type_domain(param)) {
+   case type_domain::INT:
+      if (param_width_32 == param_width_64) {
+         opcode = "mov";
+      } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
+         opcode = "mov";
+         param_width_64 = param_width_32;
+      } else if (sign) {
+         opcode = "movsx";
+      } else {
+         opcode = "movzx";
+      }
+      assert(info.reg_it != info.reg_end);
+      regstr = (*info.reg_it++)->reg(param_width_64);
+      break;
+   case type_domain::REAL:
+      switch (param_width_32) {
+      case reg_width::D:
+         opcode = "movss";
+         break;
+      case reg_width::Q:
+         opcode = "movsd";
+         break;
+      default: abort();
+      }
+      assert(info.fp_idx != info.fp_end);
+      regstr = std::string("xmm") + std::to_string(info.fp_idx++);
+      break;
+   default: abort();
    }
+   
    std::stringstream src;
-   src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
+   src << reg_width_to_str(param_width_32) << " [rbp + " << info.frame_offset << "]";
    src << "\t" << "; " << clang_getTypeSpelling(param);
    std::string src_str = src.str();
-   emit_inst(os, opcode, group.reg(param_width_64), src_str);
+
+   emit_inst(os, opcode, regstr, src_str);
+   
+   info.frame_offset += align_up<unsigned>(reg_width_size(param_width_32), 4);
 }
 
 struct ABIConversion {
    using Cursors = std::list<CXCursor>;
    
    std::string sym;
-   // CXCursor function_decl;
    CXType function_type;
 
    ABIConversion(CXCursor function_decl): function_type(clang_getCursorType(function_decl))
@@ -326,24 +372,21 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* transfer arguments */
-      const std::list<const reg_group *> regs = {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
-      std::size_t frame_offset = 12;
+      const reg_groups regs = {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
+      param_info info(regs, 8, 12);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
       auto reg_it = regs.begin();
       for (param_it = 0; param_it != param_end && reg_it != regs.end(); ++param_it, ++reg_it) {
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
-
-         emit_load_arg(os, param_type, **reg_it, frame_offset);
-         frame_offset += align_up<size_t>(reg_width_size(get_type_width(param_type, arch::i386)),
-                                          4);
+         emit_load_arg(os, param_type, info);
       }
 
       if (param_it != param_end && reg_it == regs.end()) {
          fprintf(stderr, "registers exhaused\n");
          abort();
       }
-
+      
       /* variadic function placeholder */
       if (variadic) {
          emit_inst(os, "xor", "eax", "eax");
