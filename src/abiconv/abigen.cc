@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <clang-c/Index.h>
 
+using Symbols = std::unordered_set<std::string>;
+
 template <typename CXT, typename Func>
 std::string to_string_aux(CXT val, Func func) {
    CXString cxs = func(val);
@@ -336,12 +338,11 @@ struct ABIConversion {
       return clang_getCanonicalType(type);
    }
 
-   template <typename Syms>
-   void emit(std::ostream& os, Syms&& generated_syms) const {
-      if (generated_syms.find(sym) != generated_syms.end()) {
+   void emit(std::ostream& os, Symbols& symbols) const {
+      if (symbols.find(sym) == symbols.end()) {
          return;
       }
-      generated_syms.insert(sym);
+      symbols.erase(sym);
       
       const bool variadic = clang_isFunctionTypeVariadic(function_type);
       const std::string& override_prefix = "__";
@@ -414,7 +415,7 @@ struct ABIGenerator {
    
    CXIndex index = clang_createIndex(0, 0);
    std::ostream& os;
-   Syms generated_syms;
+   Symbols symbols;
 
    ABIGenerator(std::ostream& os): os(os) {}
 
@@ -464,7 +465,7 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(c);
-      conv.emit(os, generated_syms);
+      conv.emit(os, symbols);
    }
 
    void handle_asm_label_attr(CXCursor c, CXCursor p) {
@@ -474,20 +475,21 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(clang_getCursorType(p), to_string(c));
-      conv.emit(os, generated_syms);
+      conv.emit(os, symbols);
    }
    
 };
 
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
-                   const char *usage = "usage: %s [-h] [-o <outpath>] <header>...\n";
+                   const char *usage = "usage: %s [-h] [-o <outpath>] [-s <symfile>] <header>...\n";
                    fprintf(f, usage, argv[0]);
                 };
 
    const char *outpath = nullptr;
+   const char *sympath = nullptr;
    
-   const char *optstring = "ho:";
+   const char *optstring = "ho:s:";
    int optchar;
    if ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
@@ -496,6 +498,9 @@ int main(int argc, char *argv[]) {
          return 0;
       case 'o':
          outpath = optarg;
+         break;
+      case 's':
+         sympath = optarg;
          break;
       case '?':
          usage(stderr);
@@ -509,7 +514,22 @@ int main(int argc, char *argv[]) {
    }
    std::ostream& os = outpath ? of : std::cout;
 
+   std::ifstream if_;
+   if (sympath) {
+      if_.open(sympath);
+   }
+   std::istream& is = sympath ? if_ : std::cin;
+
    ABIGenerator abigen(os);
+
+   std::string symbol_tmp;
+   while (std::cin >> symbol_tmp) {
+      abigen.symbols.insert(symbol_tmp);
+   }
+
+   // DEBUG
+   fprintf(stderr, "parsed %zu syms\n", abigen.symbols.size());
+   
    abigen.emit_header();
    
    /* handle each header */

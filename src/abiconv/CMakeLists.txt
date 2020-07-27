@@ -9,10 +9,21 @@ add_definitions(${LLVM_DEFINITIONS})
 find_path(c_headers stdlib.h)
 message(${c_headers})
 
-add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h
-  DEPENDS abigen # symdefs.h
+add_custom_command(OUTPUT abiconv.syms
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib > abiconv.syms
+  DEPENDS print_exports_trie.sh
   )
+
+add_custom_target(abiconv_syms
+  DEPENDS abiconv.syms
+  )
+
+add_custom_command(OUTPUT abiconv.asm
+  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h < abiconv.syms
+  DEPENDS abigen abiconv_syms
+  )
+
+add_custom_target(abiconv_asm DEPENDS abiconv.asm)
 
 macro(create_vararg_conv SYMBOL)
   add_library(vararg_conv_${SYMBOL} OBJECT vararg-conv-t.asm)
@@ -38,6 +49,7 @@ add_library(abiconv SHARED
   dyld_stub_binder.asm
   )
 target_link_libraries(abiconv System)
+add_dependencies(abiconv abiconv_asm)
 
 install(TARGETS abiconv DESTINATION opt/86x64)
 
