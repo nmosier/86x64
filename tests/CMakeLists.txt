@@ -11,7 +11,7 @@ macro(create_test TESTNAME)
     )
 
   add_custom_command(OUTPUT ${TESTNAME}64 ${TESTNAME}64.dylib
-    COMMAND ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh -o ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64 -l $<TARGET_FILE:abiconv> -i $<TARGET_FILE:interpose> -a ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64.dylib -m $<TARGET_FILE:macho-tool> ${TESTNAME}32
+    COMMAND ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh -o ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64 -l $<TARGET_FILE:abiconv> -i $<TARGET_FILE:interpose> -a ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64.dylib -m $<TARGET_FILE:macho-tool> -w $<TARGET_FILE:wrapper> ${TESTNAME}32
     DEPENDS ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh ${TESTNAME}32 abiconv interpose macho-tool
     )
 
@@ -20,7 +20,7 @@ macro(create_test TESTNAME)
     )
 
   add_test(NAME ${TESTNAME}
-    COMMAND do-test.sh ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/do-test.sh ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}
     )
   
 endmacro()

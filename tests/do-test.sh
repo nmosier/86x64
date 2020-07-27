@@ -7,6 +7,7 @@ EOF
 }
 
 DEBUG_CMD=
+ROOT_DIR="$(dirname "$0")"
 
 while getopts "hd" OPTCHAR; do
     case $OPTCHAR in
@@ -31,6 +32,9 @@ if [[ $# -ne 1 ]]; then
     exit 1
 fi
 
+TEST_NAME="$(basename "$1")"
+SCRIPT_NAME="$ROOT_DIR/$TEST_NAME.sh"
+
 if ! [ -x "${1}32" ] || ! [ -x "${1}64" ]; then
     echo "file not found" >&2
     exit 1
@@ -44,8 +48,8 @@ if ! "${1}32" > "$tmp1" || ! sudo chroot / sh -c "cd \"$(dirname "${1}64")\"; \"
     exit 1
 fi
 
-if [ -e "$1.sh" ]; then
-    diff <("$1.sh" "$1") "$tmp2"
+if [ -e "$SCRIPT_NAME" ]; then
+    diff <("$SCRIPT_NAME" "$1") "$tmp2"
 else
     diff "$tmp1" "$tmp2"
 fi
