@@ -157,6 +157,7 @@ struct reg_group {
    }
 };
 
+static const reg_group rax = {"al", "ax", "eax", "rax"};
 static const reg_group rdi = {"dil", "di",  "edi", "rdi"};
 static const reg_group rsi = {"sil", "si",  "esi", "rsi"};
 static const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
@@ -334,38 +335,36 @@ struct emit_arg {
    const reg_width param_width_32;
    reg_width param_width_64;
    bool sign;
-   unsigned& frame_offset;
 
-   emit_arg(CXType param, unsigned& frame_offset):
+   emit_arg(CXType param):
       param(param), param_width_32(get_type_width(param, arch::i386)),
-      param_width_64(get_type_width(param, arch::x86_64)), sign(get_type_signed(param)),
-      frame_offset(frame_offset) {}
+      param_width_64(get_type_width(param, arch::x86_64)), sign(get_type_signed(param)) {}
    
    virtual const char *opcode() = 0;
    virtual std::string regstr() = 0;
-   std::string memop() const {
+   std::string memop(const char *basereg, unsigned offset) const {
       std::stringstream src;
-      src << reg_width_to_str(param_width_32) << " [rbp + " << frame_offset << "]";
+      src << reg_width_to_str(param_width_32) << " [" << basereg << " + " << offset << "]";
       src << "\t" << "; " << clang_getTypeSpelling(param);
       return src.str();
    }
    
-   void load(std::ostream& os) {
-      emit_inst(os, opcode(), regstr(), memop());
-      frame_offset += align_up<unsigned>(reg_width_size(param_width_32), 4);
+   void load(std::ostream& os, const char *basereg, unsigned& offset) {
+      emit_inst(os, opcode(), regstr(), memop(basereg, offset));
+      offset += align_up<unsigned>(reg_width_size(param_width_32), 4);
    }
 
-   void store(std::ostream& os) {
-      emit_inst(os, opcode(), memop(), regstr());
-      frame_offset += align_up<unsigned>(reg_width_size(param_width_32), 4);
+   void store(std::ostream& os, const char *basereg, unsigned& offset) {
+      emit_inst(os, opcode(), memop(basereg, offset), regstr());
+      offset += align_up<unsigned>(reg_width_size(param_width_32), 4);
    }
 };
 
 struct emit_arg_int: emit_arg {
    const reg_group& reg;
    
-   emit_arg_int(CXType param, unsigned& frame_offset, const reg_group& reg):
-      emit_arg(param, frame_offset), reg(reg) {}
+   emit_arg_int(CXType param, const reg_group& reg):
+      emit_arg(param), reg(reg) {}
    
    virtual const char *opcode() override {
       if (param_width_32 == param_width_64) {
@@ -386,8 +385,7 @@ struct emit_arg_int: emit_arg {
 struct emit_arg_real: emit_arg {
    unsigned xmm_idx;
    
-   emit_arg_real(CXType param, unsigned frame_offset, unsigned xmm_idx):
-      emit_arg(param, frame_offset), xmm_idx(xmm_idx) {}
+   emit_arg_real(CXType param, unsigned xmm_idx): emit_arg(param), xmm_idx(xmm_idx) {}
 
    virtual const char *opcode() override {
       switch (param_width_32) {
@@ -467,26 +465,29 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* transfer arguments */
+      std::stringstream store_ss;
       const reg_groups regs = {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
       param_info info(regs, 8, 12);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
       // auto reg_it = regs.begin();
+      unsigned store_offset = 0;
       for (param_it = 0; param_it != param_end /* && reg_it != regs.end() */; ++param_it /*, ++reg_it */) {
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
          switch (get_type_domain(param_type)) {
          case type_domain::INT:
             if (info.reg_it != info.reg_end) {
-               emit_arg_int(param_type, info.frame_offset, **info.reg_it++).load(os);
+               emit_arg_int(param_type, **info.reg_it++).load(os, "rbp", info.frame_offset);
             } else {
-               fprintf(stderr, "registers depleted\n");
-               abort();
+               emit_arg_int arg(param_type, rax);
+               arg.load(store_ss, "rbp", info.frame_offset);
+               arg.store(store_ss, "rsp", store_offset);
             }
             break;
             
          case type_domain::REAL:
             if (info.fp_idx != info.fp_end) {
-               emit_arg_real(param_type, info.frame_offset, info.fp_idx++).load(os);
+               emit_arg_real(param_type, info.fp_idx++).load(os, "rbp", info.frame_offset);
             } else {
                fprintf(stderr, "xmm depleted\n");
                abort();
