@@ -586,9 +586,24 @@ struct ABIGenerator {
    
 };
 
+template <typename Op>
+void parse_syms(std::istream& is, Op op) {
+   std::string tmp;
+   while (is >> tmp) {
+      op(tmp);
+   }
+}
+
+template <typename Op>
+void parse_syms(const char *path, Op op) {
+   std::ifstream is;
+   is.open(path);
+   parse_syms(is, op);
+}
+
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
-                   const char *usage = "usage: %s [-ha] [-o <outpath>] [-s <symfile>] <header>...\n";
+                   const char *usage = "usage: %s [-h] [-o <outpath>] [-s <symfile>] [-i <ignorefile>] <header>...\n";
                    fprintf(f, usage, argv[0]);
                 };
 
@@ -596,9 +611,9 @@ int main(int argc, char *argv[]) {
    const char *sympath = nullptr;
    const char *symignorepath = nullptr;
    
-   const char *optstring = "ho:s:i:a:";
+   const char *optstring = "ho:s:i:";
    int optchar;
-   if ((optchar = getopt(argc, argv, optstring)) >= 0) {
+   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
       case 'h':
          usage(stdout);
@@ -612,9 +627,6 @@ int main(int argc, char *argv[]) {
       case 'i':
          symignorepath = optarg;
          break;
-      case 'a':
-         force_all = true;
-         break;
       case '?':
          usage(stderr);
          return 1;
@@ -627,19 +639,19 @@ int main(int argc, char *argv[]) {
    }
    std::ostream& os = outpath ? of : std::cout;
 
-   std::ifstream if_;
-   if (sympath) {
-      if_.open(sympath);
-   }
-   std::istream& is = sympath ? if_ : std::cin;
-
    ABIGenerator abigen(os);
 
-   if (!force_all) {
-      std::string symbol_tmp;
-      while (is >> symbol_tmp) {
-         abigen.symbols.insert(symbol_tmp);
-      }
+   auto sym_insert_op = [&] (const std::string& s) { abigen.symbols.insert(s); };
+   auto sym_erase_op = [&] (const std::string& s) { abigen.symbols.erase(s); };
+   
+   if (sympath) {
+      parse_syms(sympath, sym_insert_op);
+   } else {
+      parse_syms(std::cin, sym_insert_op);
+   }
+   
+   if (symignorepath) {
+      parse_syms(symignorepath, sym_erase_op);
    }
 
    abigen.emit_header();

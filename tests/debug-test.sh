@@ -2,14 +2,14 @@
 
 usage() {
     cat <<EOF
-usage: $0 <testname>
+usage: $0 <testname> [args...] 
 EOF
 }
 
-if [[ $# -ne 1 ]]; then
+if [[ $# -lt 1 ]]; then
     usage >&2
     exit 1
 fi
 
-sudo chroot / sh -c "cd \"$(dirname "${1}64")\" && lldb \"${1}64\""
-
+sudo chroot / sh -c "cd \"$PWD\" && lldb \"${1}64\""
+# sudo chroot / sh -x -c "cd \"$PWD\"; lldb \"${TESTNAME}64\" -- ${@[@]}"

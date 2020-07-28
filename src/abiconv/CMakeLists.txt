@@ -20,8 +20,8 @@ add_custom_target(abiconv_syms
   )
 
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h < abiconv.syms
-  DEPENDS abigen abiconv_syms
+  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h
+  DEPENDS abigen abiconv_syms custom.syms
   )
 
 add_custom_target(abiconv_asm DEPENDS abiconv.asm)
@@ -38,6 +38,13 @@ create_vararg_conv(snprintf)
 create_vararg_conv(asprintf)
 create_vararg_conv(dprintf)
 
+macro(create_custom_conv SOURCE)
+  get_filename_component(SYMBOL ${SOURCE} NAME_WE)
+  add_library(custom_conv_${SYMBOL} OBJECT ${SOURCE})
+endmacro()
+
+create_custom_conv(getopt.asm)
+
 add_library(abiconv SHARED
   abiconv.asm
   $<TARGET_OBJECTS:vararg_conv_printf>
@@ -46,6 +53,7 @@ add_library(abiconv SHARED
   $<TARGET_OBJECTS:vararg_conv_snprintf>
   $<TARGET_OBJECTS:vararg_conv_asprintf>
   $<TARGET_OBJECTS:vararg_conv_dprintf>
+  $<TARGET_OBJECTS:custom_conv_getopt>
   conv.cc
   dyld_stub_binder.asm
   )

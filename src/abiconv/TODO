@@ -26,4 +26,8 @@ Alternate Idea
 
 - Compile printf parser for 32-bit
 - Call external 32-bit wrapper for 64-bit function that writes 
-- Translate to 64-bit 
+- Translate to 64-bit
+
+---
+
+[ ] List of symbols to NOT generate stubs for; these stubs are manually written.
