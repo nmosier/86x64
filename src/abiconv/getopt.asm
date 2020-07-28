@@ -38,10 +38,12 @@ ___getopt:
    jnz .loop
    mov qword [rdx], 0
 
-   mov edx, [rbp + 16]
+   mov edx, [rbp + 20]
 
+   and rsp, ~0xf
    call _getopt
-   
+
+   lea rsp, [rbp - 16]
    pop rsi
    pop rdi
    leave

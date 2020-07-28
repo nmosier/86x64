@@ -11,7 +11,7 @@ find_path(c_headers stdlib.h)
 message(${c_headers})
 
 add_custom_command(OUTPUT abiconv.syms
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib /usr/lib/system/libsystem_kernel.dylib > abiconv.syms
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib /usr/lib/system/libsystem_kernel.dylib /usr/lib/system/libsystem_info.dylib > abiconv.syms
   DEPENDS print_exports_trie.sh
   )
 
@@ -20,7 +20,7 @@ add_custom_target(abiconv_syms
   )
 
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h
+  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h ${c_headers}/pwd.h ${c_headers}/sys/types.h ${c_headers}/uuid/uuid.h ${c_headers}/string.h ${c_headers}/sys/stat.h ${c_headers}/grp.h
   DEPENDS abigen abiconv_syms custom.syms
   )
 
@@ -37,6 +37,7 @@ create_vararg_conv(fprintf)
 create_vararg_conv(snprintf)
 create_vararg_conv(asprintf)
 create_vararg_conv(dprintf)
+create_vararg_conv(__sprintf_chk)
 
 macro(create_custom_conv SOURCE)
   get_filename_component(SYMBOL ${SOURCE} NAME_WE)
@@ -53,6 +54,7 @@ add_library(abiconv SHARED
   $<TARGET_OBJECTS:vararg_conv_snprintf>
   $<TARGET_OBJECTS:vararg_conv_asprintf>
   $<TARGET_OBJECTS:vararg_conv_dprintf>
+  $<TARGET_OBJECTS:vararg_conv___sprintf_chk>
   $<TARGET_OBJECTS:custom_conv_getopt>
   conv.cc
   dyld_stub_binder.asm
