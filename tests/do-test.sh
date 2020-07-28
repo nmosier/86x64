@@ -34,6 +34,7 @@ fi
 
 TEST_NAME="$(basename "$1")"
 SCRIPT_NAME="$ROOT_DIR/$TEST_NAME.sh"
+ARGS_NAME="$ROOT_DIR/$TEST_NAME.args"
 
 if ! [ -x "${1}32" ] || ! [ -x "${1}64" ]; then
     echo "file not found" >&2
@@ -46,9 +47,11 @@ trap "rm -rf $tmp1 $tmp2" EXIT
 
 run_cmd() {
     DIR="$(dirname ${1}64)"
+    TESTPATH="${1}64"
+    shift 1
     sudo chroot / sh <<EOF
 cd "$DIR"
-"${1}64" > "$tmp2"
+"$TESTPATH" $@ > "$tmp2"
 EOF
 }
 
@@ -56,13 +59,14 @@ EOF
 #     exit 1
 # fi
 
-if ! "${1}32" > "$tmp1" || ! run_cmd "$1"; then
-    exit 1
-fi
-
-if [ -e "$SCRIPT_NAME" ]; then
-    diff <("$SCRIPT_NAME" "$1") "$tmp2"
-else
-    diff "$tmp1" "$tmp2"
-fi
-
+([ -e "$ARGS_NAME" ] && cat "$ARGS_NAME" || echo) | while read ARGS; do
+    if ! "${1}32" $ARGS > "$tmp1" || ! run_cmd "$1" $ARGS; then
+        exit 1
+    fi
+    
+    if [ -e "$SCRIPT_NAME" ]; then
+        diff <("$SCRIPT_NAME" "$1") "$tmp2"
+    else
+        diff "$tmp1" "$tmp2"
+    fi || exit 1
+done
