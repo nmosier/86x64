@@ -13,3 +13,5 @@ fi
 
 sudo chroot / sh -c "cd \"$PWD\" && lldb \"${1}64\""
 # sudo chroot / sh -x -c "cd \"$PWD\"; lldb \"${TESTNAME}64\" -- ${@[@]}"
+
+# sudo chroot / sh --init-file <(echo cd "$DIR" ';' lldb "${TESTNAME}64" -- "${ARGS[@]}")
