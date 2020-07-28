@@ -44,7 +44,19 @@ tmp1=$(mktemp)
 tmp2=$(mktemp)
 trap "rm -rf $tmp1 $tmp2" EXIT
 
-if ! "${1}32" > "$tmp1" || ! sudo chroot / sh -c "cd \"$(dirname "${1}64")\"; \"${1}64\"" > "$tmp2"; then
+run_cmd() {
+    DIR="$(dirname ${1}64)"
+    sudo chroot / sh <<EOF
+cd "$DIR"
+"${1}64" > "$tmp2"
+EOF
+}
+
+# if ! "${1}32" > "$tmp1" || ! sudo chroot / sh -c "cd \"$(dirname "${1}64")\"; \"${1}64\"" > "$tmp2"; then
+#     exit 1
+# fi
+
+if ! "${1}32" > "$tmp1" || ! run_cmd "$1"; then
     exit 1
 fi
 
@@ -53,3 +65,4 @@ if [ -e "$SCRIPT_NAME" ]; then
 else
     diff "$tmp1" "$tmp2"
 fi
+
