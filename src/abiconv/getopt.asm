@@ -1,8 +1,15 @@
    segment .text
    global ___getopt
    extern _getopt
+   extern __dyld_stub_binder_flag
 
 ___getopt:
+   cmp qword [rel __dyld_stub_binder_flag], 0
+   je .l1
+   mov rsp, qword [rel __dyld_stub_binder_flag]
+   add rsp, 16
+   mov qword [rel __dyld_stub_binder_flag], 0
+.l1:   
    push rbp
    mov rbp, rsp
 
@@ -27,7 +34,7 @@ ___getopt:
    add rdx, 8
    add rax, 4
 .entry:
-   dec esi
+   dec r8d
    jnz .loop
    mov qword [rdx], 0
 
