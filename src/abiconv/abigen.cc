@@ -127,7 +127,7 @@ struct ABIConversion {
       unsigned xmm_i = 0;
       
       for (unsigned argi = 0; argi < argc; ++argi) {
-         CXType argtype = clang_getArgType(function_type, argi);
+         CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
          switch (get_type_domain(argtype)) {
          case type_domain::INT:
             if (reg_i < max_reg_args) {
@@ -146,7 +146,7 @@ struct ABIConversion {
          default: abort();
          }
       }
-      return size;
+      return align_up<size_t>(size, 16);
    }
 
    void emit(std::ostream& os, Symbols& symbols) const {
@@ -188,6 +188,9 @@ struct ABIConversion {
 
       /* align stack */
       emit_inst(os, "and", "rsp", "~0xf");
+
+      /* make space on stack */
+      emit_inst(os, "sub", "rsp", stack_args_size(arch::x86_64));
 
       /* transfer arguments */
       std::stringstream store_ss;

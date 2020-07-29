@@ -144,16 +144,24 @@ static void convert_struct(std::ostream& os, CXType type, memloc& src, memloc& d
 
    for_each(decl,
             [&] (CXCursor field, CXCursor p) {
-               assert(clang_getCursorKind(field) == CXCursor_FieldDecl);
-               CXType field_type = clang_getCursorType(field);
-               size_t size32 = sizeof_type(field_type, arch::i386);
-               size_t size64 = sizeof_type(field_type, arch::x86_64);
-
-               src.align(size32);
-               dst.align(size64);
-
-               convert_type(os, field_type, src, dst);
-
+               switch (clang_getCursorKind(field)) {
+               case CXCursor_TypedefDecl:
+                  break;
+                  
+               case CXCursor_FieldDecl:
+                  {
+                     CXType field_type = clang_getCursorType(field);
+                     size_t size32 = sizeof_type(field_type, arch::i386);
+                     size_t size64 = sizeof_type(field_type, arch::x86_64);
+                     
+                     src.align(size32);
+                     dst.align(size64);
+                     
+                     convert_type(os, field_type, src, dst);
+                  }
+                  break;
+               default: abort();
+               }
                return CXChildVisit_Continue;
             });
 
@@ -221,15 +229,23 @@ static size_t sizeof_struct(CXType type, arch a) {
    
    for_each(decl,
             [&] (CXCursor field, CXCursor p) {
-               assert(clang_getCursorKind(field) == CXCursor_FieldDecl);
-               
-               const CXType field_type = clang_getCursorType(field);
-               const size_t field_size = sizeof_type(field_type, a);
-               const size_t field_align = alignof_type(field_type, a);
+               switch (clang_getCursorKind(field)) {
+               case CXCursor_TypedefDecl:
+                  break;
 
-               size = align_up(size, field_align) + field_size;
-               align = std::max(align, field_align);
-               
+               case CXCursor_FieldDecl:
+                  {               
+                     const CXType field_type = clang_getCursorType(field);
+                     const size_t field_size = sizeof_type(field_type, a);
+                     const size_t field_align = alignof_type(field_type, a);
+                     
+                     size = align_up(size, field_align) + field_size;
+                     align = std::max(align, field_align);
+                  }
+                  break;
+                  
+               default: abort();
+               }
                return CXChildVisit_Continue;
             });
 
@@ -250,16 +266,24 @@ static size_t alignof_struct(CXType type, arch a) {
 
    for_each(decl,
             [&] (CXCursor field, CXCursor p) {
-               assert(clang_getCursorKind(field) == CXCursor_FieldDecl);
+               switch (clang_getCursorKind(field)) {
+               case CXCursor_TypedefDecl:
+                  break;
+                  
+               case CXCursor_FieldDecl:
+                  {
+                     const CXType field_type = clang_getCursorType(field);
+                     const size_t field_align = alignof_type(field_type, a);
+                     
+                     align = std::max(align, field_align);
+                  }
+                  break;
 
-               const CXType field_type = clang_getCursorType(field);
-               const size_t field_align = alignof_type(field_type, a);
-
-               align = std::max(align, field_align);
-
+               default: abort();
+               }
                return CXChildVisit_Continue;
             });
-
+   
    return align;
 }
 
