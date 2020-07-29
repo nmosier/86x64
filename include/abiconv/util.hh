@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdio>
 #include <iostream>
+#include <clang-c/Index.h>
 
 template <typename Val, typename... Args>
 inline void assert_msg(Val val, Args&&... args) {
@@ -35,4 +36,20 @@ constexpr T div_up(T a, T b) {
 template <typename T>
 constexpr T align_up(T n, T align) {
    return div_up(n, align) * align;
+}
+
+template <typename Func>
+static void for_each(CXCursor root, Func func) {
+   clang_visitChildren(root,
+                       [] (CXCursor c, CXCursor parent, CXClientData client_data) {
+                          Func func = * (Func *) client_data;
+                          return func(c, parent);
+                       },
+                       &func);
+}
+
+
+template <typename Func>
+void for_each(const CXTranslationUnit& unit, Func func) {
+   for_each(clang_getTranslationUnitCursor(unit), func);
 }

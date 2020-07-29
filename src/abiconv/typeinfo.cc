@@ -99,6 +99,7 @@ type_domain get_type_domain(CXType type) {
    }
 }
 
+// NOTE: only works for POD types.
 reg_width get_type_width(CXType type, arch a) {
    switch (type.kind) {
    case CXType_Invalid:
@@ -164,4 +165,3 @@ std::ostream& operator<<(std::ostream& os, const CXString& str) {
    clang_disposeString(str);
    return os;
 }
-
