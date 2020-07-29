@@ -8,6 +8,7 @@
 #include "util.hh"
 #include "abigen.hh"
 #include "typeinfo.hh"
+#include "typeconv.hh"
 
 bool force_all = false;
 
@@ -97,6 +98,9 @@ struct ABIConversion {
    std::string sym;
    CXType function_type;
 
+   static constexpr unsigned max_reg_args = 6;
+   static constexpr unsigned max_xmm_args = 8;
+
    ABIConversion(CXCursor function_decl): function_type(clang_getCursorType(function_decl))
    {
       const std::string symprefix = "_";
@@ -111,6 +115,38 @@ struct ABIConversion {
 
    static CXType handle_type(CXType type) {
       return clang_getCanonicalType(type);
+   }
+
+   /* assumes stack is 16-byte aligned */
+   size_t stack_args_size(arch a) const {
+      size_t size = 0;
+      int argc = clang_getNumArgTypes(function_type);
+      assert(argc >= 0);
+
+      unsigned reg_i = 0;
+      unsigned xmm_i = 0;
+      
+      for (unsigned argi = 0; argi < argc; ++argi) {
+         CXType argtype = clang_getArgType(function_type, argi);
+         switch (get_type_domain(argtype)) {
+         case type_domain::INT:
+            if (reg_i < max_reg_args) {
+               ++reg_i;
+            } else {
+               size += std::max<size_t>(sizeof_type(argtype, a), a == arch::i386 ? 4 : 8);
+            }
+            break;
+         case type_domain::REAL:
+            if (xmm_i < max_xmm_args) {
+               ++xmm_i;
+            } else {
+               size += std::max<size_t>(sizeof_type(argtype, a), a == arch::i386 ? 4 : 8);
+            }
+            break;
+         default: abort();
+         }
+      }
+      return size;
    }
 
    void emit(std::ostream& os, Symbols& symbols) const {
