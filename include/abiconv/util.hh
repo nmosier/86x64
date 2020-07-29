@@ -34,8 +34,17 @@ constexpr T div_up(T a, T b) {
 }
 
 template <typename T>
+constexpr T div_down(T a, T b) {
+   return a / b;
+}
+
+template <typename T>
 constexpr T align_up(T n, T align) {
-   return div_up(n, align) * align;
+   if (n >= 0) {
+      return div_up(n, align) * align;
+   } else {
+      return -div_down(-n, align) * align;
+   }
 }
 
 template <typename Func>

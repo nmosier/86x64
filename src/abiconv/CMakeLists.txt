@@ -1,6 +1,6 @@
 find_package(Clang REQUIRED PATHS /usr/local/opt/llvm)
 
-add_executable(abigen abigen.cc typeinfo.cc)
+add_executable(abigen abigen.cc typeinfo.cc typeconv.cc)
 target_link_libraries(abigen libclang)
 target_include_directories(abigen PRIVATE ${CMAKE_SOURCE_DIR}/include/abiconv ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})

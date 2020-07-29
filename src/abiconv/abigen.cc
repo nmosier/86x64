@@ -21,25 +21,14 @@ const std::string& reg_group::reg(reg_width width) const {
    }
 }
 
-static const reg_group rax = {"al", "ax", "eax", "rax"};
-static const reg_group rdi = {"dil", "di",  "edi", "rdi"};
-static const reg_group rsi = {"sil", "si",  "esi", "rsi"};
-static const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
-static const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
-static const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
-static const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
-static const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
-
-template <typename Opcode>
-static std::ostream& emit_inst(std::ostream& os, Opcode&& opcode) {
-   return os << "\t" << opcode << std::endl;
-}
-
-template <typename Opcode, typename OperandHead, typename... OperandTail>
-static std::ostream& emit_inst(std::ostream& os, Opcode&& opcode, OperandHead&& head,
-                               OperandTail&&... tail) {
-   return strjoin(os << "\t" << opcode << "\t", ",\t", head, tail...) << std::endl;
-}
+const reg_group rax = {"al", "ax", "eax", "rax"};
+const reg_group rdi = {"dil", "di",  "edi", "rdi"};
+const reg_group rsi = {"sil", "si",  "esi", "rsi"};
+const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
+const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
+const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
+const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
+const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
 
 using reg_groups = std::list<const reg_group *>;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include <unordered_set>
 
 #include "typeinfo.hh"
@@ -19,6 +20,25 @@ struct reg_group {
 struct memloc {
    const char *basereg;
    int index;
+
+   std::string memop() const {
+      std::stringstream ss;
+      ss << "[" << basereg << "+" << index << "]";
+      return ss.str();
+   }
+
+   memloc operator+(int offset) const {
+      return {basereg, index + offset};
+   }
+
+   memloc& operator+=(int offset) {
+      index += offset;
+      return *this;
+   }
+
+   void align(size_t a) {
+      align_up<int>(index, a);
+   }
 };
 
 struct emit_arg {
@@ -40,8 +60,7 @@ struct emit_arg {
 struct emit_arg_int: emit_arg {
    const reg_group& reg;
    
-   emit_arg_int(CXType param, const reg_group& reg):
-      emit_arg(param), reg(reg) {}
+   emit_arg_int(CXType param, const reg_group& reg): emit_arg(param), reg(reg) {}
    
    virtual const char *opcode() override;
    virtual std::string regstr() override { return reg.reg(param_width_64); }
@@ -55,3 +74,23 @@ struct emit_arg_real: emit_arg {
    virtual const char *opcode() override;
    virtual std::string regstr() override { return std::string("xmm") + std::to_string(xmm_idx); }
 };
+
+extern const reg_group rax;
+extern const reg_group rdi;
+extern const reg_group rsi;
+extern const reg_group rdx;
+extern const reg_group rcx;
+extern const reg_group  r8;
+extern const reg_group  r9;
+extern const reg_group r11;
+
+template <typename Opcode>
+std::ostream& emit_inst(std::ostream& os, Opcode&& opcode) {
+   return os << "\t" << opcode << std::endl;
+}
+
+template <typename Opcode, typename OperandHead, typename... OperandTail>
+std::ostream& emit_inst(std::ostream& os, Opcode&& opcode, OperandHead&& head,
+                               OperandTail&&... tail) {
+   return strjoin(os << "\t" << opcode << "\t", ",\t", head, tail...) << std::endl;
+}
