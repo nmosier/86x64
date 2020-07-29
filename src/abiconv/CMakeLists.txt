@@ -19,7 +19,7 @@ add_custom_target(abiconv_syms
   )
 
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms ${c_headers}/dirent.h ${c_headers}/stdlib.h ${c_headers}/stdio.h ${c_headers}/unistd.h ${c_headers}/errno.h ${c_headers}/pwd.h ${c_headers}/sys/types.h ${c_headers}/uuid/uuid.h ${c_headers}/string.h ${c_headers}/sys/stat.h ${c_headers}/grp.h
+  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
   DEPENDS abigen abiconv_syms custom.syms
   )
 

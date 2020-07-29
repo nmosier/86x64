@@ -34,6 +34,41 @@ namespace {
 
 }
 
+struct_decl::struct_decl(CXCursor cursor): cursor(cursor) {
+   populate_fields();
+}
+
+struct_decl::struct_decl(CXType type): cursor(clang_getTypeDeclaration(type)) {
+   populate_fields();
+}
+
+void struct_decl::populate_fields() {
+   for_each(cursor,
+            [&] (CXCursor c, CXCursor p) {
+               switch (clang_getCursorKind(c)) {
+               case CXCursor_FieldDecl:
+                  {
+                     CXType type = clang_getCanonicalType(clang_getCursorType(c));
+                     switch (type.kind) {
+                     case CXType_Typedef:
+                        break;
+                     default:
+                        field_types.push_back(type);
+                        break;
+                     }
+                  }
+                  break;
+
+               case CXCursor_PackedAttr:
+                  packed = true;
+                  break;
+
+               default: abort();
+               }
+               return CXChildVisit_Continue;
+            });
+}
+
 void convert_POD(std::ostream& os, CXType type, memloc& src, memloc& dst) {
    switch (get_type_domain(type)) {
    case type_domain::INT:
@@ -140,30 +175,15 @@ static void convert_constant_array(std::ostream& os, CXType array, memloc& src, 
 }
 
 static void convert_struct(std::ostream& os, CXType type, memloc& src, memloc& dst) {
-   CXCursor decl = clang_getTypeDeclaration(type);
+   struct_decl decl(type);
 
-   for_each(decl,
-            [&] (CXCursor field, CXCursor p) {
-               switch (clang_getCursorKind(field)) {
-               case CXCursor_TypedefDecl:
-                  break;
-                  
-               case CXCursor_FieldDecl:
-                  {
-                     CXType field_type = clang_getCursorType(field);
-                     size_t size32 = sizeof_type(field_type, arch::i386);
-                     size_t size64 = sizeof_type(field_type, arch::x86_64);
-                     
-                     src.align(size32);
-                     dst.align(size64);
-                     
-                     convert_type(os, field_type, src, dst);
-                  }
-                  break;
-               default: abort();
-               }
-               return CXChildVisit_Continue;
-            });
+   for (CXType field_type : decl.field_types) {
+      size_t size32 = sizeof_type(field_type, arch::i386);
+      size_t size64 = sizeof_type(field_type, arch::x86_64);
+      src.align(size32);
+      dst.align(size64);
+      convert_type(os, field_type, src, dst);
+   }
 
    src.align(alignof_type(type, arch::i386));
    dst.align(alignof_type(type, arch::x86_64));
@@ -216,40 +236,36 @@ size_t sizeof_type(CXType type, arch a) {
    case CXType_Record:
       return sizeof_struct(type, a);
 
+   case CXType_FunctionProto:
+      // TODO: May need to address this case in the future.
+      return 0;
+
+   case CXType_Void:
+      return 0;
+      
    default:
       abort();
    }
 }
 
 static size_t sizeof_struct(CXType type, arch a) {
-   const CXCursor decl = clang_getTypeDeclaration(type);
-
-   size_t size = 0;
-   size_t align = 0;
+   struct_decl decl(type);
    
-   for_each(decl,
-            [&] (CXCursor field, CXCursor p) {
-               switch (clang_getCursorKind(field)) {
-               case CXCursor_TypedefDecl:
-                  break;
+   size_t size = 0;
+   
+   for (CXType field_type : decl.field_types) {
+      const size_t field_size = sizeof_type(field_type, a);
+      if (!decl.packed) {
+         const size_t field_align = alignof_type(field_type, a);
+         size = align_up(size, field_align) + field_size;
+      }
+   }
 
-               case CXCursor_FieldDecl:
-                  {               
-                     const CXType field_type = clang_getCursorType(field);
-                     const size_t field_size = sizeof_type(field_type, a);
-                     const size_t field_align = alignof_type(field_type, a);
-                     
-                     size = align_up(size, field_align) + field_size;
-                     align = std::max(align, field_align);
-                  }
-                  break;
-                  
-               default: abort();
-               }
-               return CXChildVisit_Continue;
-            });
-
-   size = align_up(size, align);
+   if (!decl.packed) {
+      const size_t align = alignof_type(type, a);
+      size = align_up(size, align);
+   }
+   
    return size;
 }
 
@@ -260,38 +276,28 @@ int sizeof_type_archcmp(CXType type) {
 /* ALIGNOF */
 
 static size_t alignof_struct(CXType type, arch a) {
-   const CXCursor decl = clang_getTypeDeclaration(type);
+   struct_decl decl(type);
 
-   size_t align = 0;
-
-   for_each(decl,
-            [&] (CXCursor field, CXCursor p) {
-               switch (clang_getCursorKind(field)) {
-               case CXCursor_TypedefDecl:
-                  break;
-                  
-               case CXCursor_FieldDecl:
-                  {
-                     const CXType field_type = clang_getCursorType(field);
-                     const size_t field_align = alignof_type(field_type, a);
-                     
-                     align = std::max(align, field_align);
-                  }
-                  break;
-
-               default: abort();
-               }
-               return CXChildVisit_Continue;
-            });
-   
-   return align;
+   if (decl.packed) {
+      return 1;
+   } else {
+      size_t align = 1;
+      for (CXType field_type : decl.field_types) {
+         const size_t field_align = alignof_type(field_type, a);
+         align = std::max(align, field_align);
+      }
+      return align;
+   }
 }
 
 size_t alignof_type(CXType type, arch a) {
    switch (type.kind) {
    case CXType_Record:
       return alignof_struct(type, a);
+   case CXType_ConstantArray:
+      return alignof_type(clang_getElementType(type), a);
    default:
       return sizeof_type(type, a);
    }
 }
+

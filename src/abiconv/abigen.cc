@@ -117,16 +117,19 @@ struct ABIConversion {
       return clang_getCanonicalType(type);
    }
 
+   unsigned argc() const {
+      const int tmp = clang_getNumArgTypes(function_type);
+      assert(tmp >= 0);
+      return tmp;
+   }
+
    /* assumes stack is 16-byte aligned */
    size_t stack_args_size(arch a) const {
       size_t size = 0;
-      int argc = clang_getNumArgTypes(function_type);
-      assert(argc >= 0);
-
       unsigned reg_i = 0;
       unsigned xmm_i = 0;
       
-      for (unsigned argi = 0; argi < argc; ++argi) {
+      for (unsigned argi = 0; argi < argc(); ++argi) {
          CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
          switch (get_type_domain(argtype)) {
          case type_domain::INT:
@@ -146,6 +149,23 @@ struct ABIConversion {
          default: abort();
          }
       }
+      return align_up<size_t>(size, 16);
+   }
+
+   size_t stack_data_size(arch a) const {
+      size_t size = 0;
+
+      for (unsigned argi = 0; argi < argc(); ++argi) {
+         CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
+         switch (argtype.kind) {
+         case CXType_Pointer:
+            size += sizeof_type(clang_getPointeeType(argtype), a);
+            break;
+         default:
+            break;
+         }
+      }
+
       return align_up<size_t>(size, 16);
    }
 
@@ -190,7 +210,7 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* make space on stack */
-      emit_inst(os, "sub", "rsp", stack_args_size(arch::x86_64));
+      emit_inst(os, "sub", "rsp", stack_data_size(arch::x86_64) + stack_args_size(arch::x86_64));
 
       /* transfer arguments */
       std::stringstream store_ss;
