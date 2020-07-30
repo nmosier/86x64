@@ -150,47 +150,33 @@ static void convert_constant_array(std::ostream& os, CXType array, memloc& src, 
    std::stringstream loop_ss;
    loop_ss << ".convert_" << dst.basereg << dst.index; // this should be unique w/i function
    std::string loop = loop_ss.str();
-
-   /*   push rcx
-    *   push rdi
-    *   push rsi
-    *   mov ecx, <arrlen>
-    *   lea rdi, [<dst>]
-    *   lea rsi, [<src>]
+   
+   /*   mov r12d, <arrlen>
+    *   lea r13, [<dst>]
+    *   lea r14, [<src>]
     * loop:
     *   <move>
-    *   add rdi, <size64>
-    *   add rsi, <size32>
+    *   add r13, <size64>
+    *   add r14, <size32>
     * entry:
-    *   dec ecx
+    *   dec r12d
     *   jnz loop
-    *   pop rsi
-    *   pop rdi
-    *   pop rcx
     */
 
-   emit_inst(os, "push", "rcx");
-   emit_inst(os, "push", "rdi");
-   emit_inst(os, "push", "rsi");
-
-   emit_inst(os, "mov", "ecx", arrlen);
-   emit_inst(os, "lea", "rdi", dst.memop());
-   emit_inst(os, "lea", "rsi", src.memop());
+   emit_inst(os, "mov", "r12d", arrlen);
+   emit_inst(os, "lea", "r13", dst.memop());
+   emit_inst(os, "lea", "r14", src.memop());
 
    os << loop << ":";
    {
-      memloc src = {"rsi", 0};
-      memloc dst = {"rdi", 0};
+      memloc src = {"r14", 0};
+      memloc dst = {"r13", 0};
       convert_type(os, elem, src, dst);
-      emit_inst(os, "add", "rdi", sizeof_type(elem, arch::x86_64));
-      emit_inst(os, "add", "rsi", sizeof_type(elem, arch::i386));
-      emit_inst(os, "dec", "ecx");
+      emit_inst(os, "add", "r13", sizeof_type(elem, arch::x86_64));
+      emit_inst(os, "add", "r14", sizeof_type(elem, arch::i386));
+      emit_inst(os, "dec", "r12d");
       emit_inst(os, "jnz", loop);
    }
-   
-   emit_inst(os, "pop", "rsi");
-   emit_inst(os, "pop", "rdi");
-   emit_inst(os, "pop", "rcx");
 
    dst += sizeof_type(elem, arch::x86_64) * arrlen;
    src += sizeof_type(elem, arch::i386) * arrlen;

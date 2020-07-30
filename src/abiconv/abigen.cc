@@ -124,7 +124,7 @@ struct ABIConversion {
    }
 
    /* assumes stack is 16-byte aligned */
-   size_t stack_args_size(arch a) const {
+   size_t stack_args_size() const {
       size_t size = 0;
       unsigned reg_i = 0;
       unsigned xmm_i = 0;
@@ -136,14 +136,14 @@ struct ABIConversion {
             if (reg_i < max_reg_args) {
                ++reg_i;
             } else {
-               size += std::max<size_t>(sizeof_type(argtype, a), a == arch::i386 ? 4 : 8);
+               size += std::max<size_t>(sizeof_type(argtype, arch::x86_64), 8);
             }
             break;
          case type_domain::REAL:
             if (xmm_i < max_xmm_args) {
                ++xmm_i;
             } else {
-               size += std::max<size_t>(sizeof_type(argtype, a), a == arch::i386 ? 4 : 8);
+               size += std::max<size_t>(sizeof_type(argtype, arch::x86_64), 8);
             }
             break;
          default: abort();
@@ -152,13 +152,13 @@ struct ABIConversion {
       return align_up<size_t>(size, 16);
    }
 
-   size_t stack_data_size(arch a) const {
+   size_t stack_data_size() const {
       size_t size = 0;
 
       for (unsigned argi = 0; argi < argc(); ++argi) {
          CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
          if (should_convert_type(argtype)) {
-            size += sizeof_type(get_convert_type(argtype), a);
+            size += sizeof_type(get_convert_type(argtype), arch::x86_64);
          }
       }
 
@@ -206,8 +206,10 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* make space on stack */
-      std::cerr << sym << " " << stack_data_size(arch::x86_64) << std::endl; // DEBUG
-      emit_inst(os, "sub", "rsp", stack_data_size(arch::x86_64) + stack_args_size(arch::x86_64));
+      memloc stack_args = {"rsp", 0};
+      memloc stack_data = {"rsp", static_cast<int>(stack_args_size())};
+
+      emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
 
       /* transfer arguments */
       std::stringstream store_ss;
@@ -217,7 +219,9 @@ struct ABIConversion {
       int param_end = clang_getNumArgTypes(function_type);
       memloc load_loc = {"rbp", 12};
       memloc store_loc = {"rsp", 0};
-      for (param_it = 0; param_it != param_end /* && reg_it != regs.end() */; ++param_it /*, ++reg_it */) {
+      for (param_it = 0;
+           param_it != param_end /* && reg_it != regs.end() */;
+           ++param_it /*, ++reg_it */) {
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
          switch (get_type_domain(param_type)) {
          case type_domain::INT:
