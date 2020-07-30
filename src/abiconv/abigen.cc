@@ -157,12 +157,8 @@ struct ABIConversion {
 
       for (unsigned argi = 0; argi < argc(); ++argi) {
          CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
-         switch (argtype.kind) {
-         case CXType_Pointer:
-            size += sizeof_type(clang_getPointeeType(argtype), a);
-            break;
-         default:
-            break;
+         if (should_convert_type(argtype)) {
+            size += sizeof_type(get_convert_type(argtype), a);
          }
       }
 
@@ -210,6 +206,7 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* make space on stack */
+      std::cerr << sym << " " << stack_data_size(arch::x86_64) << std::endl; // DEBUG
       emit_inst(os, "sub", "rsp", stack_data_size(arch::x86_64) + stack_args_size(arch::x86_64));
 
       /* transfer arguments */

@@ -69,6 +69,28 @@ void struct_decl::populate_fields() {
             });
 }
 
+bool should_convert_type(CXType type) {
+   CXType cmptype;
+   switch (type.kind) {
+   case CXType_Pointer:
+      cmptype = clang_getPointeeType(type);
+      break;
+   default:
+      return false;
+   }
+   
+   return sizeof_type_archcmp(cmptype);
+}
+
+/* Get type that needs to be converted */
+CXType get_convert_type(CXType type) {
+   switch (type.kind) {
+   case CXType_Pointer:
+      return clang_getPointeeType(type);
+   default: abort();
+   }
+}
+
 void convert_POD(std::ostream& os, CXType type, memloc& src, memloc& dst) {
    switch (get_type_domain(type)) {
    case type_domain::INT:
