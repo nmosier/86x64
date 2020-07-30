@@ -69,120 +69,167 @@ void struct_decl::populate_fields() {
             });
 }
 
-bool should_convert_type(CXType type) {
-   CXType cmptype;
-   switch (type.kind) {
-   case CXType_Pointer:
-      cmptype = clang_getPointeeType(type);
-      break;
-   default:
-      return false;
-   }
-   
-   return sizeof_type_archcmp(cmptype);
-}
+static void convert_constant_array(std::ostream& os, CXType type, arch a, Location& src,
+                                   Location& dst, Location& data);
+static void convert_struct(std::ostream& os, CXType type, arch a, Location& src, Location& dst,
+                           Location& data);
 
-/* Get type that needs to be converted */
-CXType get_convert_type(CXType type) {
+void convert_type(std::ostream& os, CXType type, arch a, Location& src, Location& dst,
+                  Location& data) {
    switch (type.kind) {
+   case CXType_Invalid:
+   case CXType_Unexposed:
+      throw std::invalid_argument("invalid type");
+      
+   case CXType_Void:
+      return;
+      
+   case CXType_Bool:
+   case CXType_UChar:
+   case CXType_Char_U:
+   case CXType_UShort:
+   case CXType_UInt:
+   case CXType_ULong:
+   case CXType_ULongLong:
+   case CXType_SChar:
+   case CXType_Char_S:
+   case CXType_Short:
+   case CXType_Int:
+   case CXType_Long:
+   case CXType_LongLong:
+   case CXType_Enum:
+   case CXType_Float:
+   case CXType_Double:
+   case CXType_LongDouble:
+      convert_POD(os, type, a, src, dst, data);
+      return;
+      
    case CXType_Pointer:
-      return clang_getPointeeType(type);
+      // TODO
+      abort();
+      break;
+      
+   case CXType_BlockPointer:
+      abort();
+
+   case CXType_ConstantArray:
+      convert_constant_array(os, type, src, dst);
+      break;
+      
+   case CXType_Record:
+      convert_struct(os, type, src, dst);
+      break;
+      
    default: abort();
    }
 }
 
-void convert_POD(std::ostream& os, CXType type, memloc& src, memloc& dst) {
-   switch (get_type_domain(type)) {
-   case type_domain::INT:
-      {
-         emit_arg_int move(type, r11);
-         move.load(os, src);
-         move.store(os, dst);
-      }
-      break;
-   case type_domain::REAL:
-      {
-         emit_arg_real move(type, 2 /* xmm2 */);
-         move.load(os, src);
-         move.store(os, dst);
-      }
-      break;
-   default: abort();
-   }
-}
+static void convert_int(std::ostream& os, CXType type, arch from_arch, arch to_arch, Location& src,
+                        Location& dst, Location& data) {
 
-static void convert_constant_array(std::ostream& os, CXType array, memloc& src, memloc& dst);
-static void convert_struct(std::ostream& os, CXType type, memloc& src, memloc& dst);
+   if (src.kind() == Location::Kind::MEM && dst.kind() == Location::Kind::MEM) {
 
-void convert_type(std::ostream& os, CXType type, memloc& src, memloc& dst) {
-   if (clang_isPODType(type)) {
-      convert_POD(os, type, src, dst);
+      const RegisterLocation tmp_reg(rax);
+
+      emit_inst(os, "push", tmp_reg.reg_q);
+      src.push(); dst.push(); data.push();
+
+      convert_POD(os, type, a, src, tmp_reg, data);
+      convert_POD(os, type, a, tmp_reg, dst, data);
+      
+      emit_inst(os, "pop", tmp_reg);
+      src.pop(); dst.pop(); data.pop();
+      
    } else {
-      switch (type.kind) {
-      case CXType_Pointer:
-         // TODO
-         abort();
       
-      case CXType_BlockPointer:
-         // TODO
-         abort();
-      case CXType_ConstantArray:
-         convert_constant_array(os, type, src, dst);
-         break;
+      const char *opcode = nullptr;
+      reg_width from_width = get_reg_width(type, from_arch);
+      reg_width to_width = get_reg_width(type, to_arch);
       
-      case CXType_Record:
-         convert_struct(os, type, src, dst);
-         break;
-
-      default: abort();
+      if (to_width == from_width) {
+         opcode = "mov";
+      } else {
+         if (get_type_signed(type)) {
+            // signed
+            opcode = "movsx";
+         } else {
+            // unsigned
+            opcode = "mov";
+            if (to_width == reg_width::Q && dst.kind() == Location::Kind::MEM) {
+               from_width = to_width;
+            } else {
+               to_width = from_width;
+            }
+         }
       }
+
+      emit_inst(os, opcode, dst.op(to_width), src.op(from_width));
+   
    }
 }
 
-static void convert_constant_array(std::ostream& os, CXType array, memloc& src, memloc& dst) {
-   assert(strcmp(dst.basereg, "rbp") == 0); /* dst requires frame pointer */
-   
+
+
+static void convert_constant_array(std::ostream& os, CXType array, arch a, Location& src,
+                                   Location& dst, Location& data) {
    const long long arrlen = clang_getArraySize(array);
    assert(arrlen >= 1);
    const CXType elem = clang_getArrayElementType(array);
-
    
    std::stringstream loop_ss;
    loop_ss << ".convert_" << dst.basereg << dst.index; // this should be unique w/i function
    std::string loop = loop_ss.str();
    
-   /*   mov r12d, <arrlen>
-    *   lea r13, [<dst>]
-    *   lea r14, [<src>]
+   /*   push rcx
+    *   push rdi
+    *   push rsi
+    *   mov ecx, <arrlen>
+    *   lea rdi, [<dst>]
+    *   lea rsi, [<src>]
     * loop:
     *   <move>
-    *   add r13, <size64>
-    *   add r14, <size32>
+    *   add rdi, <size64>
+    *   add rsi, <size32>
     * entry:
-    *   dec r12d
+    *   dec ecx
     *   jnz loop
+    *   pop rsi
+    *   pop rdi
+    *   pop rcx
     */
 
-   emit_inst(os, "mov", "r12d", arrlen);
-   emit_inst(os, "lea", "r13", dst.memop());
-   emit_inst(os, "lea", "r14", src.memop());
+   dst -= 24;
+
+   emit_inst(os, "push" "rcx");
+   emit_inst(os, "push" "rdi");
+   emit_inst(os, "push" "rsi");
+   
+   emit_inst(os, "mov", "ecx", arrlen);
+   emit_inst(os, "lea", "rdi", dst.memop());
+   emit_inst(os, "lea", "rsi", src.memop());
 
    os << loop << ":";
    {
-      memloc src = {"r14", 0};
-      memloc dst = {"r13", 0};
+      memloc src = {"rsi", 0};
+      memloc dst = {"rdi", 0};
       convert_type(os, elem, src, dst);
-      emit_inst(os, "add", "r13", sizeof_type(elem, arch::x86_64));
-      emit_inst(os, "add", "r14", sizeof_type(elem, arch::i386));
-      emit_inst(os, "dec", "r12d");
+      emit_inst(os, "add", "rdi", sizeof_type(elem, arch::x86_64));
+      emit_inst(os, "add", "rsi", sizeof_type(elem, arch::i386));
+      emit_inst(os, "dec", "ecx");
       emit_inst(os, "jnz", loop);
    }
+
+   emit_inst(os, "push" "rsi");
+   emit_inst(os, "push" "rdi");
+   emit_inst(os, "push" "rcx");
+
+   dst += 24;
 
    dst += sizeof_type(elem, arch::x86_64) * arrlen;
    src += sizeof_type(elem, arch::i386) * arrlen;
 }
 
-static void convert_struct(std::ostream& os, CXType type, memloc& src, memloc& dst) {
+static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, memloc& dst) {
    struct_decl decl(type);
 
    for (CXType field_type : decl.field_types) {
@@ -195,6 +242,17 @@ static void convert_struct(std::ostream& os, CXType type, memloc& src, memloc& d
 
    src.align(alignof_type(type, arch::i386));
    dst.align(alignof_type(type, arch::x86_64));
+}
+
+static void convert_pointer(std::ostream& os, CXType pointer, arch a, memloc& src, memloc& dst) {
+   emit_arg_int ptr(pointer, rax);
+
+   if (should_convert_type(pointer)) {
+      convert_type(os, get_convert_type(pointer), src, dst);
+   } else {
+      ptr.load(os, src);
+      ptr.store(os, dst);
+   }
 }
 
 

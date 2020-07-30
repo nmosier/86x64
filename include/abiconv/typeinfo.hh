@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <clang-c/Index.h>
 
 enum class arch {i386, x86_64};
 enum class reg_width {B, W, D, Q};
@@ -20,3 +21,4 @@ std::string to_string(CXTypeKind kind);
 
 std::ostream& operator<<(std::ostream& os, const CXString& str);
 
+bool operator<(reg_width lhs, reg_width rhs);

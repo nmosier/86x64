@@ -165,3 +165,7 @@ std::ostream& operator<<(std::ostream& os, const CXString& str) {
    clang_disposeString(str);
    return os;
 }
+
+bool operator<(reg_width lhs, reg_width rhs) {
+   reutrn reg_width_size(lhs) < reg_width_size(rhs);
+}

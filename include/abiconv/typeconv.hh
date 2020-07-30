@@ -13,9 +13,11 @@ int sizeof_type_archcmp(CXType type);
 
 size_t alignof_type(CXType type, arch a);
 
-void convert_type(std::ostream& os, CXType type, memloc& src, memloc& dst);
-bool should_convert_type(CXType type);
-CXType get_convert_type(CXType type);
+/**
+ * Emit code to convert values between architectures at runtime.
+ */
+void convert_type(std::ostream& os, CXType type, arch a, Location& src, Location& dst,
+                  Location& data);
 
 struct struct_decl {
    using FieldTypes = std::list<CXType>;

@@ -4,18 +4,10 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "loc.hh"
 #include "typeinfo.hh"
 
 using Symbols = std::unordered_set<std::string>;
-
-struct reg_group {
-   const std::string reg_b;
-   const std::string reg_w;
-   const std::string reg_d;
-   const std::string reg_q;
-   
-   const std::string& reg(reg_width width) const;
-};
 
 struct memloc {
    const char *basereg;
@@ -33,6 +25,15 @@ struct memloc {
 
    memloc& operator+=(int offset) {
       index += offset;
+      return *this;
+   }
+
+   memloc operator-(int offset) const {
+      return {basereg, index - offset};
+   }
+
+   memloc& operator-=(int offset) {
+      index -= offset;
       return *this;
    }
 
@@ -74,15 +75,6 @@ struct emit_arg_real: emit_arg {
    virtual const char *opcode() override;
    virtual std::string regstr() override { return std::string("xmm") + std::to_string(xmm_idx); }
 };
-
-extern const reg_group rax;
-extern const reg_group rdi;
-extern const reg_group rsi;
-extern const reg_group rdx;
-extern const reg_group rcx;
-extern const reg_group  r8;
-extern const reg_group  r9;
-extern const reg_group r11;
 
 template <typename Opcode>
 std::ostream& emit_inst(std::ostream& os, Opcode&& opcode) {
