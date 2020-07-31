@@ -1,0 +1,7 @@
+struct __sFILE
+const struct __sFILE
+char
+const char
+void
+const void
+DIR
