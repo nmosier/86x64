@@ -126,6 +126,13 @@ struct ABIConversion {
       return tmp;
    }
 
+   static CXTypeKind get_arg_kind(CXTypeKind kind) {
+      switch (kind) {
+      case CXType_ConstantArray: return CXType_Pointer;
+      default: return kind;
+      }
+   }
+
    /* assumes stack is 16-byte aligned */
    size_t stack_args_size() const {
       size_t size = 0;
@@ -133,8 +140,8 @@ struct ABIConversion {
       unsigned xmm_i = 0;
       
       for (unsigned argi = 0; argi < argc(); ++argi) {
-         CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
-         switch (get_type_domain(argtype)) {
+         const CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
+         switch (get_type_domain(get_arg_kind(argtype.kind))) {
          case type_domain::INT:
             if (reg_i < max_reg_args) {
                ++reg_i;
@@ -151,7 +158,9 @@ struct ABIConversion {
             break;
          default: abort();
          }
+         
       }
+      
       return align_up<size_t>(size, 16);
    }
 
@@ -213,8 +222,7 @@ struct ABIConversion {
       /* make space on stack */
       MemoryLocation stack_args(rsp, 0);
       // MemoryLocation stack_data(rsp, stack_args_size());
-      conversion conv = {true, arch::i386, arch::x86_64,
-                         {rsp, static_cast<int>(stack_args_size())}};
+      conversion conv(true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())});
       
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
@@ -233,7 +241,7 @@ struct ABIConversion {
 
          std::unique_ptr<Location> src;
          std::unique_ptr<Location> dst;
-         switch (get_type_domain(param_type)) {
+         switch (get_type_domain(get_arg_kind(param_type.kind))) {
          case type_domain::INT:
             if (info.reg_it != info.reg_end) {
                dst = std::make_unique<RegisterLocation>(**info.reg_it++);
@@ -252,6 +260,7 @@ struct ABIConversion {
 
          if (param_type.kind == CXType_ConstantArray) {
             /* actually a pointer is passed as an argument */
+            // RegisterLocation tmp_reg(rax);
             conv.convert_void_pointer(os, load_loc, *dst);
          } else {
             conv.convert(os, param_type, load_loc, *dst);

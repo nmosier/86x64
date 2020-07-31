@@ -41,6 +41,7 @@ struct MemoryLocation: Location {
    
    virtual Kind kind() const override { return Kind::MEM; }
    virtual std::string op(reg_width width) const override;
+   std::string op() const;
    virtual void push() override;
    virtual void pop() override;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <string>
 
 #include "loc.hh"
 #include "util.hh"
@@ -43,13 +44,23 @@ public:
    arch to_arch;
    MemoryLocation data;
 
+   std::string label() { return std::string(".") + std::to_string(label_++); }
+
    void convert(std::ostream& os, CXType type, const Location& src, const Location& dst);
    
    void convert_int(std::ostream& os, CXType type, const Location& src, const Location& dst);
    void convert_real(std::ostream& os, CXType type, const Location& src, const Location& dst);
    void convert_void_pointer(std::ostream& os, const Location& src,
                              const Location& dst);
+   void convert_constant_array(std::ostream& os, CXType array, MemoryLocation src,
+                               MemoryLocation dst);
+
+   conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data):
+      allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data) {}
+   
 private:
+   unsigned label_ = 0;
+   
    void push(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst); 
    void pop(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst);
    void push(std::ostream& os, const SSELocation& loc, Location& src, Location& dst);

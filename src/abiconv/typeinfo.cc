@@ -32,7 +32,6 @@ bool get_type_signed(CXType type) {
       
    case CXType_Pointer:
    case CXType_IncompleteArray:
-   case CXType_ConstantArray:
    case CXType_Bool:
    case CXType_UChar:
    case CXType_Char_U:
@@ -55,14 +54,17 @@ bool get_type_signed(CXType type) {
    case CXType_LongDouble:
       return true;
 
+   case CXType_ConstantArray:
+      abort();
+      
    default:
       throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
                                   to_string(type.kind) + "'");
    }
 }
 
-type_domain get_type_domain(CXType type) {
-   switch (type.kind) {
+type_domain get_type_domain(CXTypeKind kind) {
+   switch (kind) {
    case CXType_Invalid:
    case CXType_Unexposed:
    case CXType_Void:
@@ -70,7 +72,6 @@ type_domain get_type_domain(CXType type) {
       
    case CXType_Pointer:
    case CXType_IncompleteArray:
-   case CXType_ConstantArray:
    case CXType_Bool:
    case CXType_UChar:
    case CXType_Char_U:
@@ -93,9 +94,9 @@ type_domain get_type_domain(CXType type) {
    case CXType_LongDouble:
       return type_domain::REAL;
 
-   default:
-      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
-                                  to_string(type.kind) + "'");
+   case CXType_ConstantArray: abort();
+      
+   default: abort();
    }
 }
 
@@ -130,13 +131,15 @@ reg_width get_type_width(CXType type, arch a) {
 
    case CXType_Pointer:
    case CXType_IncompleteArray:
-   case CXType_ConstantArray:
    case CXType_BlockPointer:
       return a == arch::i386 ? reg_width::D : reg_width::Q;
 
    case CXType_LongDouble:
       throw std::invalid_argument("long doubles not supported yet");
 
+   case CXType_ConstantArray:
+      abort();
+      
    default:
       throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
                                   to_string(type.kind) + "'");

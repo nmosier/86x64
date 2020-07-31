@@ -91,95 +91,6 @@ void conversion::pop(std::ostream& os, const SSELocation& loc, Location& src, Lo
    emit_inst(os, "add", "rsp", 8);
 }
 
-
-#if 0
-void convert_type(std::ostream& os, CXType type, arch from_arch, arch to_arch, Location& src,
-                  Location& dst, Location& data) {
-   switch (type.kind) {
-   case CXType_Invalid:
-   case CXType_Unexposed:
-      throw std::invalid_argument("invalid type");
-      
-   case CXType_Void:
-      return;
-      
-   case CXType_Bool:
-   case CXType_UChar:
-   case CXType_Char_U:
-   case CXType_UShort:
-   case CXType_UInt:
-   case CXType_ULong:
-   case CXType_ULongLong:
-   case CXType_SChar:
-   case CXType_Char_S:
-   case CXType_Short:
-   case CXType_Int:
-   case CXType_Long:
-   case CXType_LongLong:
-   case CXType_Enum:
-      convert_int(os, type, from_arch, to_arch, src, dst, data);
-      break;
-      
-   case CXType_Float:
-   case CXType_Double:
-   case CXType_LongDouble:
-      convert_real(os, type, from_arch, to_arch, src, dst, data);
-      return;
-      
-   case CXType_Pointer:
-      // TODO
-      abort();
-      break;
-      
-   case CXType_BlockPointer:
-      abort();
-
-   case CXType_ConstantArray:
-      convert_constant_array(os, type, src, dst);
-      break;
-      
-   case CXType_Record:
-      convert_struct(os, type, src, dst);
-      break;
-      
-   default: abort();
-   }
-}
-
-void conversion::convert_int(std::ostream& os, MemoryLocation src, MemoryLocation dst) {
-   const RegisterLocation tmp_reg(rax);
-   push(tmp_reg);
-   convert_int(os, src, tmp_reg);
-   convert_int(os, tmp_reg, dst);
-   pop(tmp_reg);
-}
-
-void conversion::convert_int(std::ostream& os, RegisterLocation src, RegisterLocation dst) {
-   const char *opcode = nullptr;
-   reg_width from_width = get_type_width(type, from_arch);
-   reg_width to_width = get_type_width(type, to_arch);
-   
-   if (to_width == from_width) {
-      opcode = "mov";
-   } else {
-      if (get_type_signed(type)) {
-         // signed
-         opcode = "movsx";
-      } else {
-         // unsigned
-         opcode = "mov";
-         if (to_width == reg_width::Q && dst.kind() == Location::Kind::MEM) {
-            from_width = to_width;
-         } else {
-            to_width = from_width;
-         }
-      }
-   }
-
-   emit_inst(os, opcode, dst.op(to_width), src.op(from_width));
-}
-#endif
-
 void conversion::convert_int(std::ostream& os, CXType type, const Location& src,
                              const Location& dst) {
    if (src.kind() == Location::Kind::MEM && dst.kind() == Location::Kind::MEM) {
@@ -290,8 +201,9 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
       break;
 
    case CXType_ConstantArray:
-      // TODO
-      convert_int(os, type, src, dst);
+      convert_constant_array(os, type,
+                             dynamic_cast<const MemoryLocation&>(src),
+                             dynamic_cast<const MemoryLocation&>(dst));
       break;
       
    case CXType_Record:
@@ -301,20 +213,13 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
    }
 }
 
-#if 0
-/* NOTE: is_pointer tells whether to interpert this as a pointer.
- */
-static void convert_constant_array(std::ostream& os, CXType array, arch from_arch, arch to_arch,
-                                   Location& src, Location& dst, Location& data, bool is_pointer) {
-
+void conversion::convert_constant_array(std::ostream& os, CXType array, MemoryLocation src,
+                                        MemoryLocation dst) {
    /* convert data */
    const long long arrlen = clang_getArraySize(array);
    assert(arrlen >= 1);
    const CXType elem = clang_getArrayElementType(array);
-   
-   std::stringstream loop_ss;
-   loop_ss << ".convert_" << dst.basereg << dst.index; // this should be unique w/i function
-   std::string loop = loop_ss.str();
+   const std::string loop = label();
    
    /*   push rcx
     *   push rdi
@@ -334,37 +239,32 @@ static void convert_constant_array(std::ostream& os, CXType array, arch from_arc
     *   pop rcx
     */
 
-   dst -= 24;
-
-   emit_inst(os, "push" "rcx");
-   emit_inst(os, "push" "rdi");
-   emit_inst(os, "push" "rsi");
+   push(os, rcx, src, dst);
+   push(os, rdi, src, dst);
+   push(os, rsi, src, dst);
    
    emit_inst(os, "mov", "ecx", arrlen);
-   emit_inst(os, "lea", "rdi", dst.memop());
-   emit_inst(os, "lea", "rsi", src.memop());
+   emit_inst(os, "lea", "rdi", dst.op());
+   emit_inst(os, "lea", "rsi", src.op());
 
    os << loop << ":";
    {
-      memloc src = {"rsi", 0};
-      memloc dst = {"rdi", 0};
-      convert_type(os, elem, src, dst);
+      MemoryLocation src(rsi, 0);
+      MemoryLocation dst(rdi, 0);
+      
+      convert(os, elem, src, dst);
       emit_inst(os, "add", "rdi", sizeof_type(elem, arch::x86_64));
       emit_inst(os, "add", "rsi", sizeof_type(elem, arch::i386));
       emit_inst(os, "dec", "ecx");
       emit_inst(os, "jnz", loop);
    }
 
-   emit_inst(os, "push" "rsi");
-   emit_inst(os, "push" "rdi");
-   emit_inst(os, "push" "rcx");
-
-   dst += 24;
-
-   dst += sizeof_type(elem, arch::x86_64) * arrlen;
-   src += sizeof_type(elem, arch::i386) * arrlen;
+   pop(os, rsi, src, dst);
+   pop(os, rdi, src, dst);
+   pop(os, rcx, src, dst);
 }
 
+#if 0
 static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, memloc& dst) {
    struct_decl decl(type);
 
