@@ -2,7 +2,7 @@
 #include <list>
 #include <fstream>
 #include <sstream>
-#include <unistd.h>
+#include <getopt.h>
 #include <clang-c/Index.h>
 
 #include "util.hh"
@@ -298,11 +298,10 @@ struct ABIConversion {
 };
 
 struct ABIGenerator {
-   using Syms = std::unordered_set<std::string>;
-   
    CXIndex index = clang_createIndex(0, 0);
    std::ostream& os;
    Symbols symbols;
+   Symbols ignore_structs;
    bool force_all;
 
    ABIGenerator(std::ostream& os): os(os) {}
@@ -385,17 +384,32 @@ void parse_syms(const char *path, Op op) {
 
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
-                   const char *usage = "usage: %s [-h] [-o <outpath>] [-s <symfile>] [-i <ignorefile>] <header>...\n";
+                   const char *usage =
+                      "usage: %s [option...] header...\n"               \
+                      "Options:\n"                                      \
+                      "  -h              print help dialog\n"           \
+                      "  -o <path>       output asm file path (if omitted, defaults to stdin\n" \
+                      "  -s <symfile>    file containing symbols to consider\n" \
+                      "  -i <ignorefile> file containing symbols to ignore\n" \
+                      "  -r <structfile> file containing struct names to not convert\n" \
+                      "";
                    fprintf(f, usage, argv[0]);
                 };
 
    const char *outpath = nullptr;
    const char *sympath = nullptr;
    const char *symignorepath = nullptr;
-   
-   const char *optstring = "ho:s:i:";
+   const char *structpath = nullptr;
+   const char *optstring = "ho:s:i:r:";
+   const struct option longopts[] = {{"help", no_argument, nullptr, 'h'},
+                                     {"output", required_argument, nullptr, 'o'},
+                                     {"symfile", required_argument, nullptr, 's'},
+                                     {"ignorefile", required_argument, nullptr, 'i'},
+                                     {"structfile", required_argument, nullptr, 'r'},
+                                     {0}
+   };
    int optchar;
-   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
+   while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
       switch (optchar) {
       case 'h':
          usage(stdout);
@@ -409,12 +423,15 @@ int main(int argc, char *argv[]) {
       case 'i':
          symignorepath = optarg;
          break;
+      case 'r':
+         structpath = optarg;
+         break;
       case '?':
          usage(stderr);
          return 1;
       }
    }
-
+   
    std::ofstream of;
    if (outpath) {
       of.open(outpath);
@@ -436,6 +453,10 @@ int main(int argc, char *argv[]) {
       parse_syms(symignorepath, sym_erase_op);
    }
 
+   if (structpath) {
+      parse_syms(structpath, [&] (const std::string& s) { abigen.ignore_structs.insert(s); });
+   }
+   
    abigen.emit_header();
    
    /* handle each header */
