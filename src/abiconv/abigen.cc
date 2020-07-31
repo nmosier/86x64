@@ -383,6 +383,16 @@ void parse_syms(const char *path, Op op) {
    parse_syms(is, op);
 }
 
+template <typename Op>
+void parse_lines(const char *path, Op op) {
+   std::ifstream is;
+   is.open(path);
+   std::string line;
+   while (getline(is, line)) {
+      op(line);
+   }
+}
+
 int main(int argc, char *argv[]) {
    auto usage = [=] (FILE *f) {
                    const char *usage =
@@ -455,7 +465,7 @@ int main(int argc, char *argv[]) {
    }
 
    if (structpath) {
-      parse_syms(structpath, [&] (const std::string& s) { abigen.ignore_structs.insert(s); });
+      parse_lines(structpath, [&] (const std::string& s) { abigen.ignore_structs.insert(s); });
    }
    
    abigen.emit_header();

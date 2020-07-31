@@ -34,3 +34,4 @@ Alternate Idea
 
 ---------
 
+[ ] Conversion functions should return bool (or size).

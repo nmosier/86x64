@@ -198,11 +198,7 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
       return;
       
    case CXType_Pointer:
-#if 0
-      convert_int(os, CXType_Pointer, src, dst);
-#else
       convert_pointer(os, clang_getPointeeType(type), src, dst);
-#endif
       break;
       
    case CXType_BlockPointer:
@@ -286,37 +282,18 @@ void conversion::convert_record(std::ostream& os, CXType record, MemoryLocation 
    for (CXType field_type : decl.field_types) {
       src.align(field_type, from_arch);
       dst.align(field_type, to_arch);
-
+      
       convert(os, field_type, src, dst);
    }
-
-#if 0
-   src.align(record, from_arch);
-   dst.align(record, to_arch);
-#endif
 }
-
-
-#if 0
-static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, memloc& dst) {
-   struct_decl decl(type);
-
-   for (CXType field_type : decl.field_types) {
-      size_t size32 = sizeof_type(field_type, arch::i386);
-      size_t size64 = sizeof_type(field_type, arch::x86_64);
-      src.align(size32);
-      dst.align(size64);
-      convert_type(os, field_type, src, dst);
-   }
-
-   src.align(alignof_type(type, arch::i386));
-   dst.align(alignof_type(type, arch::x86_64));
-}
-#endif
 
 void conversion::convert_pointer(std::ostream& os, CXType pointee, const Location& src_,
                                  const Location& dst_) {
    switch (pointee.kind) {
+   case CXType_Record:
+      if (ignore_structs.find(to_string(pointee)) == ignore_structs.end()) {
+         break;
+      }
    case CXType_Void:
       /* void */
    case CXType_Char_U:
