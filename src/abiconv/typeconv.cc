@@ -505,7 +505,7 @@ size_t alignof_type(CXType type, arch a) {
    case CXType_ConstantArray:
       return alignof_type(clang_getElementType(type), a);
    default:
-      return sizeof_type(type, a);
+      return std::max<size_t>(sizeof_type(type, a), 1);
    }
 }
 

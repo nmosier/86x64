@@ -47,55 +47,6 @@ struct param_info {
       reg_it(groups.begin()), reg_end(groups.end()), fp_idx(0), fp_end(fp_count) {}
 };
 
-#if 0
-emit_arg::emit_arg(CXType param): param(param), param_width_32(get_type_width(param, arch::i386)),
-                                  param_width_64(get_type_width(param, arch::x86_64)),
-                                  sign(get_type_signed(param)) {}
-
-std::string emit_arg::memop(const memloc& loc) const {
-   std::stringstream src;
-   src << reg_width_to_str(param_width_32) << " [" << loc.basereg << " + " << loc.index << "]";
-   src << "\t" << "; " << clang_getTypeSpelling(param);
-   return src.str();
-}
-
-void emit_arg::load(std::ostream& os, memloc& loc) {
-   emit_inst(os, opcode(), regstr(), memop(loc));
-   loc.index += align_up<unsigned>(reg_width_size(param_width_32), 4);
-}
-
-void emit_arg::store(std::ostream& os, memloc& loc) {
-   emit_inst(os, opcode(), memop(loc), regstr());
-   loc.index += align_up<unsigned>(reg_width_size(param_width_32), 4);
-}
-
-const char *emit_arg_int::opcode() {
-   if (param_width_32 == param_width_64) {
-      return "mov";
-   } else if (param_width_32 == reg_width::D && param_width_64 == reg_width::Q && !sign) {
-      param_width_64 = param_width_32;
-      return "mov";
-   } else if (sign) {
-      return "movsxd";
-   } else {
-      return "movzx";
-   }
-}
-
-const char *emit_arg_real::opcode() {
-   switch (param_width_32) {
-   case reg_width::D:
-      return "movss";
-      break;
-   case reg_width::Q:
-      return "movsd";
-      break;
-   default: abort();
-   }
-}
-#endif
-
-
 struct ABIConversion {
    using Cursors = std::list<CXCursor>;
    
@@ -168,14 +119,26 @@ struct ABIConversion {
    size_t stack_data_size() const {
       size_t size = 0;
 
-#if 0
       for (unsigned argi = 0; argi < argc(); ++argi) {
          CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
-         if (should_convert_type(argtype)) {
-            size += sizeof_type(get_convert_type(argtype), arch::x86_64);
+
+         std::optional<CXType> size_type;
+         switch (argtype.kind) {
+         case CXType_Pointer:
+            size_type = clang_getPointeeType(argtype);
+            break;
+         case CXType_ConstantArray:
+            size_type = argtype;
+            break;
+         default:
+            break;
+         }
+
+         if (size_type) {
+            align_up(size, alignof_type(*size_type, arch::x86_64));
+            size += sizeof_type(*size_type, arch::x86_64);
          }
       }
-#endif
 
       return align_up<size_t>(size, 16);
    }
