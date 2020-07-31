@@ -53,6 +53,9 @@ struct MemoryLocation: Location {
    inline MemoryLocation& operator+=(int offset) { index += offset; return *this; }
    inline MemoryLocation& operator-=(int offset) { return operator+=(-offset); }
 
+   // void align(int align);
+   void align(CXType type, arch a);
+
    virtual MemoryLocation *copy() const override { return new MemoryLocation(base, index); }
    
    MemoryLocation(const reg_group& base, int index = 0): base(base), index(index) {}

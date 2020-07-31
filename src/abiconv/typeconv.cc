@@ -206,7 +206,10 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
       break;
       
    case CXType_Record:
-      abort();
+      convert_record(os, type,
+                     dynamic_cast<const MemoryLocation&>(src),
+                     dynamic_cast<const MemoryLocation&>(dst));
+      break;
       
    default: abort();
    }
@@ -263,6 +266,23 @@ void conversion::convert_constant_array(std::ostream& os, CXType array, MemoryLo
    pop(os, rcx, src, dst);
 }
 
+void conversion::convert_record(std::ostream& os, CXType record, MemoryLocation src,
+                                MemoryLocation dst) {
+   struct_decl decl(record);
+   for (CXType field_type : decl.field_types) {
+      src.align(field_type, from_arch);
+      dst.align(field_type, to_arch);
+
+      convert(os, field_type, src, dst);
+   }
+
+#if 0
+   src.align(record, from_arch);
+   dst.align(record, to_arch);
+#endif
+}
+
+
 #if 0
 static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, memloc& dst) {
    struct_decl decl(type);
@@ -293,6 +313,7 @@ void conversion::convert_pointer(std::ostream& os, CXType pointee, const Locatio
       MemoryLocation mem_dst(r11, 0);
       push(os, reg_dst, src, dst);
       {
+         data.align(pointee, to_arch);
          emit_inst(os, "lea", "r11", data.op());
          data += sizeof_type(pointee, to_arch);
       
@@ -323,6 +344,7 @@ void conversion::convert_pointer(std::ostream& os, CXType pointee, const Locatio
          MemoryLocation mem_dst(r11, 0);
          push(os, reg_dst, src, dst);
          {
+            data.align(pointee, from_arch);
             emit_inst(os, "lea", "r12", data.op());
             data += sizeof_type(pointee, from_arch);
             
@@ -336,19 +358,6 @@ void conversion::convert_pointer(std::ostream& os, CXType pointee, const Locatio
       pop(os, reg_src, src, dst);
    }
 }
-
-#if 0
-static void convert_pointer(std::ostream& os, CXType pointer, arch a, memloc& src, memloc& dst) {
-   emit_arg_int ptr(pointer, rax);
-
-   if (should_convert_type(pointer)) {
-      convert_type(os, get_convert_type(pointer), src, dst);
-   } else {
-      ptr.load(os, src);
-      ptr.store(os, dst);
-   }
-}
-#endif
 
 /* SIZEOF */
 

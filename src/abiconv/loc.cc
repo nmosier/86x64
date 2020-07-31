@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "loc.hh"
+#include "typeconv.hh"
 
 std::string MemoryLocation::op() const {
    std::stringstream ss;
@@ -32,4 +33,9 @@ void MemoryLocation::pop() {
    if (base.reg_q == "rsp") {
       index += 8;
    }
+}
+
+void MemoryLocation::align(CXType type, arch a) {
+   const size_t align = alignof_type(type, a);
+   index = align_up<int>(index, align);
 }

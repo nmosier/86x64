@@ -58,6 +58,7 @@ public:
    void convert_constant_array(std::ostream& os, CXType array, MemoryLocation src,
                                MemoryLocation dst);
    void convert_pointer(std::ostream& os, CXType pointee, const Location& src, const Location& dst);
+   void convert_record(std::ostream& os, CXType record, MemoryLocation src, MemoryLocation dst);
    
    conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data):
       allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data) {}
