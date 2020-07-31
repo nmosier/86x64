@@ -2,10 +2,13 @@
 
 #include <list>
 #include <string>
+#include <unordered_set>
 
 #include "loc.hh"
 #include "util.hh"
 #include "typeinfo.hh"
+
+using Symbols = std::unordered_set<std::string>;
 
 struct memloc;
 
@@ -44,6 +47,7 @@ public:
    arch from_arch;
    arch to_arch;
    MemoryLocation data;
+   const Symbols& ignore_structs;
 
    std::string label() { return std::string(".") + std::to_string(label_++); }
 
@@ -60,8 +64,10 @@ public:
    void convert_pointer(std::ostream& os, CXType pointee, const Location& src, const Location& dst);
    void convert_record(std::ostream& os, CXType record, MemoryLocation src, MemoryLocation dst);
    
-   conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data):
-      allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data) {}
+   conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data,
+              const Symbols& ignore_structs):
+      allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data),
+      ignore_structs(ignore_structs) {}
    
 private:
    unsigned label_ = 0;

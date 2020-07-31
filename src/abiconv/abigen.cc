@@ -180,7 +180,7 @@ struct ABIConversion {
       return align_up<size_t>(size, 16);
    }
 
-   void emit(std::ostream& os, Symbols& symbols) const {
+   void emit(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) const {
       const bool variadic = clang_isFunctionTypeVariadic(function_type);
       const std::string& override_prefix = "__";
 
@@ -223,7 +223,8 @@ struct ABIConversion {
       /* make space on stack */
       MemoryLocation stack_args(rsp, 0);
       // MemoryLocation stack_data(rsp, stack_args_size());
-      conversion conv(true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())});
+      conversion conv(true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())},
+                      ignore_structs);
       
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
@@ -352,7 +353,7 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(c);
-      conv.emit(os, symbols);
+      conv.emit(os, symbols, ignore_structs);
    }
 
    void handle_asm_label_attr(CXCursor c, CXCursor p) {
@@ -362,7 +363,7 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(clang_getCursorType(p), to_string(c));
-      conv.emit(os, symbols);
+      conv.emit(os, symbols, ignore_structs);
    }
    
 };
