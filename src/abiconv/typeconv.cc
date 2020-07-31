@@ -93,6 +93,9 @@ void conversion::pop(std::ostream& os, const SSELocation& loc, Location& src, Lo
 
 void conversion::convert_int(std::ostream& os, CXTypeKind type_kind, const Location& src,
                              const Location& dst) {
+   reg_width from_width = get_type_width(type_kind, from_arch);
+   reg_width to_width = get_type_width(type_kind, to_arch);
+   
    if (src.kind() == Location::Kind::MEM && dst.kind() == Location::Kind::MEM) {
       const RegisterLocation tmp_reg(rax);
       MemoryLocation tmp_src = dynamic_cast<const MemoryLocation&>(src);
@@ -101,11 +104,16 @@ void conversion::convert_int(std::ostream& os, CXTypeKind type_kind, const Locat
       convert_int(os, type_kind, tmp_src, tmp_reg);
       convert_int(os, type_kind, tmp_reg, tmp_dst);
       pop(os, tmp_reg, tmp_src, tmp_dst);
+   } else if (dst.kind() == Location::Kind::MEM && get_type_signed(type_kind) &&
+              from_width < to_width) {
+      /* movsx qword <src>, dword <src>
+       * mov <dst>, <src>
+       */
+      emit_inst(os, "movsx", src.op(to_width), src.op(from_width));
+      emit_inst(os, "mov", dst.op(to_width), src.op(to_width));
    } else {
       
       const char *opcode = nullptr;
-      reg_width from_width = get_type_width(type_kind, from_arch);
-      reg_width to_width = get_type_width(type_kind, to_arch);
       
       if (to_width == from_width) {
          opcode = "mov";
