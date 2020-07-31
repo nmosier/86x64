@@ -198,8 +198,11 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
       return;
       
    case CXType_Pointer:
-      // TODO
+#if 0
       convert_int(os, CXType_Pointer, src, dst);
+#else
+      convert_pointer(os, clang_getPointeeType(type), src, dst);
+#endif
       break;
       
    case CXType_BlockPointer:
@@ -217,6 +220,9 @@ void conversion::convert(std::ostream& os, CXType type, const Location& src, con
       convert_record(os, type,
                      dynamic_cast<const MemoryLocation&>(src),
                      dynamic_cast<const MemoryLocation&>(dst));
+      break;
+
+   case CXType_FunctionProto:
       break;
       
    default: abort();
@@ -310,6 +316,19 @@ static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, m
 
 void conversion::convert_pointer(std::ostream& os, CXType pointee, const Location& src_,
                                  const Location& dst_) {
+   switch (pointee.kind) {
+   case CXType_Void:
+      /* void */
+   case CXType_Char_U:
+   case CXType_Char_S:
+      /* string */
+      convert_int(os, CXType_Pointer, src_, dst_);
+      return;
+
+   default:
+      break;
+   }
+   
    std::unique_ptr<Location> srcp(src_.copy());
    std::unique_ptr<Location> dstp(dst_.copy());
    Location& src = *srcp;
@@ -416,7 +435,7 @@ size_t sizeof_type(CXType type, arch a) {
 
    case CXType_FunctionProto:
       // TODO: May need to address this case in the future.
-      return 0;
+      return sizeof_type(CXType_Pointer, a);
 
    case CXType_Void:
       return 0;
