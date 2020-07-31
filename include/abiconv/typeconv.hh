@@ -48,13 +48,16 @@ public:
 
    void convert(std::ostream& os, CXType type, const Location& src, const Location& dst);
    
-   void convert_int(std::ostream& os, CXType type, const Location& src, const Location& dst);
-   void convert_real(std::ostream& os, CXType type, const Location& src, const Location& dst);
+   void convert_int(std::ostream& os, CXTypeKind type_kind, const Location& src,
+                    const Location& dst);
+   void convert_real(std::ostream& os, CXTypeKind type_kind, const Location& src,
+                     const Location& dst);
    void convert_void_pointer(std::ostream& os, const Location& src,
                              const Location& dst);
    void convert_constant_array(std::ostream& os, CXType array, MemoryLocation src,
                                MemoryLocation dst);
-
+   void convert_pointer(std::ostream& os, CXType pointee, const Location& src, const Location& dst);
+   
    conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data):
       allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data) {}
    

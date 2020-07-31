@@ -11,9 +11,9 @@ enum class type_domain {INT, REAL};
 size_t reg_width_size(reg_width width);
 const char *reg_width_to_str(reg_width width);
 const char *reg_width_to_sse(reg_width width);
-bool get_type_signed(CXType type);
+bool get_type_signed(CXTypeKind type_kind);
 type_domain get_type_domain(CXTypeKind kind);
-reg_width get_type_width(CXType type, arch a);
+reg_width get_type_width(CXTypeKind type_kind, arch a);
 
 std::string to_string(CXType type);
 std::string to_string(CXCursorKind kind);

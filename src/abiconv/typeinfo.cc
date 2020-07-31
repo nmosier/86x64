@@ -23,8 +23,8 @@ const char *reg_width_to_str(reg_width width) {
    }
 }
 
-bool get_type_signed(CXType type) {
-   switch (type.kind) {
+bool get_type_signed(CXTypeKind type_kind) {
+   switch (type_kind) {
    case CXType_Invalid:
    case CXType_Unexposed:
    case CXType_Void:
@@ -54,12 +54,9 @@ bool get_type_signed(CXType type) {
    case CXType_LongDouble:
       return true;
 
-   case CXType_ConstantArray:
-      abort();
+   case CXType_ConstantArray: abort();
       
-   default:
-      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
-                                  to_string(type.kind) + "'");
+   default: abort();
    }
 }
 
@@ -101,8 +98,8 @@ type_domain get_type_domain(CXTypeKind kind) {
 }
 
 // NOTE: only works for POD types.
-reg_width get_type_width(CXType type, arch a) {
-   switch (type.kind) {
+reg_width get_type_width(CXTypeKind type_kind, arch a) {
+   switch (type_kind) {
    case CXType_Invalid:
    case CXType_Unexposed:
    case CXType_Void:
@@ -137,12 +134,9 @@ reg_width get_type_width(CXType type, arch a) {
    case CXType_LongDouble:
       throw std::invalid_argument("long doubles not supported yet");
 
-   case CXType_ConstantArray:
-      abort();
+   case CXType_ConstantArray: abort();
       
-   default:
-      throw std::invalid_argument("unhandled type '" + to_string(type) + "' with kind '" +
-                                  to_string(type.kind) + "'");
+   default: abort();
    }
 }
 
