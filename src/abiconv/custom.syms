@@ -5,3 +5,6 @@ _fprintf
 _snprintf
 _asprintf
 _dprintf
+
+_getloadavg
+_getgroups

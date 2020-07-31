@@ -30,6 +30,8 @@ const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
 const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
 const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
 const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
+const reg_group rsp = {"spl", "sp", "esp", "rsp"};
+const reg_group rbp = {"bpl", "bp", "ebp", "rbp"};
 
 using reg_groups = std::list<const reg_group *>;
 
@@ -44,7 +46,7 @@ struct param_info {
       reg_it(groups.begin()), reg_end(groups.end()), fp_idx(0), fp_end(fp_count) {}
 };
 
-
+#if 0
 emit_arg::emit_arg(CXType param): param(param), param_width_32(get_type_width(param, arch::i386)),
                                   param_width_64(get_type_width(param, arch::x86_64)),
                                   sign(get_type_signed(param)) {}
@@ -90,6 +92,7 @@ const char *emit_arg_real::opcode() {
    default: abort();
    }
 }
+#endif
 
 
 struct ABIConversion {
@@ -155,12 +158,14 @@ struct ABIConversion {
    size_t stack_data_size() const {
       size_t size = 0;
 
+#if 0
       for (unsigned argi = 0; argi < argc(); ++argi) {
          CXType argtype = clang_getCanonicalType(clang_getArgType(function_type, argi));
          if (should_convert_type(argtype)) {
             size += sizeof_type(get_convert_type(argtype), arch::x86_64);
          }
       }
+#endif
 
       return align_up<size_t>(size, 16);
    }
@@ -206,9 +211,15 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* make space on stack */
+#if 0
       memloc stack_args = {"rsp", 0};
       memloc stack_data = {"rsp", static_cast<int>(stack_args_size())};
-
+#else
+      MemoryLocation stack_args(rsp, 0);
+      // MemoryLocation stack_data(rsp, stack_args_size());
+      conversion conv = {true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())}};
+#endif
+      
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
       /* transfer arguments */
@@ -216,14 +227,43 @@ struct ABIConversion {
       param_info info(regs, 8);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
+#if 0
       memloc load_loc = {"rbp", 12};
+#else
+      MemoryLocation load_loc(rbp, 12);
+#endif
       for (param_it = 0;
            param_it != param_end /* && reg_it != regs.end() */;
            ++param_it /*, ++reg_it */) {
 
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
-         const bool do_conv = should_convert_type(param_type);
-         
+
+#if 1
+         std::unique_ptr<Location> dst;
+         switch (get_type_domain(param_type)) {
+         case type_domain::INT:
+            if (info.reg_it != info.reg_end) {
+               dst = std::make_unique<RegisterLocation>(**info.reg_it++);
+            } else {
+               dst = std::make_unique<MemoryLocation>(stack_args);
+            }
+            break;
+            
+         case type_domain::REAL:
+            if (info.fp_idx != info.fp_end) {
+               dst = std::make_unique<SSELocation>(info.fp_idx++);
+            } else {
+               dst = std::make_unique<MemoryLocation>(stack_args);
+            }
+         }
+
+         conv.convert(os, param_type, load_loc, *dst);
+
+         load_loc += align_up<size_t>(sizeof_type(param_type, arch::i386), 4);
+         if (dst->kind() == Location::Kind::MEM) {
+            stack_args += align_up<size_t>(sizeof_type(param_type, arch::x86_64), 8);
+         }
+#else
          switch (get_type_domain(param_type)) {
          case type_domain::INT:
             {
@@ -261,6 +301,7 @@ struct ABIConversion {
                
          default: abort();
          }
+#endif
       }
       
       /* call */

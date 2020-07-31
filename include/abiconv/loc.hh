@@ -31,6 +31,8 @@ struct Location {
    virtual std::string op(reg_width width) const = 0;
    virtual void push() = 0;
    virtual void pop() = 0;
+
+   virtual ~Location() {}
 };
 
 struct MemoryLocation: Location {
@@ -70,4 +72,4 @@ struct SSELocation: Location {
    virtual void pop() override {}
 
    SSELocation(unsigned index): index(index) {}
-}
+};

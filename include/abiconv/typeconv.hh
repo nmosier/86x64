@@ -2,6 +2,8 @@
 
 #include <list>
 
+#include "loc.hh"
+#include "util.hh"
 #include "typeinfo.hh"
 
 struct memloc;
@@ -31,4 +33,25 @@ struct struct_decl {
 
 private:
    void populate_fields();
+};
+
+
+class conversion {
+public:
+   bool allocate; /*!< whether to allocate new data or copy existing */
+   arch from_arch;
+   arch to_arch;
+   MemoryLocation data;
+
+   void convert(std::ostream& os, CXType type, const Location& src, const Location& dst);
+   
+   void convert_int(std::ostream& os, CXType type, const Location& src, const Location& dst);
+   void convert_real(std::ostream& os, CXType type, const Location& src, const Location& dst);
+   void convert_void_pointer(std::ostream& os, CXType type, const Location& src,
+                             const Location& dst);
+private:
+   void push(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst); 
+   void pop(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst);
+   void push(std::ostream& os, const SSELocation& loc, Location& src, Location& dst);
+   void pop(std::ostream& os, const SSELocation& loc, Location& src, Location& dst);
 };

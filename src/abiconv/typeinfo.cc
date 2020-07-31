@@ -167,5 +167,15 @@ std::ostream& operator<<(std::ostream& os, const CXString& str) {
 }
 
 bool operator<(reg_width lhs, reg_width rhs) {
-   reutrn reg_width_size(lhs) < reg_width_size(rhs);
+   return reg_width_size(lhs) < reg_width_size(rhs);
+}
+
+const char *reg_width_to_sse(reg_width width) {
+   switch (width) {
+   case reg_width::D: // float
+      return "ss";
+   case reg_width::Q: // double
+      return "sd";
+   default: abort();
+   }
 }

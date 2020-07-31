@@ -9,6 +9,7 @@
 
 using Symbols = std::unordered_set<std::string>;
 
+#if 0
 struct memloc {
    const char *basereg;
    int index;
@@ -75,6 +76,7 @@ struct emit_arg_real: emit_arg {
    virtual const char *opcode() override;
    virtual std::string regstr() override { return std::string("xmm") + std::to_string(xmm_idx); }
 };
+#endif
 
 template <typename Opcode>
 std::ostream& emit_inst(std::ostream& os, Opcode&& opcode) {
