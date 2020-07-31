@@ -47,7 +47,7 @@ public:
    
    void convert_int(std::ostream& os, CXType type, const Location& src, const Location& dst);
    void convert_real(std::ostream& os, CXType type, const Location& src, const Location& dst);
-   void convert_void_pointer(std::ostream& os, CXType type, const Location& src,
+   void convert_void_pointer(std::ostream& os, const Location& src,
                              const Location& dst);
 private:
    void push(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst); 

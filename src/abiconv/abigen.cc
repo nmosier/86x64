@@ -211,14 +211,10 @@ struct ABIConversion {
       emit_inst(os, "and", "rsp", "~0xf");
 
       /* make space on stack */
-#if 0
-      memloc stack_args = {"rsp", 0};
-      memloc stack_data = {"rsp", static_cast<int>(stack_args_size())};
-#else
       MemoryLocation stack_args(rsp, 0);
       // MemoryLocation stack_data(rsp, stack_args_size());
-      conversion conv = {true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())}};
-#endif
+      conversion conv = {true, arch::i386, arch::x86_64,
+                         {rsp, static_cast<int>(stack_args_size())}};
       
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
@@ -227,18 +223,15 @@ struct ABIConversion {
       param_info info(regs, 8);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
-#if 0
-      memloc load_loc = {"rbp", 12};
-#else
       MemoryLocation load_loc(rbp, 12);
-#endif
+
       for (param_it = 0;
            param_it != param_end /* && reg_it != regs.end() */;
            ++param_it /*, ++reg_it */) {
 
          CXType param_type = handle_type(clang_getArgType(function_type, param_it));
 
-#if 1
+         std::unique_ptr<Location> src;
          std::unique_ptr<Location> dst;
          switch (get_type_domain(param_type)) {
          case type_domain::INT:
@@ -257,51 +250,18 @@ struct ABIConversion {
             }
          }
 
-         conv.convert(os, param_type, load_loc, *dst);
+         if (param_type.kind == CXType_ConstantArray) {
+            /* actually a pointer is passed as an argument */
+            conv.convert_void_pointer(os, load_loc, *dst);
+         } else {
+            conv.convert(os, param_type, load_loc, *dst);
+         }
 
          load_loc += align_up<size_t>(sizeof_type(param_type, arch::i386), 4);
          if (dst->kind() == Location::Kind::MEM) {
             stack_args += align_up<size_t>(sizeof_type(param_type, arch::x86_64), 8);
          }
-#else
-         switch (get_type_domain(param_type)) {
-         case type_domain::INT:
-            {
-               memloc arg_data;
-               if (info.reg_it != info.reg_end) {
-                  arg_data.basereg = (*info.reg_it)->reg_q.c_str();
-                  arg_data.index = 0;
-                  
-                  emit_arg_int(param_type, **info.reg_it++).load(os, load_loc);
-               } else {
-                  emit_arg_int arg(param_type, rax);
-                  arg.load(os, load_loc);
-                  arg.store(os, stack_args);
 
-                  arg_data.basereg = "rax";
-                  arg_data.index = 0;
-               }
-               if (do_conv) {
-                  memloc data_dst = stack_data;
-                  convert_type(os, get_convert_type(param_type), arg_data, stack_data);
-                  emit_inst(os, "lea", arg_data.basereg, data_dst.memop());
-               }
-            }
-            break;
-            
-         case type_domain::REAL:
-            assert(!do_conv);
-            if (info.fp_idx != info.fp_end) {
-               emit_arg_real(param_type, info.fp_idx++).load(os, load_loc);
-            } else {
-               fprintf(stderr, "xmm depleted\n");
-               abort();
-            }
-            break;
-               
-         default: abort();
-         }
-#endif
       }
       
       /* call */

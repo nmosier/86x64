@@ -92,11 +92,6 @@ void conversion::pop(std::ostream& os, const SSELocation& loc, Location& src, Lo
 }
 
 
-static void convert_int(std::ostream& os, CXType type, arch from_arch, arch to_arch, Location& src,
-                        Location& dst, Location& data);
-static void convert_real(std::ostream& os, CXType type, arch from_arch, arch to_arch, Location& src,
-                         Location& dst, Location& data);
-
 #if 0
 void convert_type(std::ostream& os, CXType type, arch from_arch, arch to_arch, Location& src,
                   Location& dst, Location& data) {
@@ -246,7 +241,7 @@ void conversion::convert_real(std::ostream& os, CXType type, const Location& src
    }
 }
 
-void conversion::convert_void_pointer(std::ostream& os, CXType type, const Location& src,
+void conversion::convert_void_pointer(std::ostream& os, const Location& src,
                                       const Location& dst) {
    const CXType dummy_ptr = {CXType_Pointer, {0}};
    convert_int(os, dummy_ptr, src, dst);
