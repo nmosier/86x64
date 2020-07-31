@@ -8,21 +8,10 @@
 #include <vector>
 #include <clang-c/Index.h>
 
-template <typename CXT, typename Func>
-std::string to_string_aux(CXT val, Func func) {
-   CXString cxs = func(val);
-   std::string str = clang_getCString(cxs);
-   clang_disposeString(cxs);
-   return str;
-}
+#include "typeinfo.hh"
+#include "typeconv.hh"
 
-std::string to_string(CXType type) { return to_string_aux(type, clang_getTypeSpelling); }
-std::string to_string(CXCursorKind kind) {
-   return to_string_aux(kind, clang_getCursorKindSpelling);
-}
-std::string to_string(CXCursor cursor) { return to_string_aux(cursor, clang_getCursorSpelling); }
-std::string to_string(CXTypeKind kind) { return to_string_aux(kind, clang_getTypeKindSpelling) ;}
-
+#if 0
 template <typename Func>
 void for_each(CXCursor root, Func func) {
    clang_visitChildren(root,
@@ -37,6 +26,7 @@ template <typename Func>
 void for_each(const CXTranslationUnit& unit, Func func) {
    for_each(clang_getTranslationUnitCursor(unit), func);
 }
+#endif
 
 struct ParseInfo {
    using Syms = std::unordered_set<std::string>;
@@ -70,10 +60,8 @@ struct ParseInfo {
    }
 
    void print_sizeof_type(CXType t) const {
-      if (use_canonical_types) {
-         t = clang_getCanonicalType(t);
-      }
-      std::cout << clang_Type_getSizeOf(t);
+      t = clang_getCanonicalType(t);
+      std::cout << sizeof_type(t, arch::x86_64);
    }
 
    void handle_header(const char *path) {

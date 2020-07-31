@@ -12,28 +12,6 @@
 
 bool force_all = false;
 
-const std::string& reg_group::reg(reg_width width) const {
-   switch (width) {
-   case reg_width::B: return reg_b;
-   case reg_width::W: return reg_w;
-   case reg_width::D: return reg_d;
-   case reg_width::Q: return reg_q;
-   default: throw std::invalid_argument("bad register width");
-   }
-}
-
-const reg_group rax = {"al", "ax", "eax", "rax"};
-const reg_group rdi = {"dil", "di",  "edi", "rdi"};
-const reg_group rsi = {"sil", "si",  "esi", "rsi"};
-const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
-const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
-const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
-const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
-const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
-const reg_group r12 = {"r12b", "r12w", "r12d", "r12"};
-const reg_group rsp = {"spl", "sp", "esp", "rsp"};
-const reg_group rbp = {"bpl", "bp", "ebp", "rbp"};
-
 using reg_groups = std::list<const reg_group *>;
 
 struct param_info {
@@ -137,8 +115,12 @@ struct ABIConversion {
          if (size_type) {
             align_up(size, alignof_type(*size_type, arch::x86_64));
             size += sizeof_type(*size_type, arch::x86_64);
+
+            // std::cerr << to_string(*size_type) << " " << size << std::endl;
          }
       }
+
+      // std::cerr << "=====" << std::endl;
 
       return align_up<size_t>(size, 16);
    }

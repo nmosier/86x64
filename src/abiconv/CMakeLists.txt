@@ -63,7 +63,7 @@ add_dependencies(abiconv abiconv_asm)
 
 install(TARGETS abiconv DESTINATION opt/86x64)
 
-add_executable(info info.cc)
+add_executable(info info.cc typeinfo.cc typeconv.cc loc.cc)
 target_link_libraries(info libclang)
-target_include_directories(info PRIVATE ${CLANG_INCLUDE_DIRS})
+target_include_directories(info PRIVATE ${CLANG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include/abiconv)
 add_definitions(${LLVM_DEFINITIONS})
