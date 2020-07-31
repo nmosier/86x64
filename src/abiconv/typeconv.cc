@@ -289,23 +289,11 @@ void conversion::convert_record(std::ostream& os, CXType record, MemoryLocation 
 
 void conversion::convert_pointer(std::ostream& os, CXType pointee, const Location& src_,
                                  const Location& dst_) {
-   switch (pointee.kind) {
-   case CXType_Record:
-      if (ignore_structs.find(to_string(pointee)) == ignore_structs.end()) {
-         break;
-      }
-   case CXType_Void:
-      /* void */
-   case CXType_Char_U:
-   case CXType_Char_S:
-      /* string */
+   if (ignore_structs.find(to_string(pointee)) != ignore_structs.end()) {
       convert_int(os, CXType_Pointer, src_, dst_);
       return;
-
-   default:
-      break;
    }
-   
+
    std::unique_ptr<Location> srcp(src_.copy());
    std::unique_ptr<Location> dstp(dst_.copy());
    Location& src = *srcp;
