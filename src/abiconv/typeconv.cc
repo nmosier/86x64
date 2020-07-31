@@ -280,11 +280,64 @@ static void convert_struct(std::ostream& os, CXType type, arch a, memloc& src, m
 }
 #endif
 
-#if 0
-void conversion::convert_pointer(std::ostream& os, CXType pointee, const Location& src,
-                                 const Location& dst) {
+void conversion::convert_pointer(std::ostream& os, CXType pointee, const Location& src_,
+                                 const Location& dst_) {
+   std::unique_ptr<Location> srcp(src_.copy());
+   std::unique_ptr<Location> dstp(dst_.copy());
+   Location& src = *srcp;
+   Location& dst = *dstp;
+
+   if (allocate) {
+      /* allocate new pointer to stack data into reg_dst and mem_dst */
+      RegisterLocation reg_dst(r11);
+      MemoryLocation mem_dst(r11, 0);
+      push(os, reg_dst, src, dst);
+      {
+         emit_inst(os, "lea", "r11", data.op());
+         data += sizeof_type(pointee, to_arch);
+      
+         /* load reg_dst to dst */
+         convert_int(os, CXType_Pointer, reg_dst, dst);
+         
+         /* load src pointer into reg_src */
+         RegisterLocation reg_src(r12);
+         MemoryLocation mem_src(r12, 0);
+         push(os, reg_src, src, dst);
+         {
+            convert_int(os, CXType_Pointer, src, reg_src);
+
+            /* convert */
+            convert(os, pointee, mem_src, mem_dst);
+         }
+         pop(os, reg_src, src, dst);
+      }
+      pop(os, reg_dst, src, dst);
+      
+   } else {
+      /* let dst pointer be */
+      RegisterLocation reg_src(r12);
+      MemoryLocation mem_src(r12, 0);
+      push(os, reg_src, src, dst);
+      {
+         RegisterLocation reg_dst(r11);
+         MemoryLocation mem_dst(r11, 0);
+         push(os, reg_dst, src, dst);
+         {
+            emit_inst(os, "lea", "r12", data.op());
+            data += sizeof_type(pointee, from_arch);
+            
+            convert_int(os, CXType_Pointer, dst, reg_dst);
+            
+            /* convert underlying data */
+            convert(os, pointee, mem_src, mem_dst);
+         }
+         pop(os, reg_dst, src, dst);
+      }
+      pop(os, reg_src, src, dst);
+   }
 }
 
+#if 0
 static void convert_pointer(std::ostream& os, CXType pointer, arch a, memloc& src, memloc& dst) {
    emit_arg_int ptr(pointer, rax);
 
@@ -354,6 +407,49 @@ size_t sizeof_type(CXType type, arch a) {
    case CXType_IncompleteArray:
       abort();
       
+   default:
+      abort();
+   }
+}
+
+size_t sizeof_type(CXTypeKind type_kind, arch a) {
+   switch (type_kind) {
+   case CXType_Bool:
+   case CXType_Char_U:
+   case CXType_UChar:
+   case CXType_Char_S:
+   case CXType_SChar:
+      return 1;
+   case CXType_UShort:
+   case CXType_Short:
+      return 2;
+   case CXType_UInt:
+   case CXType_Int:
+   case CXType_Enum:
+      return 4;
+   case CXType_ULong:
+   case CXType_Long:
+      switch (a) {
+      case arch::i386: return 4;
+      case arch::x86_64: return 8;
+      default: abort();
+      }
+   case CXType_ULongLong:
+   case CXType_LongLong:
+      return 8;
+   case CXType_Float:
+      return sizeof(float);
+   case CXType_Double:
+      return sizeof(double);
+   case CXType_LongDouble:
+      return sizeof(long double);
+   case CXType_Pointer:
+   case CXType_BlockPointer:
+      switch (a) {
+      case arch::i386: return 4;
+      case arch::x86_64: return 8;
+      default: abort();
+      }
    default:
       abort();
    }

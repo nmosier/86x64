@@ -30,6 +30,7 @@ const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
 const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
 const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
 const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
+const reg_group r12 = {"r12b", "r12w", "r12d", "r12"};
 const reg_group rsp = {"spl", "sp", "esp", "rsp"};
 const reg_group rbp = {"bpl", "bp", "ebp", "rbp"};
 
@@ -237,11 +238,11 @@ struct ABIConversion {
            param_it != param_end /* && reg_it != regs.end() */;
            ++param_it /*, ++reg_it */) {
 
-         CXType param_type = handle_type(clang_getArgType(function_type, param_it));
+         CXType type = handle_type(clang_getArgType(function_type, param_it));
 
          std::unique_ptr<Location> src;
          std::unique_ptr<Location> dst;
-         switch (get_type_domain(get_arg_kind(param_type.kind))) {
+         switch (get_type_domain(get_arg_kind(type.kind))) {
          case type_domain::INT:
             if (info.reg_it != info.reg_end) {
                dst = std::make_unique<RegisterLocation>(**info.reg_it++);
@@ -258,17 +259,23 @@ struct ABIConversion {
             }
          }
 
-         if (param_type.kind == CXType_ConstantArray) {
-            /* actually a pointer is passed as an argument */
-            // RegisterLocation tmp_reg(rax);
+         CXTypeKind type_kind;
+         switch (type.kind) {
+         case CXType_ConstantArray:
+            type_kind = CXType_Pointer;
+            conv.convert_pointer(os, type, load_loc, *dst);
             conv.convert_void_pointer(os, load_loc, *dst);
-         } else {
-            conv.convert(os, param_type, load_loc, *dst);
+            break;
+
+         default:
+            type_kind = type.kind;
+            conv.convert(os, type, load_loc, *dst);
+            break;
          }
 
-         load_loc += align_up<size_t>(sizeof_type(param_type, arch::i386), 4);
+         load_loc += align_up<size_t>(sizeof_type(type_kind, arch::i386), 4);
          if (dst->kind() == Location::Kind::MEM) {
-            stack_args += align_up<size_t>(sizeof_type(param_type, arch::x86_64), 8);
+            stack_args += align_up<size_t>(sizeof_type(type, arch::x86_64), 8);
          }
 
       }

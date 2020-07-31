@@ -21,6 +21,7 @@ extern const reg_group rcx;
 extern const reg_group  r8;
 extern const reg_group  r9;
 extern const reg_group r11;
+extern const reg_group r12;
 extern const reg_group rsp;
 extern const reg_group rbp;
 
@@ -32,6 +33,8 @@ struct Location {
    virtual void push() = 0;
    virtual void pop() = 0;
 
+   virtual Location *copy() const = 0;
+   
    virtual ~Location() {}
 };
 
@@ -49,6 +52,8 @@ struct MemoryLocation: Location {
    inline MemoryLocation operator-(int offset) const { return operator+(-offset); }
    inline MemoryLocation& operator+=(int offset) { index += offset; return *this; }
    inline MemoryLocation& operator-=(int offset) { return operator+=(-offset); }
+
+   virtual MemoryLocation *copy() const override { return new MemoryLocation(base, index); }
    
    MemoryLocation(const reg_group& base, int index = 0): base(base), index(index) {}
 };
@@ -61,6 +66,8 @@ struct RegisterLocation: Location {
    virtual void push() override {}
    virtual void pop() override {}
 
+   virtual RegisterLocation *copy() const override { return new RegisterLocation(reg); }
+
    RegisterLocation(const reg_group& reg): reg(reg) {}
 };
 
@@ -71,6 +78,8 @@ struct SSELocation: Location {
    virtual std::string op(reg_width width) const override;
    virtual void push() override {}
    virtual void pop() override {}
+
+   virtual SSELocation *copy() const override { return new SSELocation(index); }
 
    SSELocation(unsigned index): index(index) {}
 };

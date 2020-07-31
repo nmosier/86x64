@@ -10,6 +10,7 @@
 struct memloc;
 
 size_t sizeof_type(CXType type, arch a);
+size_t sizeof_type(CXTypeKind type_kind, arch a);
 
 /* compare sizes between architectures */
 int sizeof_type_archcmp(CXType type);
