@@ -112,24 +112,18 @@ void conversion::convert_int(std::ostream& os, CXTypeKind type_kind, const Locat
       emit_inst(os, "movsx", src.op(to_width), src.op(from_width));
       emit_inst(os, "mov", dst.op(to_width), src.op(to_width));
    } else {
-      
-      const char *opcode = nullptr;
-      
-      if (to_width == from_width) {
-         opcode = "mov";
-      } else {
+      const char *opcode;
+
+      if (from_width < to_width) {
          if (get_type_signed(type_kind)) {
-            // signed
             opcode = "movsx";
          } else {
-            // unsigned
+            to_width = from_width;
             opcode = "mov";
-            if (to_width == reg_width::Q && dst.kind() == Location::Kind::MEM) {
-               from_width = to_width;
-            } else {
-               to_width = from_width;
-            }
          }
+      } else {
+         opcode = "mov";
+         from_width = to_width;
       }
 
       emit_inst(os, opcode, dst.op(to_width), src.op(from_width));

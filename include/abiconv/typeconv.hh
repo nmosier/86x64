@@ -65,12 +65,12 @@ public:
    void convert_record(std::ostream& os, CXType record, MemoryLocation src, MemoryLocation dst);
    
    conversion(bool allocate, arch from_arch, arch to_arch, const MemoryLocation& data,
-              const Symbols& ignore_structs):
+              unsigned& label, const Symbols& ignore_structs):
       allocate(allocate), from_arch(from_arch), to_arch(to_arch), data(data),
-      ignore_structs(ignore_structs) {}
+      ignore_structs(ignore_structs), label_(label) {}
    
 private:
-   unsigned label_ = 0;
+   unsigned& label_;
    
    void push(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst); 
    void pop(std::ostream& os, const RegisterLocation& loc, Location& src, Location& dst);

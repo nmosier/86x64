@@ -168,8 +168,11 @@ struct ABIConversion {
       /* make space on stack */
       MemoryLocation stack_args(rsp, 0);
       // MemoryLocation stack_data(rsp, stack_args_size());
-      conversion conv(true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())},
-                      ignore_structs);
+      unsigned label = 0;
+      conversion to_conv(true, arch::i386, arch::x86_64, {rsp, static_cast<int>(stack_args_size())},
+                         label, ignore_structs);
+      conversion from_conv(false, arch::x86_64, arch::i386,
+                           {rsp, static_cast<int>(stack_args_size())}, label, ignore_structs);
       
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
@@ -179,6 +182,9 @@ struct ABIConversion {
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
       MemoryLocation load_loc(rbp, 12);
+
+      std::stringstream to_ss;
+      std::stringstream from_ss;
 
       for (param_it = 0;
            param_it != param_end /* && reg_it != regs.end() */;
@@ -209,13 +215,14 @@ struct ABIConversion {
          switch (type.kind) {
          case CXType_ConstantArray:
             type_kind = CXType_Pointer;
-            conv.convert_pointer(os, type, load_loc, *dst);
-            conv.convert_void_pointer(os, load_loc, *dst);
+            to_conv.convert_pointer(to_ss, type, load_loc, *dst);
+            from_conv.convert_pointer(from_ss, type, *dst, load_loc);
             break;
 
          default:
             type_kind = type.kind;
-            conv.convert(os, type, load_loc, *dst);
+            to_conv.convert(to_ss, type, load_loc, *dst);
+            from_conv.convert(from_ss, type, *dst, load_loc);
             break;
          }
 
@@ -225,9 +232,17 @@ struct ABIConversion {
          }
 
       }
+
+      /* convert from i386 to x86_64 */
+      os << to_ss.str();
       
       /* call */
       emit_inst(os, "call", sym);
+
+      /* convert from x86_64 to i386 */
+      os << from_ss.str();
+
+      emit_inst(os, "add", "rsp", stack_data_size() + stack_args_size());
 
       /* cleanup */
       emit_inst(os, "pop", "rsi");
