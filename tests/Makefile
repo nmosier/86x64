@@ -203,6 +203,21 @@ test_abiconv/fast:
 .PHONY : test_abiconv/fast
 
 # Convenience name for target.
+tests/CMakeFiles/mysh64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh64_tgt.dir/rule
+
+# Convenience name for target.
+mysh64_tgt: tests/CMakeFiles/mysh64_tgt.dir/rule
+
+.PHONY : mysh64_tgt
+
+# fast build rule for target.
+mysh64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh64_tgt.dir/build.make tests/CMakeFiles/mysh64_tgt.dir/build
+.PHONY : mysh64_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/in_addr32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/in_addr32_tgt.dir/rule
@@ -413,6 +428,21 @@ file64_tgt/fast:
 .PHONY : file64_tgt/fast
 
 # Convenience name for target.
+tests/CMakeFiles/mysh32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh32_tgt.dir/rule
+
+# Convenience name for target.
+mysh32_tgt: tests/CMakeFiles/mysh32_tgt.dir/rule
+
+.PHONY : mysh32_tgt
+
+# fast build rule for target.
+mysh32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh32_tgt.dir/build.make tests/CMakeFiles/mysh32_tgt.dir/build
+.PHONY : mysh32_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/exit64_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit64_tgt.dir/rule
 .PHONY : tests/CMakeFiles/exit64_tgt.dir/rule
@@ -540,6 +570,8 @@ help:
 	@echo "... in_addr64_tgt"
 	@echo "... myls32_tgt"
 	@echo "... myls64_tgt"
+	@echo "... mysh32_tgt"
+	@echo "... mysh64_tgt"
 	@echo "... printf-many32_tgt"
 	@echo "... printf-many64_tgt"
 	@echo "... printf32_tgt"

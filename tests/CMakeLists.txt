@@ -27,7 +27,7 @@ macro(create_test)
   
 endmacro()
 
-create_test(file exit printf-many printf sum sprintf fprintf myls in_addr)
+create_test(file exit printf-many printf sum sprintf fprintf myls in_addr mysh)
 
 add_custom_command(OUTPUT abiconv.asm
   COMMAND abigen -o abiconv.asm -s abiconv.syms ${CMAKE_CURRENT_SOURCE_DIR}/includes.h

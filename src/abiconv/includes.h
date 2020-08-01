@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <grp.h>
+#include <signal.h>
 
 typedef unsigned int in_addr_t;
 struct in_addr {
