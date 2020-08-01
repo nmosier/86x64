@@ -8,3 +8,6 @@ _dprintf
 
 _getloadavg
 _getgroups
+
+_setipv4sourcefilter
+_getipv4sourcefilter

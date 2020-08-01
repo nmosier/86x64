@@ -11,3 +11,18 @@
 #include <sys/stat.h>
 #include <grp.h>
 
+typedef unsigned int in_addr_t;
+struct in_addr {
+   in_addr_t s_addr;
+};
+
+int inet_aton(const char *cp, struct in_addr *pin);
+
+
+//// TESTING ////
+struct coords {
+   int x;
+   int y;
+};
+
+void print_coords(const struct coords *coords);

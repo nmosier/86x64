@@ -55,6 +55,7 @@ struct MemoryLocation: Location {
 
    // void align(int align);
    void align(CXType type, arch a);
+   void align_field(CXType type, arch a);
 
    virtual MemoryLocation *copy() const override { return new MemoryLocation(base, index); }
    

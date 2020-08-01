@@ -1,6 +1,6 @@
 find_package(Clang REQUIRED PATHS /usr/local/opt/llvm)
 
-add_executable(abigen abigen.cc typeinfo.cc typeconv.cc loc.cc)
+add_executable(abigen abigen.cc typeinfo.cc typeconv.cc loc.cc util.cc)
 target_link_libraries(abigen libclang)
 target_include_directories(abigen PRIVATE ${CMAKE_SOURCE_DIR}/include/abiconv ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -20,10 +20,13 @@ add_custom_target(abiconv_syms
 
 add_custom_command(OUTPUT abiconv.asm
   COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms --structfile ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
-  DEPENDS abigen abiconv_syms custom.syms ignore.structs
+  DEPENDS abigen abiconv_syms custom.syms ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
   )
 
 add_custom_target(abiconv_asm DEPENDS abiconv.asm)
+
+# macro(create_abiconv TARGET_NAME INCLUDE_SYMS IGNORE_SYMS IGNORE_STRUCTS)
+# endmacro()
 
 macro(create_vararg_conv SYMBOL)
   add_library(vararg_conv_${SYMBOL} OBJECT vararg-conv-t.asm)
@@ -55,15 +58,27 @@ add_library(abiconv SHARED
   $<TARGET_OBJECTS:vararg_conv_dprintf>
   $<TARGET_OBJECTS:vararg_conv___sprintf_chk>
   $<TARGET_OBJECTS:custom_conv_getopt>
-  conv.cc
+  printf-conv.cc
   dyld_stub_binder.asm
+  # testing
+  test.c
   )
 target_link_libraries(abiconv System)
 add_dependencies(abiconv abiconv_asm)
 
 install(TARGETS abiconv DESTINATION opt/86x64)
 
-add_executable(info info.cc typeinfo.cc typeconv.cc loc.cc)
+add_executable(info info.cc typeinfo.cc typeconv.cc loc.cc util.cc)
 target_link_libraries(info libclang)
 target_include_directories(info PRIVATE ${CLANG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include/abiconv)
 add_definitions(${LLVM_DEFINITIONS})
+
+
+add_executable(convgen
+  convgen.cc
+  util.cc
+  )
+target_link_libraries(convgen libclang)
+target_include_directories(convgen PRIVATE ${CLANG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include/abiconv)
+add_definitions(${LLVM_DEFINITIONS})
+

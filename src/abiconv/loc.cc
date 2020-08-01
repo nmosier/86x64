@@ -62,3 +62,10 @@ const std::string& reg_group::reg(reg_width width) const {
    }
 }
 
+void MemoryLocation::align_field(CXType type, arch a) {
+   size_t align = alignof_type(type, a);
+   if (align == 8 && a == arch::i386) {
+      align = 4;
+   }
+   index = align_up<int>(index, align);
+}

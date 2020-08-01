@@ -76,6 +76,30 @@ CMAKE_BINARY_DIR = /Users/nicholas/Projects/86x64
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
@@ -98,18 +122,6 @@ test:
 test/fast: test
 
 .PHONY : test/fast
-
-# Special rule for the target install/local
-install/local: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local
-
-# Special rule for the target install/local
-install/local/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local/fast
 
 # Special rule for the target rebuild_cache
 rebuild_cache:
@@ -142,18 +154,6 @@ list_install_components:
 list_install_components/fast: list_install_components
 
 .PHONY : list_install_components/fast
-
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
-
-# Special rule for the target install/strip
-install/strip/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -188,6 +188,36 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+tests/CMakeFiles/test_abiconv.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/test_abiconv.dir/rule
+.PHONY : tests/CMakeFiles/test_abiconv.dir/rule
+
+# Convenience name for target.
+test_abiconv: tests/CMakeFiles/test_abiconv.dir/rule
+
+.PHONY : test_abiconv
+
+# fast build rule for target.
+test_abiconv/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/build
+.PHONY : test_abiconv/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr32_tgt.dir/rule
+
+# Convenience name for target.
+in_addr32_tgt: tests/CMakeFiles/in_addr32_tgt.dir/rule
+
+.PHONY : in_addr32_tgt
+
+# fast build rule for target.
+in_addr32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr32_tgt.dir/build.make tests/CMakeFiles/in_addr32_tgt.dir/build
+.PHONY : in_addr32_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/myls64_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls64_tgt.dir/rule
 .PHONY : tests/CMakeFiles/myls64_tgt.dir/rule
@@ -201,6 +231,36 @@ myls64_tgt: tests/CMakeFiles/myls64_tgt.dir/rule
 myls64_tgt/fast:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls64_tgt.dir/build.make tests/CMakeFiles/myls64_tgt.dir/build
 .PHONY : myls64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf32_tgt.dir/rule
+
+# Convenience name for target.
+fprintf32_tgt: tests/CMakeFiles/fprintf32_tgt.dir/rule
+
+.PHONY : fprintf32_tgt
+
+# fast build rule for target.
+fprintf32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf32_tgt.dir/build.make tests/CMakeFiles/fprintf32_tgt.dir/build
+.PHONY : fprintf32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr64_tgt.dir/rule
+
+# Convenience name for target.
+in_addr64_tgt: tests/CMakeFiles/in_addr64_tgt.dir/rule
+
+.PHONY : in_addr64_tgt
+
+# fast build rule for target.
+in_addr64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr64_tgt.dir/build.make tests/CMakeFiles/in_addr64_tgt.dir/build
+.PHONY : in_addr64_tgt/fast
 
 # Convenience name for target.
 tests/CMakeFiles/myls32_tgt.dir/rule:
@@ -248,6 +308,21 @@ sprintf64_tgt/fast:
 .PHONY : sprintf64_tgt/fast
 
 # Convenience name for target.
+tests/CMakeFiles/sum32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum32_tgt.dir/rule
+
+# Convenience name for target.
+sum32_tgt: tests/CMakeFiles/sum32_tgt.dir/rule
+
+.PHONY : sum32_tgt
+
+# fast build rule for target.
+sum32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum32_tgt.dir/build.make tests/CMakeFiles/sum32_tgt.dir/build
+.PHONY : sum32_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/sprintf32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/sprintf32_tgt.dir/rule
@@ -291,21 +366,6 @@ exit32_tgt: tests/CMakeFiles/exit32_tgt.dir/rule
 exit32_tgt/fast:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit32_tgt.dir/build.make tests/CMakeFiles/exit32_tgt.dir/build
 .PHONY : exit32_tgt/fast
-
-# Convenience name for target.
-tests/CMakeFiles/sum32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/sum32_tgt.dir/rule
-
-# Convenience name for target.
-sum32_tgt: tests/CMakeFiles/sum32_tgt.dir/rule
-
-.PHONY : sum32_tgt
-
-# fast build rule for target.
-sum32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum32_tgt.dir/build.make tests/CMakeFiles/sum32_tgt.dir/build
-.PHONY : sum32_tgt/fast
 
 # Convenience name for target.
 tests/CMakeFiles/printf64_tgt.dir/rule:
@@ -353,6 +413,21 @@ file64_tgt/fast:
 .PHONY : file64_tgt/fast
 
 # Convenience name for target.
+tests/CMakeFiles/exit64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit64_tgt.dir/rule
+
+# Convenience name for target.
+exit64_tgt: tests/CMakeFiles/exit64_tgt.dir/rule
+
+.PHONY : exit64_tgt
+
+# fast build rule for target.
+exit64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit64_tgt.dir/build.make tests/CMakeFiles/exit64_tgt.dir/build
+.PHONY : exit64_tgt/fast
+
+# Convenience name for target.
 tests/CMakeFiles/printf-many64_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many64_tgt.dir/rule
 .PHONY : tests/CMakeFiles/printf-many64_tgt.dir/rule
@@ -383,36 +458,6 @@ printf-many32_tgt/fast:
 .PHONY : printf-many32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/exit64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/exit64_tgt.dir/rule
-
-# Convenience name for target.
-exit64_tgt: tests/CMakeFiles/exit64_tgt.dir/rule
-
-.PHONY : exit64_tgt
-
-# fast build rule for target.
-exit64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit64_tgt.dir/build.make tests/CMakeFiles/exit64_tgt.dir/build
-.PHONY : exit64_tgt/fast
-
-# Convenience name for target.
-tests/CMakeFiles/fprintf32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/fprintf32_tgt.dir/rule
-
-# Convenience name for target.
-fprintf32_tgt: tests/CMakeFiles/fprintf32_tgt.dir/rule
-
-.PHONY : fprintf32_tgt
-
-# fast build rule for target.
-fprintf32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf32_tgt.dir/build.make tests/CMakeFiles/fprintf32_tgt.dir/build
-.PHONY : fprintf32_tgt/fast
-
-# Convenience name for target.
 tests/CMakeFiles/file32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/file32_tgt.dir/rule
@@ -426,6 +471,51 @@ file32_tgt: tests/CMakeFiles/file32_tgt.dir/rule
 file32_tgt/fast:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file32_tgt.dir/build.make tests/CMakeFiles/file32_tgt.dir/build
 .PHONY : file32_tgt/fast
+
+__/src/abiconv/dyld_stub_binder.o: __/src/abiconv/dyld_stub_binder.asm.o
+
+.PHONY : __/src/abiconv/dyld_stub_binder.o
+
+# target to build an object file
+__/src/abiconv/dyld_stub_binder.asm.o:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/__/src/abiconv/dyld_stub_binder.asm.o
+.PHONY : __/src/abiconv/dyld_stub_binder.asm.o
+
+abiconv.o: abiconv.asm.o
+
+.PHONY : abiconv.o
+
+# target to build an object file
+abiconv.asm.o:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/abiconv.asm.o
+.PHONY : abiconv.asm.o
+
+test-funcs.o: test-funcs.c.o
+
+.PHONY : test-funcs.o
+
+# target to build an object file
+test-funcs.c.o:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.o
+.PHONY : test-funcs.c.o
+
+test-funcs.i: test-funcs.c.i
+
+.PHONY : test-funcs.i
+
+# target to preprocess a source file
+test-funcs.c.i:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.i
+.PHONY : test-funcs.c.i
+
+test-funcs.s: test-funcs.c.s
+
+.PHONY : test-funcs.s
+
+# target to generate assembly for a file
+test-funcs.c.s:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.s
+.PHONY : test-funcs.c.s
 
 # Help Target
 help:
@@ -446,6 +536,8 @@ help:
 	@echo "... file64_tgt"
 	@echo "... fprintf32_tgt"
 	@echo "... fprintf64_tgt"
+	@echo "... in_addr32_tgt"
+	@echo "... in_addr64_tgt"
 	@echo "... myls32_tgt"
 	@echo "... myls64_tgt"
 	@echo "... printf-many32_tgt"
@@ -456,6 +548,12 @@ help:
 	@echo "... sprintf64_tgt"
 	@echo "... sum32_tgt"
 	@echo "... sum64_tgt"
+	@echo "... test_abiconv"
+	@echo "... __/src/abiconv/dyld_stub_binder.o"
+	@echo "... abiconv.o"
+	@echo "... test-funcs.o"
+	@echo "... test-funcs.i"
+	@echo "... test-funcs.s"
 .PHONY : help
 
 

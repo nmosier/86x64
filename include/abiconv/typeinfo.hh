@@ -15,11 +15,6 @@ bool get_type_signed(CXTypeKind type_kind);
 type_domain get_type_domain(CXTypeKind kind);
 reg_width get_type_width(CXTypeKind type_kind, arch a);
 
-std::string to_string(CXType type);
-std::string to_string(CXCursorKind kind);
-std::string to_string(CXCursor cursor);
-std::string to_string(CXTypeKind kind);
-
 std::ostream& operator<<(std::ostream& os, const CXString& str);
 
 bool operator<(reg_width lhs, reg_width rhs);

@@ -49,18 +49,16 @@ void struct_decl::populate_fields() {
                case CXCursor_FieldDecl:
                   {
                      CXType type = clang_getCanonicalType(clang_getCursorType(c));
-                     switch (type.kind) {
-                     case CXType_Typedef:
-                        break;
-                     default:
-                        field_types.push_back(type);
-                        break;
-                     }
+                     field_types.push_back(type);
                   }
                   break;
 
                case CXCursor_PackedAttr:
                   packed = true;
+                  break;
+
+               case CXCursor_StructDecl:
+                  /* ignore */
                   break;
 
                default: abort();
@@ -132,7 +130,6 @@ void conversion::convert_int(std::ostream& os, CXTypeKind type_kind, const Locat
 
 void conversion::convert_real(std::ostream& os, CXTypeKind type_kind, const Location& src,
                               const Location& dst) {
-
    if (src.kind() == Location::Kind::MEM && dst.kind() == Location::Kind::MEM) {
       SSELocation tmp_loc = {0};
       MemoryLocation tmp_src = dynamic_cast<const MemoryLocation&>(src);
@@ -160,6 +157,7 @@ void conversion::convert_void_pointer(std::ostream& os, const Location& src,
 }
 
 void conversion::convert(std::ostream& os, CXType type, const Location& src, const Location& dst) {
+   os << "\t; convert '" << to_string(type) << "'" << std::endl;
    switch (type.kind) {
    case CXType_Invalid:
    case CXType_Unexposed:
@@ -274,10 +272,17 @@ void conversion::convert_record(std::ostream& os, CXType record, MemoryLocation 
                                 MemoryLocation dst) {
    struct_decl decl(record);
    for (CXType field_type : decl.field_types) {
-      src.align(field_type, from_arch);
-      dst.align(field_type, to_arch);
+      src.align_field(field_type, from_arch);
+      dst.align_field(field_type, to_arch);
       
       convert(os, field_type, src, dst);
+
+      std::cerr << to_string(record) << "," << to_string(field_type) << "," << src.index
+                << "," << dst.index << std::endl;
+
+      /* update src, dst */
+      src += sizeof_type(field_type, from_arch);
+      dst += sizeof_type(field_type, to_arch);
    }
 }
 
@@ -485,7 +490,13 @@ static size_t alignof_struct(CXType type, arch a) {
    } else {
       size_t align = 1;
       for (CXType field_type : decl.field_types) {
-         const size_t field_align = alignof_type(field_type, a);
+         size_t field_align = alignof_type(field_type, a);
+
+         // NOTE: This seems inconsistent, but it appears how clang works.
+         if (field_align == 8 && a == arch::i386) {
+            field_align = 4;
+         }
+         
          align = std::max(align, field_align);
       }
       return align;

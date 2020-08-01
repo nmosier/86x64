@@ -35,3 +35,37 @@ Alternate Idea
 ---------
 
 [ ] Conversion functions should return bool (or size).
+
+0-----
+
+Ideas:
+*** Generate C code for converting between structs. This should be easy enough -- use libclang to get types.
+* Make abigen & abiconv more modular -- define settings file that can be used to generate library.
+
+Generate file with 32-bit and 64-bit struct definitions. Add _32 and _64 suffix to each, .e.g.
+struct stat -> struct stat32, struct stat64.
+
+Need function that converts given type to 32-bit or 64-bit equivalent, with knowledge of host arch.
+E.g.
+struct node {
+   long data;
+   struct node *next;
+};
+becomes
+struct node_32 {
+   int32_t data;
+   struct node_32 *next;
+};
+and
+struct node_64 {
+  int64_t data;
+  struct node_64 *next;
+};
+
+The conversion functions have signature
+void convert_node_32_to_64(const struct node_32 *, struct node_64 *);
+void convert_node_64_to_32(const struct node_64 *, struct node_32 *);
+---
+2 files required: header (cconv.h) and implementation (cconv.c).
+cconv.h divided into 4 sections: include directives, struct forward declarations, struct definitions, and conversion function prototypes.
+cconv.c contains conversion function definitions

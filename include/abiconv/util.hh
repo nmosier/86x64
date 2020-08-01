@@ -62,3 +62,9 @@ template <typename Func>
 void for_each(const CXTranslationUnit& unit, Func func) {
    for_each(clang_getTranslationUnitCursor(unit), func);
 }
+
+std::string to_string(CXType type);
+std::string to_string(CXCursorKind kind);
+std::string to_string(CXCursor cursor);
+std::string to_string(CXTypeKind kind);
+

@@ -1,4 +1,5 @@
 include(ExternalProject)
+include(FetchContent)
 
 ExternalProject_Add(mbuild
   PREFIX xed
@@ -25,3 +26,8 @@ ExternalProject_Get_Property(xed BINARY_DIR)
 set(xed_BINARY_DIR "${BINARY_DIR}")
 set(xed_LIBRARIES "${xed_BINARY_DIR}/obj/libxed.a" CACHE INTERNAL "xed_LIBRARIES")
 set(xed_INCLUDE_DIRS "${xed_BINARY_DIR}/obj/wkit/include" CACHE INTERNAL "xed_INCLUDE_DIRS")
+
+# FetchContent_Declare(yaml_cpp
+#   GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+# )
+# FetchContent_MakeAvailable(yaml_cpp)
