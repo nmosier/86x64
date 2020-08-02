@@ -26,15 +26,15 @@ size_t alignof_type(CXType type, arch a);
 void convert_type(std::ostream& os, CXType type, arch a, Location& src, Location& dst,
                   Location& data);
 
-struct struct_decl {
+struct record_decl {
    using FieldTypes = std::list<CXType>;
    
    CXCursor cursor;
    FieldTypes field_types;
    bool packed = false;
 
-   struct_decl(CXCursor cursor);
-   struct_decl(CXType type);
+   record_decl(CXCursor cursor);
+   record_decl(CXType type);
 
 private:
    void populate_fields();

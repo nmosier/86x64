@@ -365,14 +365,33 @@ namespace MachO {
                   return insts;
                }
                
+            case XED_IFORM_INC_GPRv_40:
+               {
+                  /* i386 | inc r32
+                   * -----|--------
+                   * X86  | inc r32
+                   */
+                  const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
+                  const uint8_t opcode = 0xc0 | (reg0 - XED_REG_EAX);
+                  return {new Instruction<opposite<bits>>(opcode_t({0xff, opcode}))};
+               }
+
+            case XED_IFORM_DEC_GPRv_48:
+               {
+                  const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
+                  const uint8_t opcode = 0xc8 | (reg0 - XED_REG_EAX);
+                  return {new Instruction<opposite<bits>>(opcode_t({0xff, opcode}))};
+               }
+               
             default: break;
             }
 
+#if 0
             /* instruction-specific rules */
             if (instbuf == opcode_t {0x43}) {
                return {new Instruction<opposite<bits>>(opcode_t({0xff, 0xc3}))};
             }
-            
+#endif
 
             /* default rule */
             return {new Instruction<opposite<bits>>(*this, env)};

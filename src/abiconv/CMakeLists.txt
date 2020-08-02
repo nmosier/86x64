@@ -10,7 +10,7 @@ find_path(c_headers stdlib.h)
 message(${c_headers})
 
 add_custom_command(OUTPUT abiconv.syms
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib /usr/lib/system/libsystem_kernel.dylib /usr/lib/system/libsystem_info.dylib > abiconv.syms
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/print_exports_trie.sh /usr/lib/system/libsystem_c.dylib /usr/lib/system/libsystem_kernel.dylib /usr/lib/system/libsystem_info.dylib /usr/lib/system/libsystem_malloc.dylib > abiconv.syms
   DEPENDS print_exports_trie.sh
   )
 
@@ -20,7 +20,7 @@ add_custom_target(abiconv_syms
 
 add_custom_command(OUTPUT abiconv.asm
   COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms --structfile ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
-  DEPENDS abigen abiconv_syms custom.syms ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
+  DEPENDS abigen abiconv.syms custom.syms ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
   )
 
 add_custom_target(abiconv_asm DEPENDS abiconv.asm)
@@ -47,6 +47,7 @@ macro(create_custom_conv SOURCE)
 endmacro()
 
 create_custom_conv(getopt.asm)
+create_custom_conv(sigaction.asm)
 
 add_library(abiconv SHARED
   abiconv.asm
@@ -58,10 +59,9 @@ add_library(abiconv SHARED
   $<TARGET_OBJECTS:vararg_conv_dprintf>
   $<TARGET_OBJECTS:vararg_conv___sprintf_chk>
   $<TARGET_OBJECTS:custom_conv_getopt>
+  $<TARGET_OBJECTS:custom_conv_sigaction>
   printf-conv.cc
   dyld_stub_binder.asm
-  # testing
-  test.c
   )
 target_link_libraries(abiconv System)
 add_dependencies(abiconv abiconv_asm)

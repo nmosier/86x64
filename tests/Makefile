@@ -188,21 +188,6 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-tests/CMakeFiles/test_abiconv.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/test_abiconv.dir/rule
-.PHONY : tests/CMakeFiles/test_abiconv.dir/rule
-
-# Convenience name for target.
-test_abiconv: tests/CMakeFiles/test_abiconv.dir/rule
-
-.PHONY : test_abiconv
-
-# fast build rule for target.
-test_abiconv/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/build
-.PHONY : test_abiconv/fast
-
-# Convenience name for target.
 tests/CMakeFiles/mysh64_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh64_tgt.dir/rule
 .PHONY : tests/CMakeFiles/mysh64_tgt.dir/rule
@@ -502,51 +487,6 @@ file32_tgt/fast:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file32_tgt.dir/build.make tests/CMakeFiles/file32_tgt.dir/build
 .PHONY : file32_tgt/fast
 
-__/src/abiconv/dyld_stub_binder.o: __/src/abiconv/dyld_stub_binder.asm.o
-
-.PHONY : __/src/abiconv/dyld_stub_binder.o
-
-# target to build an object file
-__/src/abiconv/dyld_stub_binder.asm.o:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/__/src/abiconv/dyld_stub_binder.asm.o
-.PHONY : __/src/abiconv/dyld_stub_binder.asm.o
-
-abiconv.o: abiconv.asm.o
-
-.PHONY : abiconv.o
-
-# target to build an object file
-abiconv.asm.o:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/abiconv.asm.o
-.PHONY : abiconv.asm.o
-
-test-funcs.o: test-funcs.c.o
-
-.PHONY : test-funcs.o
-
-# target to build an object file
-test-funcs.c.o:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.o
-.PHONY : test-funcs.c.o
-
-test-funcs.i: test-funcs.c.i
-
-.PHONY : test-funcs.i
-
-# target to preprocess a source file
-test-funcs.c.i:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.i
-.PHONY : test-funcs.c.i
-
-test-funcs.s: test-funcs.c.s
-
-.PHONY : test-funcs.s
-
-# target to generate assembly for a file
-test-funcs.c.s:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_abiconv.dir/build.make tests/CMakeFiles/test_abiconv.dir/test-funcs.c.s
-.PHONY : test-funcs.c.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -580,12 +520,6 @@ help:
 	@echo "... sprintf64_tgt"
 	@echo "... sum32_tgt"
 	@echo "... sum64_tgt"
-	@echo "... test_abiconv"
-	@echo "... __/src/abiconv/dyld_stub_binder.o"
-	@echo "... abiconv.o"
-	@echo "... test-funcs.o"
-	@echo "... test-funcs.i"
-	@echo "... test-funcs.s"
 .PHONY : help
 
 

@@ -87,7 +87,7 @@ v "$MACHO_TOOL" transform "$REBASE32" "$TRANSFORM64" || error
 # link 64-bit archive with libabiconv.dylib
 ABI64=$(mktemp)
 trap "rm $ABI64" EXIT
-v "$MACHO_TOOL" modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
+v lldb "$MACHO_TOOL" -- modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
 
 # strip dollar signs (???)
 DOLLAR64=$(mktemp)

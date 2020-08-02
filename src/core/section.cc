@@ -225,11 +225,15 @@ namespace MachO {
    template <Bits bits>
    void Section<bits>::Parse2(ParseEnv<bits>& env) {
       auto content_it = content.begin();
+
+      /* for each placeholder, find blob in this section to insert it before */
       for (auto placeholder_it = env.placeholders.lower_bound(sect.addr);
            placeholder_it != env.placeholders.end() &&
               placeholder_it->first < sect.addr + sect.size;
            ++placeholder_it)
          {
+            /* find first section blob that has an address greater than or equal to this
+             * placeholder */
             content_it = std::lower_bound(content_it, content.end(), placeholder_it->first,
                                           [] (const SectionBlob<bits> *blob, std::size_t vmaddr) {
                                              return blob->loc.vmaddr < vmaddr;
@@ -241,7 +245,7 @@ namespace MachO {
             }
 
             assert((*content_it)->loc.vmaddr == placeholder_it->first);
-
+            
             placeholder_it->second->segment = env.current_segment;
             placeholder_it->second->section = this;
             

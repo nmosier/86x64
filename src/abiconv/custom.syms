@@ -11,3 +11,6 @@ _getgroups
 
 _setipv4sourcefilter
 _getipv4sourcefilter
+
+_sigaction
+_waitid

@@ -5,6 +5,8 @@
 #include "typeconv.hh"
 #include "abigen.hh"
 
+static size_t alignof_record(CXType type, arch a);
+
 namespace {
 
    namespace {
@@ -34,15 +36,15 @@ namespace {
 
 }
 
-struct_decl::struct_decl(CXCursor cursor): cursor(cursor) {
+record_decl::record_decl(CXCursor cursor): cursor(cursor) {
    populate_fields();
 }
 
-struct_decl::struct_decl(CXType type): cursor(clang_getTypeDeclaration(type)) {
+record_decl::record_decl(CXType type): cursor(clang_getTypeDeclaration(type)) {
    populate_fields();
 }
 
-void struct_decl::populate_fields() {
+void record_decl::populate_fields() {
    for_each(cursor,
             [&] (CXCursor c, CXCursor p) {
                switch (clang_getCursorKind(c)) {
@@ -270,15 +272,18 @@ void conversion::convert_constant_array(std::ostream& os, CXType array, MemoryLo
 
 void conversion::convert_record(std::ostream& os, CXType record, MemoryLocation src,
                                 MemoryLocation dst) {
-   struct_decl decl(record);
+   record_decl decl(record);
+   assert(decl.cursor.kind == CXCursor_StructDecl);
    for (CXType field_type : decl.field_types) {
       src.align_field(field_type, from_arch);
       dst.align_field(field_type, to_arch);
       
       convert(os, field_type, src, dst);
 
+#if 0
       std::cerr << to_string(record) << "," << to_string(field_type) << "," << src.index
                 << "," << dst.index << std::endl;
+#endif
 
       /* update src, dst */
       src += sizeof_type(field_type, from_arch);
@@ -352,7 +357,8 @@ void conversion::convert_pointer(std::ostream& os, CXType pointee, const Locatio
 
 /* SIZEOF */
 
-static size_t sizeof_struct(CXType type, arch a);
+
+static size_t sizeof_record(CXType type, arch a);
 
 size_t sizeof_type(CXType type, arch a) {
    switch (type.kind) {
@@ -395,7 +401,7 @@ size_t sizeof_type(CXType type, arch a) {
    case CXType_ConstantArray:
       return sizeof_type(clang_getArrayElementType(type), a) * clang_getArraySize(type);
    case CXType_Record:
-      return sizeof_struct(type, a);
+      return sizeof_record(type, a);
 
    case CXType_FunctionProto:
       // TODO: May need to address this case in the future.
@@ -455,11 +461,39 @@ size_t sizeof_type(CXTypeKind type_kind, arch a) {
    }
 }
 
-static size_t sizeof_struct(CXType type, arch a) {
-   struct_decl decl(type);
+static size_t sizeof_union(CXType type, arch a);
+static size_t sizeof_struct(CXType type, arch a);
+static size_t sizeof_record(CXType type, arch a) {
+   switch (clang_getCursorKind(clang_getTypeDeclaration(type))) {
+   case CXCursor_UnionDecl:
+      return sizeof_union(type, a);
+   case CXCursor_StructDecl:
+      return sizeof_struct(type, a);
+   default: abort();
+   }
+}
+
+static size_t sizeof_union(CXType type, arch a) {
+   record_decl decl(type);
+   assert(!decl.packed);
    
    size_t size = 0;
-   
+
+   for (CXType field_type : decl.field_types) {
+      const size_t field_size = sizeof_type(field_type, a);
+      size = std::max(size, field_size);
+   }
+
+   const size_t align = alignof_record(type, a);
+   size = align_up(size, align);
+
+   return size;
+}
+
+static size_t sizeof_struct(CXType type, arch a) {
+   record_decl decl(type);
+   size_t size = 0;
+
    for (CXType field_type : decl.field_types) {
       const size_t field_size = sizeof_type(field_type, a);
       if (!decl.packed) {
@@ -482,8 +516,8 @@ int sizeof_type_archcmp(CXType type) {
 
 /* ALIGNOF */
 
-static size_t alignof_struct(CXType type, arch a) {
-   struct_decl decl(type);
+static size_t alignof_record(CXType type, arch a) {
+   record_decl decl(type);
 
    if (decl.packed) {
       return 1;
@@ -506,7 +540,7 @@ static size_t alignof_struct(CXType type, arch a) {
 size_t alignof_type(CXType type, arch a) {
    switch (type.kind) {
    case CXType_Record:
-      return alignof_struct(type, a);
+      return alignof_record(type, a);
    case CXType_ConstantArray:
       return alignof_type(clang_getElementType(type), a);
    default:

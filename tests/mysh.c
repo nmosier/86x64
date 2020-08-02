@@ -13,7 +13,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define MAX_INPUT_SIZE 4096
 #define MAX_ARGS 10
