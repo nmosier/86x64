@@ -140,7 +140,11 @@ namespace MachO {
       env(other.sect, sect);
       env.resolve(other.segment, &segment);
       for (const auto elem : other.content) {
-         content.splice(content.end(), elem->Transform(env));
+         auto new_blobs = elem->Transform(env);
+         if (!new_blobs.empty()) {
+            env.add(elem, new_blobs.front());
+         }
+         content.splice(content.end(), new_blobs);
       }
    }
 

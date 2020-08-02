@@ -386,13 +386,6 @@ namespace MachO {
             default: break;
             }
 
-#if 0
-            /* instruction-specific rules */
-            if (instbuf == opcode_t {0x43}) {
-               return {new Instruction<opposite<bits>>(opcode_t({0xff, 0xc3}))};
-            }
-#endif
-
             /* default rule */
             return {new Instruction<opposite<bits>>(*this, env)};
             

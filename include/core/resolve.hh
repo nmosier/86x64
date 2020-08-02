@@ -38,7 +38,8 @@ namespace MachO {
                   todo.erase(todo_it);
                }
             }
-         assert(found.find(key) == found.end());
+
+         assert(found.find(key) == found.end() || found.at(key) == pointee);
          found.insert({key, pointee});
       }
       

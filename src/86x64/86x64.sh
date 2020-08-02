@@ -25,7 +25,6 @@ LIBABICONV="$ROOTDIR/libabiconv.dylib"
 WRAPPER_OBJ="$ROOTDIR/libwrapper.a"
 LIBINTERPOSE="$ROOTDIR/libinterpose.dylib"
 DYLIB64=""
-VERBOSE=""
 MACHO_TOOL="macho-tool"
 
 while getopts "hvo:l:w:i:a:m:" OPTION; do
@@ -82,13 +81,13 @@ v "$MACHO_TOOL" rebasify "$ARCHIVE32" "$REBASE32" || error
 # transform 32-bit rebased archive to 64-bit archive
 TRANSFORM64=$(mktemp)
 trap "rm $TRANSFORM64" EXIT
-v "$MACHO_TOOL" transform "$REBASE32" "$TRANSFORM64" || error
+v "$MACHO_TOOL" -- transform "$REBASE32" "$TRANSFORM64" || error
 
 # link 64-bit archive with libabiconv.dylib
 ABI64=$(mktemp)
 trap "rm $ABI64" EXIT
-v lldb "$MACHO_TOOL" -- modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
-
+v "$MACHO_TOOL" -- modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
+  
 # strip dollar signs (???)
 DOLLAR64=$(mktemp)
 # v "$MACHO_TOOL" modify --update strip-dollar-suffixes "$ABI64" "$DOLLAR64"
@@ -108,7 +107,7 @@ DYLD64=$(mktemp)
 trap "rm -f $DYLD64" EXIT
 DYLD_ORD=$("$MACHO_TOOL" translate --load-dylib "$LIBABICONV" "$INTERPOSE64")
 v "$MACHO_TOOL" modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stub_binder",new_dylib="$DYLD_ORD" "$INTERPOSE64" "$DYLD64"
-
+  
 # convert result to dylib
 v "$MACHO_TOOL" convert --archive DYLIB "$DYLD64" "$DYLIB64" || error
 
