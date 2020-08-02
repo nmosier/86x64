@@ -55,7 +55,8 @@ namespace MachO {
       }
 
       void do_resolve() {
-         for (auto todo_it = todo.begin(); todo_it != todo.end(); ++todo_it) {
+         for (auto todo_it = todo.begin(); todo_it != todo.end(); todo_it = todo.erase(todo_it)) {
+            // for (auto todo_it = todo.begin(); todo_it != todo.end(); ++todo_it) {
             if (!todo_it->second.empty()) {
                auto found_it = found.find(todo_it->first);
                if (found_it != found.end()) {
@@ -67,15 +68,20 @@ namespace MachO {
             }
          }
       }
+
+      Resolver(const std::string& name): name(name) {}
       
       ~Resolver() {
-#if 0
-         for (auto todo_pair : todo) {
-            auto first = todo_pair.first;
-            for (auto second : todo_pair.second) {
-               std::cerr << "resolver<" << typeid(T).name() << ">"
-                         << ": unresolved pair (" << first << "," << second.first
-                         << std::endl;
+#if 1
+         if (!todo.empty()) {
+            std::cerr << "Resolver: " << name << std::endl;
+            for (auto todo_pair : todo) {
+               auto first = todo_pair.first;
+               for (auto second : todo_pair.second) {
+                  std::cerr << "  unresolved pair (" << std::hex << first << "," << second.first
+                     // << ") " << typeid(**second.first)
+                            << std::endl;
+               }
             }
          }
 #endif
@@ -83,6 +89,8 @@ namespace MachO {
 
       FoundMap found;
       TodoMap todo;
+
+      const std::string name;
 
    };   
    

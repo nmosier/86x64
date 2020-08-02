@@ -33,6 +33,8 @@ namespace MachO {
       void operator()(const segment_command_t<b1>& h1, segment_command_t<b2>& h2) const;
       void operator()(const nlist_t<b1>& n1, nlist_t<b2>& n2) const;
       void operator()(const section_t<b1>& s1, section_t<b2>& s2) const;
+
+      TransformEnv(): resolver("TransformEnv::resolver") {}
       
    private:
       Resolver<const void *, void, false> resolver;

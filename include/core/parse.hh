@@ -20,7 +20,7 @@ namespace MachO {
       template <typename... Args>
       void resolve(Args&&... args) { return resolver.resolve(args...); }
       
-      CountResolver(): id(0) {}
+      CountResolver(const std::string& name): resolver(name), id(0) {}
       
    private:
       Resolver<std::size_t, T, false> resolver;
@@ -53,7 +53,12 @@ namespace MachO {
       
       
       ParseEnv(Archive<bits>& archive):
-         archive(archive), current_segment(nullptr), current_section(nullptr) {}
+         archive(archive),
+         vmaddr_resolver("ParseEnv::vmaddr_resolver"), offset_resolver("ParseEnv::offset_resolver"),
+         lazy_bind_node_resolver("ParseEnv::lazy_bind_node_resolver"),
+         dylib_resolver("ParseEnv::dylib_resolver"), segment_resolver("ParseEnv::segment_resolver"),
+         section_resolver("ParseEnv::section_resolver"),
+         current_segment(nullptr), current_section(nullptr) {}
       
    private:
       
