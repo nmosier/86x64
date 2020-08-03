@@ -58,8 +58,12 @@ namespace MachO {
       /* mov r32, imm32 */
       opcode_t mov_r32_imm32(xed_reg_enum_t r32);
 
+      /* mov r11d, [r64] */
+      opcode_t mov_r11d_mem_r64(xed_reg_enum_t r64);
+
       /* jmp r64 */
       opcode_t jmp_r64(xed_reg_enum_t r64);
+
       
    }
 

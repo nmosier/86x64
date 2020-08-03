@@ -320,19 +320,23 @@ namespace MachO {
       }
 
       if constexpr (bits == Bits::M32) {
+            const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
+            const auto reg1 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG1);
+            const auto base_reg = xed_decoded_inst_get_base_reg(&xedd, 0);
+            const auto index_reg = xed_decoded_inst_get_index_reg(&xedd, 0);
+            
             /* iform rules */
             switch (xed_decoded_inst_get_iform_enum(&xedd)) {
             case XED_IFORM_PUSH_GPRv_50: // push r32
-               return push_r32(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0));
+               return push_r32(reg0);
 
             case XED_IFORM_POP_GPRv_58:
-               return pop_r32(xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0));
+               return pop_r32(reg0);
                
             case XED_IFORM_CALL_NEAR_GPRv: // call r32
                {
                   auto jmp_inst = new Instruction<Bits::M64>
-                     (opcode::jmp_r64(opcode::r32_to_r64(xed_decoded_inst_get_reg
-                                                         (&xedd, XED_OPERAND_REG0))));
+                     (opcode::jmp_r64(opcode::r32_to_r64(reg0)));
                   return call_op(jmp_inst);
                }
 
@@ -377,16 +381,36 @@ namespace MachO {
                    * -----|--------
                    * X86  | inc r32
                    */
-                  const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
                   const uint8_t opcode = 0xc0 | (reg0 - XED_REG_EAX);
                   return {new Instruction<opposite<bits>>(opcode_t({0xff, opcode}))};
                }
 
             case XED_IFORM_DEC_GPRv_48:
                {
-                  const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
                   const uint8_t opcode = 0xc8 | (reg0 - XED_REG_EAX);
                   return {new Instruction<opposite<bits>>(opcode_t({0xff, opcode}))};
+               }
+
+            case XED_IFORM_PUSH_MEMv:
+               {
+                  assert(index_reg == XED_REG_INVALID);
+#if 0
+                  assert(xed_decoded_inst_get_memory_displacement(&xedd, 0) == 0);
+#endif
+                  opcode_t mov_buf = instbuf;
+                  uint8_t mov_byte = mov_buf.at(1);
+                  mov_buf.front() = 0x8b;
+                  mov_buf.insert(mov_buf.begin(), 0x44);
+                  assert(mov_byte & (1 << 5));
+                  mov_byte ^= 1 << 5;
+                  assert((mov_byte & (1 << 3)) == 0);
+                  mov_byte ^= 1 << 3;
+                  mov_buf.at(2) = mov_byte;
+                  typename SectionBlob<Bits::M32>::SectionBlobs insts;
+                  auto mov_inst = new Instruction<opposite<bits>>(mov_buf);
+                  insts.push_back(mov_inst);
+                  insts.splice(insts.end(), push_r32(XED_REG_R11D));
+                  return insts;
                }
                
             default: break;
