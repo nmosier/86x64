@@ -74,22 +74,27 @@ v() {
 }
 
 # rebasify 32-bit archive
-REBASE32=$(mktemp)
-trap "rm $REBASE32" EXIT
+# REBASE32=$(mktemp)
+# trap "rm $REBASE32" EXIT
+REBASE32="${ARCHIVE32}_rebase"
 v "$MACHO_TOOL" rebasify "$ARCHIVE32" "$REBASE32" || error
 
 # transform 32-bit rebased archive to 64-bit archive
-TRANSFORM64=$(mktemp)
-trap "rm $TRANSFORM64" EXIT
+# TRANSFORM64=$(mktemp)
+# trap "rm $TRANSFORM64" EXIT
+TRANSFORM64="${ARCHIVE64}_transform"
 v "$MACHO_TOOL" -- transform "$REBASE32" "$TRANSFORM64" || error
 
 # link 64-bit archive with libabiconv.dylib
-ABI64=$(mktemp)
-trap "rm $ABI64" EXIT
+# ABI64=$(mktemp)
+# trap "rm $ABI64" EXIT
+ABI64="${ARCHIVE64}_abi"
 v "$MACHO_TOOL" -- modify --insert load-dylib,name="$LIBABICONV" "$TRANSFORM64" "$ABI64" || error
   
 # strip dollar signs (???)
-DOLLAR64=$(mktemp)
+# DOLLAR64=$(mktemp)
+# trap "rm $DOLLAR64" EXIT
+DOLLAR64="${ARCHIVE64}_dollar"
 # v "$MACHO_TOOL" modify --update strip-dollar-suffixes "$ABI64" "$DOLLAR64"
 v "$MACHO_TOOL" modify --update strip-bind,suffix='$UNIX2003' "$ABI64" "$DOLLAR64"
 # DOLLAR64="$ABI64"

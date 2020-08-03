@@ -126,5 +126,19 @@ namespace MachO {
          out += *data;
       }
    }
- 
+
+
+   template <typename T>
+   constexpr bool fits_in_bits(T val, unsigned bits) {
+      static_assert(std::is_integral<T>());
+      if (std::is_unsigned<T>()) {
+         return val < (1 << bits);
+      } else {
+         if (val < 0) {
+            val = 1 - val; // because of two's complement
+         }
+         return fits_in_bits((typename std::make_unsigned<T>::type) val, bits - 1);
+      }
+   }
+   
 }
