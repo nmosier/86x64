@@ -61,7 +61,9 @@ namespace MachO {
       void decode();
       static void decode(xed_decoded_inst_t& xedd, const opcode_t& instbuf);
       // void patch_disp(ssize_t disp);
-      void patch_relbr(xed_decoded_inst_t& xedd, opcode_t& instbuf, ssize_t disp) const;
+      // void patch_relbr(xed_decoded_inst_t& xedd, opcode_t& instbuf, ssize_t disp) const;
+
+      void parse_handle_relbr();
    };   
 
 }

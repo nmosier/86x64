@@ -77,7 +77,7 @@ namespace MachO {
       SectionBlob<bits>(loc, env, add_to_map), memdisp(nullptr), imm(nullptr), brdisp(nullptr)
    {
       xed_error_enum_t err;
-      
+
       xed_decoded_inst_zero_set_mode(&xedd, &dstate());
       xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 
@@ -86,15 +86,15 @@ namespace MachO {
          throw error("%s: offset 0x%x: xed_decode: %s", __FUNCTION__, loc.offset,
                      xed_error_enum_t2str(err));
       }
+      
       instbuf = std::vector<uint8_t>(&img.at<uint8_t>(loc.offset),
                                      &img.at<uint8_t>(loc.offset + xed_decoded_inst_get_length(&xedd)));
+
+      /* special transformations */
+      // parse_handle_relbr();
+
       const std::size_t refaddr = loc.vmaddr + xed_decoded_inst_get_length(&xedd);
-      
-      
-
       xed_operand_values_t *operands = xed_decoded_inst_operands(&xedd);
-
-
 
       /* Check for relocations */
       std::unordered_map<xed_iform_enum_t, std::size_t> reloc_index_map =
@@ -217,7 +217,7 @@ namespace MachO {
       
       if (brdisp) {
          const ssize_t disp = brdisp->loc.vmaddr - (ssize_t) (this->loc.vmaddr + size());
-#if 0
+#if 1
          const unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
          xed_encoder_operand_t enc;
          enc.u.brdisp = disp;
@@ -241,6 +241,8 @@ namespace MachO {
 
    template <Bits bits>
    void Instruction<bits>::Build(BuildEnv<bits>& env) {
+      parse_handle_relbr();
+      
       SectionBlob<bits>::Build(env);
       if (imm) {
          BuildEnv immenv(env.archive, env.loc - imm->size());
@@ -442,59 +444,57 @@ namespace MachO {
    void Instruction<bits>::decode() {
       decode(xedd, instbuf);
    }
-   
+
+   /* NOTE: Requires that instruction has already been decode()'ed. */
    template <Bits bits>
-   void Instruction<bits>::patch_relbr(xed_decoded_inst_t& xedd, opcode_t& instbuf, ssize_t disp)
-      const
-   {
-      unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
-      if (!fits_in_bits(disp, width_bits)) {
-         /* extend to 32 bits */
-         assert(fits_in_bits(disp, 32));
+   void Instruction<bits>::parse_handle_relbr() {
+      const unsigned width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
 
-         switch (xed_decoded_inst_get_iform_enum(&xedd)) {
-         case XED_IFORM_JB_RELBRb:
-         case XED_IFORM_JBE_RELBRb:
-         case XED_IFORM_JL_RELBRb:
-         case XED_IFORM_JLE_RELBRb:
-         case XED_IFORM_JNB_RELBRb:
-         case XED_IFORM_JNBE_RELBRb:
-         case XED_IFORM_JNL_RELBRb:
-         case XED_IFORM_JNLE_RELBRb:
-         case XED_IFORM_JNO_RELBRb:
-         case XED_IFORM_JNP_RELBRb:
-         case XED_IFORM_JNS_RELBRb:
-         case XED_IFORM_JNZ_RELBRb:
-         case XED_IFORM_JO_RELBRb:
-         case XED_IFORM_JP_RELBRb:
-         case XED_IFORM_JS_RELBRb:
-         case XED_IFORM_JZ_RELBRb:
-            {
-               assert((instbuf.at(0) & 0xf0) == 0x70);
-               const uint8_t byte = (instbuf.at(0) & 0x0f) | 0x80;
-               instbuf = {0x0f, byte, 0x00, 0x00, 0x00, 0x00};
-            }
-            break;
+      switch (width_bits) {
+      case 8:
+         break;
+      case 0:
+      case 32:
+         return;
+      default: abort();
+      }
 
-         case XED_IFORM_JMP_RELBRb:
-            instbuf = {0xe9, 0x00, 0x00, 0x00, 0x00};
-            break;
-            
-         default: abort();
+      const int8_t relbr = instbuf.at(1);
+      const uint8_t relbru = relbr;
+      
+      switch (xed_decoded_inst_get_iform_enum(&xedd)) {
+      case XED_IFORM_JB_RELBRb:
+      case XED_IFORM_JBE_RELBRb:
+      case XED_IFORM_JL_RELBRb:
+      case XED_IFORM_JLE_RELBRb:
+      case XED_IFORM_JNB_RELBRb:
+      case XED_IFORM_JNBE_RELBRb:
+      case XED_IFORM_JNL_RELBRb:
+      case XED_IFORM_JNLE_RELBRb:
+      case XED_IFORM_JNO_RELBRb:
+      case XED_IFORM_JNP_RELBRb:
+      case XED_IFORM_JNS_RELBRb:
+      case XED_IFORM_JNZ_RELBRb:
+      case XED_IFORM_JO_RELBRb:
+      case XED_IFORM_JP_RELBRb:
+      case XED_IFORM_JS_RELBRb:
+      case XED_IFORM_JZ_RELBRb:
+         {
+            assert((instbuf.at(0) & 0xf0) == 0x70);
+            const uint8_t byte = (instbuf.at(0) & 0x0f) | 0x80;
+            instbuf = {0x0f, byte, relbru, 0x00, 0x00, 0x00};
          }
-
-         decode(xedd, instbuf);
-         width_bits = xed_decoded_inst_get_branch_displacement_width_bits(&xedd);
+         break;
+         
+      case XED_IFORM_JMP_RELBRb:
+         instbuf = {0xe9, relbru, 0x00, 0x00, 0x00};
+         break;
+         
+      default: abort();
       }
 
-      /* patch relbr */
-      xed_encoder_operand_t enc;
-      enc.u.brdisp = disp;
-      enc.width_bits = width_bits;
-      if (!xed_patch_relbr(&xedd, instbuf.data(), enc)) {
-         throw error("%s: xed_patch_relbr: failed to patch instruction at offset 0x%zx, " \
-                     "vmaddr 0x%zx\n", __FUNCTION__, this->loc.offset, this->loc.vmaddr);
-      }
+      /* re-decode after modifications to buffer */
+      decode();
    }
    
 
