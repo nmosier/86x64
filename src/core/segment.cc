@@ -262,6 +262,17 @@ namespace MachO {
       }
    }
 
+   template <Bits bits>
+   void Segment<bits>::Parse2(ParseEnv<bits>& env) {
+      env.current_segment = this;
+      for (auto section : sections) {
+         section->Parse2(env);
+      }
+      env.current_segment = nullptr;
+
+
+   }
+
    template class Segment<Bits::M32>;
    template class Segment<Bits::M64>;
 

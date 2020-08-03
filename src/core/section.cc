@@ -169,64 +169,6 @@ namespace MachO {
       return prev;
    }
 
-#if 0
-   template <Bits bits>
-   void Section<bits>::Parse2(const Image& img, ParseEnv<bits>& env) {
-      /* handle unresolved vmaddrs */
-      auto vmaddr_resolver = env.vmaddr_resolver; /* maintain local copy */
-      for (auto vmaddr_todo_it = vmaddr_resolver.todo.lower_bound(sect.addr);
-           vmaddr_todo_it != vmaddr_resolver.todo.end() &&
-              vmaddr_todo_it->first < sect.addr + sect.size;
-           ++vmaddr_todo_it)
-         {
-            /* find closest instruction in section content */
-            auto old_inst_it = content.begin();
-            while (old_inst_it != content.end() &&
-                   (*old_inst_it)->loc.vmaddr < vmaddr_todo_it->first) {
-               ++old_inst_it;
-            }
-            if (old_inst_it == content.begin()) {
-               continue;
-            }
-            --old_inst_it;
-            assert((*old_inst_it)->loc.vmaddr < vmaddr_todo_it->first);
-
-            /* instruction replacement loop */
-            Location old_loc = (*old_inst_it)->loc;
-            Location new_loc = old_loc + (vmaddr_todo_it->first - old_loc.vmaddr);
-
-            /* erase instruction */
-            old_inst_it = content.erase(old_inst_it);
-            assert(old_inst_it != content.end());
-            
-            /* populate with data */
-            for (Location data_loc = old_loc; data_loc != new_loc; ++data_loc) {
-               content.insert(old_inst_it, DataBlob<bits>::Parse(img, data_loc, env));
-            }
-            old_loc = (*old_inst_it)->loc;            
-            
-            while (old_loc != new_loc) {
-               std::clog << "old_loc=" << old_loc << " new_loc=" << new_loc << std::endl;
-               
-               if (old_loc < new_loc) {
-                  /* now just erase instruction */
-                  old_inst_it = content.erase(old_inst_it);
-                  old_loc = (*old_inst_it)->loc;            
-               } else if (old_loc > new_loc) {
-                  /* parse and insert new instruction */
-                  SectionBlob<bits> *new_inst = TextParser(img, new_loc, env);
-                  // Instruction<bits> *new_inst = Instruction<bits>::Parse(img, new_loc, env);
-                  content.insert(old_inst_it, new_inst);
-                  new_loc += new_inst->size();
-               } else {
-                  throw std::logic_error(std::string(__FUNCTION__) +
-                                         ": locations not completely ordered");
-               }
-            }
-         }
-   }
-#endif
-
    template <Bits bits>
    void Section<bits>::Parse2(ParseEnv<bits>& env) {
       auto content_it = content.begin();
@@ -235,7 +177,7 @@ namespace MachO {
       for (auto placeholder_it = env.placeholders.lower_bound(sect.addr);
            placeholder_it != env.placeholders.end() &&
               placeholder_it->first < sect.addr + sect.size;
-           ++placeholder_it)
+           placeholder_it = env.placeholders.erase(placeholder_it))
          {
             /* find first section blob that has an address greater than or equal to this
              * placeholder */
@@ -246,7 +188,7 @@ namespace MachO {
             if (content_it == content.end()) {
                fprintf(stderr, "failed to insert placeholder at 0x%zx: past end of section\n",
                        placeholder_it->first);
-               throw std::logic_error("plaecholder insertion error");
+               throw std::logic_error("placeholder insertion error");
             }
 
             assert((*content_it)->loc.vmaddr == placeholder_it->first);

@@ -56,15 +56,7 @@ namespace MachO {
          }
          env.current_segment = nullptr;
       }
-      virtual void Parse2(ParseEnv<bits>& env) override {
-         env.current_segment = this;
-         for (auto section : sections) {
-            section->Parse2(env);
-         }
-         env.current_segment = nullptr;
-      }
-
-
+      virtual void Parse2(ParseEnv<bits>& env) override;
       
       template <typename... Args>
       static Segment<bits> *Parse(Args&&... args) { return new Segment(args...); }

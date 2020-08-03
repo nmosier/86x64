@@ -6,6 +6,7 @@
 #include "build.hh"
 #include "segment.hh"
 #include "types.hh"
+#include "section_blob.hh"
 
 namespace MachO {
 
@@ -42,6 +43,23 @@ namespace MachO {
 
       for (LoadCommand<b> *cmd : load_commands) {
          cmd->Parse2(env);
+      }
+
+      /* remaining placeholder should go at end of sections */
+      for (Section<b> *section : sections()) {
+         auto placeholder_it = env.placeholders.begin();
+         while (placeholder_it != env.placeholders.end()) {
+            if (section->sect.addr + section->sect.size == placeholder_it->first) {
+               section->content.push_back(placeholder_it->second);
+               placeholder_it = env.placeholders.erase(placeholder_it);
+            } else {
+               ++placeholder_it;
+            }
+         }
+      }
+
+      if (!env.placeholders.empty()) {
+         throw std::logic_error("not all placeholders could be placed");
       }
 
       env.do_resolve();

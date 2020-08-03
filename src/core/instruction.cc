@@ -259,6 +259,9 @@ namespace MachO {
       if (imm && imm->pointee) {
          assert(bits == Bits::M32);
 
+         /* add dummy immediate */
+         env.template add<Immediate>(imm, nullptr);
+
          switch (xed_decoded_inst_get_iform_enum(&xedd)) {
          case XED_IFORM_PUSH_IMMz:
             {
@@ -275,9 +278,7 @@ namespace MachO {
                auto lea_inst = new Instruction<opposite<bits>>(opcode::lea_r11_mem_rip_disp32());
                lea_inst->memidx = 0; // TODO: is this right?
                env.resolve(imm->pointee, &lea_inst->memdisp);
-
                auto push_inst = new Instruction<opposite<bits>>(opcode::push_r11());
-
                return {lea_inst, push_inst};
             }
 
@@ -307,7 +308,6 @@ namespace MachO {
                auto jmp_inst = new Instruction<opposite<bits>>(opcode::jmp_mem_rip_disp32());
                jmp_inst->memidx = 0; // TODO: is this right?
                env.resolve(imm->pointee, &jmp_inst->memdisp);
-               
                return {jmp_inst};
             }
 
