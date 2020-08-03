@@ -2,6 +2,7 @@
 #include <typeinfo>
 
 #include "section_blob.hh"
+#include "segment.hh"
 #include "image.hh"
 #include "build.hh"
 #include "parse.hh"

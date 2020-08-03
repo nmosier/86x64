@@ -71,21 +71,7 @@ namespace MachO {
 
       Resolver(const std::string& name): name(name) {}
       
-      ~Resolver() {
-#if 1
-         if (!todo.empty()) {
-            std::cerr << "Resolver: " << name << std::endl;
-            for (auto todo_pair : todo) {
-               auto first = todo_pair.first;
-               for (auto second : todo_pair.second) {
-                  std::cerr << "  unresolved pair (" << std::hex << first << "," << second.first
-                     // << ") " << typeid(**second.first)
-                            << std::endl;
-               }
-            }
-         }
-#endif
-      }
+      ~Resolver();
 
       FoundMap found;
       TodoMap todo;

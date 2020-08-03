@@ -9,7 +9,7 @@
 namespace MachO {
 
    template <Bits bits>
-   class SectionBlob {
+   class SectionBlob: public Node {
    public:
       using Iterator = typename Section<bits>::Content::iterator;
       using SectionBlobs = std::list<SectionBlob<opposite<bits>> *>;

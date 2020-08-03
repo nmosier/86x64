@@ -29,6 +29,7 @@ add_library(core_objs
   opcodes.cc
   transform.cc
   stub_helper.cc
+  resolve.cc
   )
 add_dependencies(core_objs xed)
 

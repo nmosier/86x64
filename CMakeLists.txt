@@ -18,5 +18,6 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 
 add_subdirectory(extern)
 add_subdirectory(src)
+add_subdirectory(include)
 add_subdirectory(scripts)
 add_subdirectory(tests)

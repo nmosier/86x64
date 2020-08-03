@@ -1,7 +1,7 @@
 macro(create_test)
   foreach(TESTNAME ${ARGN})
     add_custom_command(OUTPUT ${TESTNAME}32
-      COMMAND cc -fno-stack-protector -fno-stack-check -c -m32 -o ${TESTNAME}32.c.o ${CMAKE_CURRENT_SOURCE_DIR}/${TESTNAME}.c
+      COMMAND cc -O1 -fno-stack-protector -fno-stack-check -c -m32 -o ${TESTNAME}32.c.o ${CMAKE_CURRENT_SOURCE_DIR}/${TESTNAME}.c
       COMMAND ld -lsystem -o ${TESTNAME}32 ${TESTNAME}32.c.o
       BYPRODUCTS ${TESTNAME}32.c.o
       DEPENDS ${TESTNAME}.c

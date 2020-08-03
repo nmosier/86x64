@@ -19,7 +19,7 @@ namespace MachO {
 #define SECT_SYMBOL_STUB "__symbol_stub"
    
    template <Bits bits>
-   class Section {
+   class Section: public Node {
    public:
       using Content = std::list<SectionBlob<bits> *>;
       using Relocations = std::list<RelocationInfo<bits> *>;

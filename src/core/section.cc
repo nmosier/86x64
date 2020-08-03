@@ -3,6 +3,7 @@
 #include <iterator>
 
 #include "section.hh"
+#include "segment.hh"
 #include "parse.hh"
 #include "build.hh"
 #include "transform.hh"

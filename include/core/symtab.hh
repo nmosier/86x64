@@ -10,7 +10,7 @@
 namespace MachO {
 
    template <Bits bits>
-   class String {
+   class String: public Node {
    public:
       std::string str;
       std::size_t offset; /*!< offset inside string table */
@@ -36,7 +36,7 @@ namespace MachO {
    };
 
    template <Bits bits>
-   class Nlist {
+   class Nlist: public Node {
    public:
       enum class Kind {LOCAL, EXT, UNDEF}; /*!< keep ordering! */
       enum class Type {UNDF = N_UNDF, ABS = N_ABS, SECT = N_SECT, PBUD = N_PBUD, INDR = N_INDR};

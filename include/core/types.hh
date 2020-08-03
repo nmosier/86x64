@@ -68,4 +68,9 @@ namespace MachO {
    template <Bits bits>
    constexpr std::size_t vmaddr_start = bits == Bits::M32 ? 0x1000 : 0x100000000;
 
+   class Node {
+   private:
+      virtual void dummy() const {}
+   };
+
 }

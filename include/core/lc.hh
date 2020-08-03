@@ -15,7 +15,7 @@
 namespace MachO {
 
    template <Bits bits>
-   class LoadCommand {
+   class LoadCommand: public Node {
    public:
       virtual uint32_t cmd() const = 0;
       virtual std::size_t size() const = 0;

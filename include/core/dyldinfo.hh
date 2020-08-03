@@ -52,7 +52,7 @@ namespace MachO {
    };
 
    template <Bits bits, bool lazy>
-   class BindNode {
+   class BindNode: public Node {
    public:
       using ptr_t = select_type<bits, uint32_t, uint64_t>;
       

@@ -22,8 +22,10 @@ namespace MachO {
       }
       template <template<Bits> typename T>
       void resolve(const T<b1> *key, const T<b2> **pointer) {
+         static_assert(std::is_base_of<Node, T<b1>>());
+         static_assert(std::is_base_of<Node, T<b2>>());
          if (key) {
-            resolver.resolve(key, (const void **) pointer);
+            resolver.resolve(key, (const Node **) pointer);
          } else {
             // fprintf(stderr, "warning: %s: not resolving null key\n", __FUNCTION__);
          }
@@ -37,7 +39,8 @@ namespace MachO {
       TransformEnv(): resolver("TransformEnv::resolver") {}
       
    private:
-      Resolver<const void *, void, false> resolver;
+      Resolver<const Node *, Node, false> resolver;
+      // Resolver<const void *, void, false> resolver;
    };
    
 }
