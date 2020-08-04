@@ -64,6 +64,13 @@ namespace MachO {
       /* jmp r64 */
       opcode_t jmp_r64(xed_reg_enum_t r64);
 
+      template <typename T>
+      void push_back_imm(opcode_t& opcode, T imm) {
+         static_assert(std::is_integral<T>());
+         for (unsigned i = 0; i < sizeof(T); ++i, imm >>= 8) {
+            opcode.push_back(imm & 0xff);
+         }
+      }
       
    }
 

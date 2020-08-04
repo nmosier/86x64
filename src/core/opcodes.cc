@@ -107,5 +107,5 @@ namespace MachO::opcode {
       const uint8_t byte = 0x18 | (r64 - XED_REG_RAX);
       return {0x44, 0x8b, byte};
    }
-   
+
 }

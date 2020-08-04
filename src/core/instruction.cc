@@ -35,6 +35,21 @@ namespace MachO {
          return {push1, push2, mov};
       }
 
+      typename SectionBlob<Bits::M32>::SectionBlobs push_imm(uint32_t imm) {
+         /* i386 | push imm32
+          * -----|-----------
+          * X86  | push ax
+          *      | push ax
+          *      | mov dword [rsp], imm
+          */
+         auto push1 = new Instruction<Bits::M64>(opcode::push_ax());
+         auto push2 = new Instruction<Bits::M64>(opcode::push_ax());
+         opcode_t mov_opcode = {0xc7, 0x04, 0x24};
+         opcode::push_back_imm<uint32_t>(mov_opcode, imm);
+         auto mov = new Instruction<Bits::M64>(mov_opcode);
+         return {push1, push2, mov};
+      }
+
       typename SectionBlob<Bits::M32>::SectionBlobs pop_r32(xed_reg_enum_t r32) {
          /* i386 | pop r32
           * -----|--------
@@ -321,9 +336,11 @@ namespace MachO {
 
       if constexpr (bits == Bits::M32) {
             const auto reg0 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG0);
+#if 0
             const auto reg1 = xed_decoded_inst_get_reg(&xedd, XED_OPERAND_REG1);
             const auto base_reg = xed_decoded_inst_get_base_reg(&xedd, 0);
             const auto index_reg = xed_decoded_inst_get_index_reg(&xedd, 0);
+#endif
             
             /* iform rules */
             switch (xed_decoded_inst_get_iform_enum(&xedd)) {
@@ -408,7 +425,10 @@ namespace MachO {
                   insts.splice(insts.end(), push_r32(XED_REG_R11D));
                   return insts;
                }
-                  
+
+            case XED_IFORM_PUSH_IMMb:
+            case XED_IFORM_PUSH_IMMz:
+               return push_imm(xed_decoded_inst_get_unsigned_immediate(&xedd));
                
             default: break;
             }
