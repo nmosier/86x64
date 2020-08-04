@@ -393,10 +393,6 @@ namespace MachO {
 
             case XED_IFORM_PUSH_MEMv:
                {
-                  assert(index_reg == XED_REG_INVALID);
-#if 0
-                  assert(xed_decoded_inst_get_memory_displacement(&xedd, 0) == 0);
-#endif
                   opcode_t mov_buf = instbuf;
                   uint8_t mov_byte = mov_buf.at(1);
                   mov_buf.front() = 0x8b;
@@ -412,6 +408,7 @@ namespace MachO {
                   insts.splice(insts.end(), push_r32(XED_REG_R11D));
                   return insts;
                }
+                  
                
             default: break;
             }
