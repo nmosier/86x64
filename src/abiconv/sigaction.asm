@@ -45,7 +45,7 @@ ___sigaction:
    mov edx, [rsp + 12]
    mov [rdi + 8], edx
 .l2:
-   add rsp, 16
+   lea rsp, [rbp - 0x10]
    
    pop rsi
    pop rdi
