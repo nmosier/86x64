@@ -26,7 +26,7 @@ int Rebasify::opthandler(int optchar) {
 void Rebasify::state_info::reset() {
    state = 0;
    vmaddr = 0;
-   reg = XED_REG_INVALID;
+   live_regs.clear();
    frame_index = -1;
 }
 
@@ -94,56 +94,68 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
    case 1: /* seen call */
       if (info.iform == XED_IFORM_POP_GPRv_58) {
          state.state = 2;
-         state.reg = xed_decoded_inst_get_reg(&inst->xedd, XED_OPERAND_REG0);
+         xed_reg_enum_t live_reg = xed_decoded_inst_get_reg(&inst->xedd, XED_OPERAND_REG0);
+         state.live_regs.insert(live_reg);
          state.vmaddr = inst->loc.vmaddr;
          if (verbose) {
             fprintf(stderr, "[REBASIFY] 0x%zx thunk assigned to register %s\n",
-                    inst->loc.vmaddr, xed_reg_enum_t2str(*state.reg));
+                    inst->loc.vmaddr, xed_reg_enum_t2str(live_reg));
          }
       }
       return 0;
 
    case 2:
-      if (state.reg && info.iclass == XED_ICLASS_CALL_NEAR) {
-         /* check if it's a preserved register */
-         switch (*state.reg) {
-         case XED_REG_EAX:
-         case XED_REG_ECX:
-         case XED_REG_EDX:
-            if (verbose) {
-               fprintf(stderr, "[REBASIFY] 0x%zx register %s destroyed by call\n",
-                       inst->loc.vmaddr, xed_reg_enum_t2str(*state.reg));
+      if (info.iclass == XED_ICLASS_CALL_NEAR) {
+         for (auto live_reg_it = state.live_regs.begin(); live_reg_it != state.live_regs.end(); ) {
+            /* check if it's a preserved register */
+            switch (*live_reg_it) {
+            case XED_REG_EAX:
+            case XED_REG_ECX:
+            case XED_REG_EDX:
+               if (verbose) {
+                  fprintf(stderr, "[REBASIFY] 0x%zx register %s destroyed by call\n",
+                          inst->loc.vmaddr, xed_reg_enum_t2str(*live_reg_it));
+               }
+               live_reg_it = state.live_regs.erase(live_reg_it);
+               break;
+            case XED_REG_EBX:
+            case XED_REG_EDI:
+            case XED_REG_ESI:
+               ++live_reg_it;
+               break;
+            default: abort();
             }
-            state.reg = std::nullopt;
-            break;
-         case XED_REG_EBX:
-         case XED_REG_EDI:
-         case XED_REG_ESI:
-            break;
-         default: abort();
-         }
-      } else if (state.reg) {
-         if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
-             info.reg0 == state.reg && info.base_reg == XED_REG_EBP) {
-            /* frame store */
-            state.frame_index = info.memdisp;
-            if (verbose) {
-               fprintf(stderr, "[REBASIFY] 0x%zx frame store from %s to index %d\n",
-                       inst->loc.vmaddr, xed_reg_enum_t2str(*state.reg), *state.frame_index);
-            }
-         } else {
-            handle_inst_thunk(inst, state, info);
          }
       } else {
-         if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
-             info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
-            state.reg = info.reg0;
-
-            if (verbose) {
-               fprintf(stderr, "[REBASIFY] 0x%zx frame load from index %d to %s\n",
-                       inst->loc.vmaddr, *state.frame_index, xed_reg_enum_t2str(*state.reg));
+         /* look for frame store */
+         if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
+             info.base_reg == XED_REG_EBP) {
+            for (xed_reg_enum_t live_reg : state.live_regs) {
+               if (live_reg == info.reg0) {
+                  /* frame store */
+                  state.frame_index = info.memdisp;
+                  if (verbose) {
+                     fprintf(stderr, "[REBASIFY] 0x%zx frame store from %s to index %d\n",
+                             inst->loc.vmaddr, xed_reg_enum_t2str(live_reg), *state.frame_index);
+                  }
+                  return 0;
+               }
             }
          }
+
+         /* look for frame load */
+         if ((info.iform == XED_IFORM_MOV_GPRv_MEMv || info.iform == XED_IFORM_MOV_OrAX_MEMv) &&
+             info.base_reg == XED_REG_EBP && info.memdisp == state.frame_index) {
+            state.live_regs.insert(info.reg0);
+            if (verbose) {
+               fprintf(stderr, "[REBASIFY] 0x%zx frame load from index %d to %s\n",
+                       inst->loc.vmaddr, *state.frame_index, xed_reg_enum_t2str(info.reg0));
+            }
+            return 0;
+         }
+
+         /* otherwise handle inst thunk */
+         handle_inst_thunk(inst, state, info);
       }
       return 0;
 
@@ -164,18 +176,20 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    default:
       {
          std::size_t target = state.vmaddr;
-         if (info.base_reg == state.reg) {
+         if (state.live_regs.find(info.base_reg) != state.live_regs.end()) {
             target += info.memdisp;
          }
-                  
-         if (info.base_reg == state.reg || info.reg1 == state.reg) {
+
+         typename state_info::LiveRegs::iterator live_reg_it;
+         if ((live_reg_it = state.live_regs.find(info.base_reg)) != state.live_regs.end() ||
+             (live_reg_it = state.live_regs.find(info.reg1))     != state.live_regs.end()) {
             if (verbose) {
                fprintf(stderr, "[REBASIFY] 0x%zx ref dst=0x%zx\n", inst->loc.vmaddr,
                        target);
             }
             
             auto mov_inst = new MachO::Instruction<MachO::Bits::M32>
-               (MachO::opcode::mov_r32_imm32(*state.reg));
+               (MachO::opcode::mov_r32_imm32(*live_reg_it));
             auto mov_inst_imm = MachO::Immediate<MachO::Bits::M32>::Create(target);
             mov_inst->segment = mov_inst_imm->segment = state.segment;
             mov_inst->section = mov_inst_imm->section = state.section;
@@ -193,7 +207,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
             state.section->content.insert(info.text_it, mov_inst);
                      
             /* adjust displacement if necessary */
-            if (info.base_reg == state.reg) {
+            if (info.base_reg == *live_reg_it) {
                const unsigned dispbits =
                   xed_decoded_inst_get_memory_displacement_width_bits(&inst->xedd, 0);
                if (dispbits != 0) {
@@ -222,15 +236,16 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    }
 
    /* check if eax is destroyed */
-   if (info.reg0 == state.reg) {
+   typename state_info::LiveRegs::iterator live_reg_it;
+   if ((live_reg_it = state.live_regs.find(info.reg0)) != state.live_regs.end()) {
       switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
       case XED_ICLASS_MOV:
       case XED_ICLASS_LEA:
          if (verbose) {
             fprintf(stderr, "[REBASIFY] 0x%zx register %s destroyed by instruction\n",
-                    inst->loc.vmaddr, xed_reg_enum_t2str(*state.reg));
+                    inst->loc.vmaddr, xed_reg_enum_t2str(*live_reg_it));
          }
-         state.reg = std::nullopt;
+         state.live_regs.erase(live_reg_it);
          return 0;
 
       default:

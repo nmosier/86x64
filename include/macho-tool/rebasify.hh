@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 extern "C" {
 #include <xed/xed-interface.h>
 }
@@ -16,7 +17,12 @@ struct Rebasify: InOutCommand {
        */
       int state;
       std::size_t vmaddr;
+#if 0
       std::optional<xed_reg_enum_t> reg;
+#else
+      using LiveRegs = std::unordered_set<xed_reg_enum_t>;
+      LiveRegs live_regs;
+#endif
       std::optional<int> frame_index;
 
       MachO::Archive<MachO::Bits::M32> *archive = nullptr;
