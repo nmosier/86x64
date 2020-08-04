@@ -14,3 +14,5 @@ _getipv4sourcefilter
 
 _sigaction
 _waitid
+
+_execvp

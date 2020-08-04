@@ -49,6 +49,15 @@ endmacro()
 create_custom_conv(getopt.asm)
 create_custom_conv(sigaction.asm)
 
+macro(create_custom_conv_template SOURCE)
+  foreach(SYMBOL ${ARGN})
+    add_library(custom_conv_${SYMBOL} OBJECT ${SOURCE})
+    target_compile_options(custom_conv_${SYMBOL} PRIVATE "-DSYMBOL=${SYMBOL}")
+  endforeach()
+endmacro()
+
+create_custom_conv_template(exec.asm execvp)
+
 add_library(abiconv SHARED
   abiconv.asm
   $<TARGET_OBJECTS:vararg_conv_printf>
@@ -60,6 +69,7 @@ add_library(abiconv SHARED
   $<TARGET_OBJECTS:vararg_conv___sprintf_chk>
   $<TARGET_OBJECTS:custom_conv_getopt>
   $<TARGET_OBJECTS:custom_conv_sigaction>
+  $<TARGET_OBJECTS:custom_conv_execvp>
   printf-conv.cc
   dyld_stub_binder.asm
   )
