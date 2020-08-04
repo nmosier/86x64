@@ -23,7 +23,7 @@ ___%+SYMBOL:
    ;; sizeof(rdi, rsi, rdx, rcx, r8, r9) == 8 * 6 = 42, 16-byte aligned
 
    and rsp, ~0xf
-   sub rsp, ARGS64_COUNT
+   sub rsp, ARGS64_COUNT * 4
    mov rdx, rsp                 ; reg_width_t argtypes[]
    sub rsp, ARGS64_SIZE
    mov rsi, rsp                 ; void *args64
