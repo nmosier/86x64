@@ -29,7 +29,7 @@ void format_mode(mode_t mode, char *sbuf);
 int main(int argc, char *argv[]) {
    /* myls options */
    bool list_all, list_long, list_usage;
-   list_all = list_long = false;
+   list_usage = list_all = list_long = false;
    
    /* get command-line options */
    const char *options = "alh";
