@@ -428,7 +428,11 @@ namespace MachO {
 
             case XED_IFORM_PUSH_IMMb:
             case XED_IFORM_PUSH_IMMz:
-               return push_imm(xed_decoded_inst_get_unsigned_immediate(&xedd));
+               if (xed_decoded_inst_get_immediate_is_signed(&xedd)) {
+                  return push_imm(xed_decoded_inst_get_signed_immediate(&xedd));
+               } else {
+                  return push_imm(xed_decoded_inst_get_unsigned_immediate(&xedd));
+               }
                
             default: break;
             }

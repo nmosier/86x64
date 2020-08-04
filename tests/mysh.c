@@ -365,7 +365,7 @@ char *cmd_parse_redirect(char *cmd_arg, cmd_t *cmd) {
       return NULL;
    }
    cmd->flags |= redirect_flag;
-
+   
    return cmd_arg + strlen(cmd_arg) + 1;
 }
 
@@ -409,8 +409,6 @@ cmd_t *cmd_parse(char *cmd_str) {
       }
    }
    if (cmd_argc < 1) {
-      // while (1) {}
-      
       /* command must consist of at least one argument */
       fprintf(stderr, "mysh: not enough arguments.\n");
       return NULL;
