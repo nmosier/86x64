@@ -1,6 +1,7 @@
 #include <sstream>
 #include <string>
 #include <iterator>
+#include <unordered_set>
 
 #include "section.hh"
 #include "segment.hh"
@@ -140,6 +141,8 @@ namespace MachO {
       env.add(&other, this);
       env(other.sect, sect);
       env.resolve(other.segment, &segment);
+
+      /* transform content */
       for (const auto elem : other.content) {
          auto new_blobs = elem->Transform(env);
          if (!new_blobs.empty()) {
@@ -147,6 +150,20 @@ namespace MachO {
          }
          content.splice(content.end(), new_blobs);
       }
+
+      /* update alignment */
+      const std::unordered_set<std::string> wordsize_align =
+         {SECT_BSS, SECT_DATA, SECT_CONST};
+      if (wordsize_align.find(name()) != wordsize_align.end()) {
+         switch (bits) {
+         case Bits::M32:
+            sect.align = 2;
+            break;
+         case Bits::M64:
+            sect.align = 3;
+         }
+      }
+      
    }
 
    template <Bits bits>
