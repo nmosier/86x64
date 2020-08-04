@@ -154,6 +154,17 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
             return 0;
          }
 
+         /* look for alias */
+         if (info.iform == XED_IFORM_MOV_GPRv_GPRv_89 &&
+             state.live_regs.find(info.reg1) != state.live_regs.end()) {
+            state.live_regs.insert(info.reg0);
+            if (verbose) {
+               fprintf(stderr, "[REBASIFY] 0x%zx alias %s\n", inst->loc.vmaddr,
+                       xed_reg_enum_t2str(info.reg0));
+            }
+            return 0;
+         }
+
          /* otherwise handle inst thunk */
          handle_inst_thunk(inst, state, info);
       }
