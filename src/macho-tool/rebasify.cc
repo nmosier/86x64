@@ -26,7 +26,7 @@ int Rebasify::opthandler(int optchar) {
 void Rebasify::state_info::reset() {
    state = 0;
    vmaddr = 0;
-   reg = XED_REG_EAX;
+   reg = XED_REG_INVALID;
    frame_index = -1;
 }
 
@@ -92,9 +92,9 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
       return 0;
       
    case 1: /* seen call */
-      if (inst->instbuf == pop) {
+      if (info.iform == XED_IFORM_POP_GPRv_58) {
          state.state = 2;
-         state.reg = XED_REG_EAX;
+         state.reg = xed_decoded_inst_get_reg(&inst->xedd, XED_OPERAND_REG0);
          state.vmaddr = inst->loc.vmaddr;
       }
       return 0;
