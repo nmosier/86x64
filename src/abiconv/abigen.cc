@@ -242,8 +242,9 @@ struct ABIConversion {
       /* convert from x86_64 to i386 */
       os << from_ss.str();
 
-      emit_inst(os, "add", "rsp", stack_data_size() + stack_args_size());
-
+      // emit_inst(os, "add", "rsp", stack_data_size() + stack_args_size());
+      emit_inst(os, "lea", "rsp", "[rbp - 0x10]");
+      
       /* cleanup */
       emit_inst(os, "pop", "rsi");
       emit_inst(os, "pop", "rdi");
