@@ -101,10 +101,20 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 
    case 2:
       if (info.iclass == XED_ICLASS_CALL_NEAR) {
-         state.reg = std::nullopt;
-         return 0;
-      }
-      if (state.reg) {
+         /* check if it's a preserved register */
+         switch (*state.reg) {
+         case XED_REG_EAX:
+         case XED_REG_ECX:
+         case XED_REG_EDX:
+            state.reg = std::nullopt;
+            break;
+         case XED_REG_EBX:
+         case XED_REG_EDI:
+         case XED_REG_ESI:
+            break;
+         default: abort();
+         }
+      } else if (state.reg) {
          if ((info.iform == XED_IFORM_MOV_MEMv_OrAX || info.iform == XED_IFORM_MOV_MEMv_GPRv) &&
              info.reg0 == state.reg && info.base_reg == XED_REG_EBP) {
             /* frame store */
