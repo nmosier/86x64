@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <assert.h>
 
 #define DEBUG 1
 
@@ -387,6 +388,7 @@ cmd_t *cmd_parse(char *cmd_str) {
    prev_IO_tok = 0;
    for (cmd_arg = strtok(cmd_str, WHITESPACE); cmd_arg; cmd_arg = strtok(NULL, WHITESPACE)) {
       cmd_arg = skip_chars(cmd_arg, WHITESPACE);
+      assert(cmd_arg);
       if (strcmp(IO_OP_IN, cmd_arg) && strcmp(IO_OP_OUT, cmd_arg) && strcmp(IO_OP_APP, cmd_arg)) {
          /* token is not IO operator */
          if (prev_IO_tok) {
@@ -407,6 +409,8 @@ cmd_t *cmd_parse(char *cmd_str) {
       }
    }
    if (cmd_argc < 1) {
+      // while (1) {}
+      
       /* command must consist of at least one argument */
       fprintf(stderr, "mysh: not enough arguments.\n");
       return NULL;

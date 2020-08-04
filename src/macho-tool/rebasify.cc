@@ -227,8 +227,8 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
       case XED_ICLASS_MOV:
       case XED_ICLASS_LEA:
          if (verbose) {
-            fprintf(stderr, "[REBASIFY] register %s destroyed by instruction\n",
-                    xed_reg_enum_t2str(*state.reg));
+            fprintf(stderr, "[REBASIFY] 0x%zx register %s destroyed by instruction\n",
+                    inst->loc.vmaddr, xed_reg_enum_t2str(*state.reg));
          }
          state.reg = std::nullopt;
          return 0;
