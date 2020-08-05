@@ -17,20 +17,18 @@ struct Rebasify: InOutCommand {
        */
       int state;
       std::size_t vmaddr;
-#if 0
-      std::optional<xed_reg_enum_t> reg;
-#else
       using LiveRegs = std::unordered_set<xed_reg_enum_t>;
       LiveRegs live_regs;
-#endif
       std::optional<int> frame_index;
 
       MachO::Archive<MachO::Bits::M32> *archive = nullptr;
       MachO::Segment<MachO::Bits::M32> *segment = nullptr;
       MachO::Section<MachO::Bits::M32> *section = nullptr;
+      typename MachO::Section<MachO::Bits::M32>::Content::iterator text_it;
       
       void reset();
       state_info(MachO::Archive<MachO::Bits::M32> *archive);
+      state_info(const state_info& other, const MachO::SectionBlob<MachO::Bits::M32> *target);
    };
 
    struct decode_info {
@@ -58,7 +56,8 @@ struct Rebasify: InOutCommand {
    virtual std::string optusage() const override { return "[-hv]"; }
    virtual int work() override;
    Rebasify(): InOutCommand("rebasify") {}
-   
+
+   void handle_insts(MachO::Archive<MachO::Bits::M32> *archive) const;
    int handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
                    const decode_info& info) const;
    int handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,

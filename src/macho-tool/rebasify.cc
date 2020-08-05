@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 
 #include "rebasify.hh"
 #include "core/macho.hh"
@@ -27,7 +28,8 @@ void Rebasify::state_info::reset() {
    state = 0;
    vmaddr = 0;
    live_regs.clear();
-   frame_index = -1;
+   frame_index = std::nullopt;
+   // text_it = section->content.begin();
 }
 
 int Rebasify::work() {
@@ -51,6 +53,7 @@ int Rebasify::work() {
       return -1;
    }
 
+   #if 0
    state_info state(archive32);
    for (auto text_it = state.section->content.begin(); text_it != state.section->content.end();
         ++text_it) {
@@ -60,6 +63,9 @@ int Rebasify::work() {
          if (handle_inst(text_inst, state, info) < 0) { return -1; }
       }
    }
+   #else
+   handle_insts(archive32);
+   #endif
       
    archive32->Build(0);
    archive32->Emit(*out_img);
@@ -77,12 +83,95 @@ Rebasify::decode_info::decode_info(const xed_decoded_inst_t& xedd,
    base_reg(xed_decoded_inst_get_base_reg(&xedd, 0)),
    memdisp(xed_decoded_inst_get_memory_displacement(&xedd, 0)) {}
 
+void Rebasify::handle_insts(MachO::Archive<MachO::Bits::M32> *archive) const {
+   std::list<state_info> states;
+   std::unordered_set<size_t> visited_vmaddrs;
+
+   /* initial state */
+   states.emplace_front(archive);
+
+   while (!states.empty()) {
+      state_info state = states.front();
+      states.pop_front();
+
+      /* check if state has already been visited or has reached end of section */
+      if (state.text_it == state.section->content.end() ||
+          visited_vmaddrs.find((**state.text_it).loc.vmaddr) != visited_vmaddrs.end()) {
+         continue;
+      }
+
+      if (verbose) {
+         fprintf(stderr, "[REBASIFY] 0x%zx\n", (**state.text_it).loc.vmaddr);
+      }
+
+      MachO::Instruction<MachO::Bits::M32> *inst =
+         dynamic_cast<MachO::Instruction<MachO::Bits::M32> *>(*state.text_it);
+      
+      if (inst) {
+         /* add to visited list */
+         visited_vmaddrs.insert(inst->loc.vmaddr);
+         
+         decode_info decode(inst->xedd, state.text_it);
+         
+         
+         switch (decode.iclass) {
+         case XED_ICLASS_JB: 
+         case XED_ICLASS_JBE: 
+         case XED_ICLASS_JL: 
+         case XED_ICLASS_JLE: 
+         case XED_ICLASS_JNB: 
+         case XED_ICLASS_JNBE: 
+         case XED_ICLASS_JNL: 
+         case XED_ICLASS_JNLE: 
+         case XED_ICLASS_JNO: 
+         case XED_ICLASS_JNP: 
+         case XED_ICLASS_JNS: 
+         case XED_ICLASS_JNZ: 
+         case XED_ICLASS_JO: 
+         case XED_ICLASS_JP: 
+         case XED_ICLASS_JS: 
+         case XED_ICLASS_JZ:
+            /* split into two states */
+            states.emplace_front(state, inst->brdisp);
+            ++state.text_it;
+            break;
+
+         case XED_ICLASS_JMP:
+            {
+               /* add next instruction to be processed last in case it's not reachable thru static
+                * analysis */
+               state_info state2 = state;
+               ++state2.text_it;
+               states.push_back(state2);
+
+               /* move state */
+               state = state_info(state, inst->brdisp);
+            }
+            break;
+
+         default:
+            handle_inst(inst, state, decode);
+            ++state.text_it;
+            break;
+         }
+
+      } else {
+         ++state.text_it;
+      }
+
+      states.push_front(state);
+   }
+}
+
 int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
                            const decode_info& info) const {
    const MachO::opcode_t call_0({0xe8, 0x00, 0x00, 0x00, 0x00});
-   const MachO::opcode_t pop({0x58});
+   // const MachO::opcode_t pop({0x58});
 
    if (inst->instbuf == call_0) {
+      if (verbose) {
+         fprintf(stderr, "[REBASIFY] 0x%zx call 0x0\n", inst->loc.vmaddr);
+      }
       state.state = 1;
       return 0;
    }
@@ -175,14 +264,28 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
 }
 
 int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, state_info& state,
-                                 const decode_info& info) const {   
+                                 const decode_info& info) const {
+   /* custom rules with duplicate operands  */
+   for (auto live_reg_it = state.live_regs.begin(); live_reg_it != state.live_regs.end();
+        ++live_reg_it) {
+      if (info.reg0 == *live_reg_it && info.reg1 == *live_reg_it) {
+         switch (info.iclass) {
+         case XED_ICLASS_XOR:
+            state.live_regs.erase(live_reg_it);
+            return 0;
+            
+         default:
+            break;
+         }
+      }
+   }
+   
    /* check if reads from or writes to eax */
    switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
    case XED_ICLASS_RET_NEAR:
    case XED_ICLASS_RET_FAR:
       state.reset();
-      state.state = 0;
-      break;
+      return 0;
 
    default:
       {
@@ -251,6 +354,7 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
    if ((live_reg_it = state.live_regs.find(info.reg0)) != state.live_regs.end()) {
       switch (xed_decoded_inst_get_iclass(&inst->xedd)) {
       case XED_ICLASS_MOV:
+      case XED_ICLASS_XOR:
       case XED_ICLASS_LEA:
          if (verbose) {
             fprintf(stderr, "[REBASIFY] 0x%zx register %s destroyed by instruction\n",
@@ -268,6 +372,23 @@ int Rebasify::handle_inst_thunk(MachO::Instruction<MachO::Bits::M32> *inst, stat
 }
 
 Rebasify::state_info::state_info(MachO::Archive<MachO::Bits::M32> *archive):
-   archive(archive), segment(archive->segment(SEG_TEXT)), section(archive->section(SECT_TEXT)) {
+   archive(archive), segment(archive->segment(SEG_TEXT)), section(archive->section(SECT_TEXT)),
+   text_it(section->content.begin())
+{
    reset();
+}
+
+Rebasify::state_info::state_info(const state_info& other,
+                                 const MachO::SectionBlob<MachO::Bits::M32> *target):
+   state(other.state), vmaddr(other.vmaddr), live_regs(other.live_regs),
+   frame_index(other.frame_index), archive(other.archive), segment(other.segment),
+   section(other.section),
+   text_it(std::find(section->content.begin(), section->content.end(), target))
+{
+#if 0
+   // actually, it's ok if it's out of range
+   if (text_it == section->content.end()) {
+      throw std::invalid_argument("bad target blob");
+   }
+#endif
 }
