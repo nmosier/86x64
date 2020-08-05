@@ -36,18 +36,9 @@ TEST_NAME="$(basename "$1")"
 SCRIPT_NAME="$ROOT_DIR/$TEST_NAME.sh"
 ARGS_NAME="$ROOT_DIR/$TEST_NAME.args"
 
-if ! [ -x "${1}32" ] || ! [ -x "${1}64" ]; then
-    echo "file not found" >&2
-    exit 1
-fi
-
-tmp1=$(mktemp)
-tmp2=$(mktemp)
-trap "rm -rf $tmp1 $tmp2" EXIT
-
 run_cmd() {
-    DIR="$(dirname ${1}64)"
-    TESTPATH="${1}64"
+    DIR="$(dirname ${1})"
+    TESTPATH="${1}"
     shift 1
     sudo chroot / sh <<EOF
 cd "$DIR"
@@ -55,18 +46,28 @@ cd "$DIR"
 EOF
 }
 
-# if ! "${1}32" > "$tmp1" || ! sudo chroot / sh -c "cd \"$(dirname "${1}64")\"; \"${1}64\"" > "$tmp2"; then
-#     exit 1
-# fi
 
-([ -e "$ARGS_NAME" ] && cat "$ARGS_NAME" || echo) | while read ARGS; do
-    if ! "${1}32" $ARGS > "$tmp1" || ! run_cmd "$1" $ARGS; then
+for OPTIM in O0 O1 O2 O3; do
+    if ! [ -x "${1}-${OPTIM}-32" ] || ! [ -x "${1}-${OPTIM}-64" ]; then
+        echo "file not found for ${OPTIM}" >&2
         exit 1
     fi
     
-    if [ -e "$SCRIPT_NAME" ]; then
-        diff <("$SCRIPT_NAME" "$1") "$tmp2"
-    else
-        diff "$tmp1" "$tmp2"
-    fi || exit 1
+    tmp1=$(mktemp)
+    tmp2=$(mktemp)
+    trap "rm -rf $tmp1 $tmp2" EXIT
+    
+
+    ([ -e "$ARGS_NAME" ] && cat "$ARGS_NAME" || echo) | while read ARGS; do
+        if ! "${1}-${OPTIM}-32" $ARGS > "$tmp1" || ! run_cmd "${1}-${OPTIM}-64" $ARGS; then
+            exit 1
+        fi
+        
+        if [ -e "$SCRIPT_NAME" ]; then
+            diff <("$SCRIPT_NAME" "${1}-${OPTIM}-64") "$tmp2"
+        else
+            diff "$tmp1" "$tmp2"
+        fi || exit 1
+    done
+
 done

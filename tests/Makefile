@@ -112,28 +112,6 @@ install/fast: preinstall/fast
 	/usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
-# Special rule for the target test
-test:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/usr/local/Cellar/cmake/3.17.3/bin/ctest --force-new-ctest-process $(ARGS)
-.PHONY : test
-
-# Special rule for the target test
-test/fast: test
-
-.PHONY : test/fast
-
-# Special rule for the target rebuild_cache
-rebuild_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/local/Cellar/cmake/3.17.3/bin/cmake --regenerate-during-build -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
-.PHONY : rebuild_cache
-
-# Special rule for the target rebuild_cache
-rebuild_cache/fast: rebuild_cache
-
-.PHONY : rebuild_cache/fast
-
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
@@ -154,6 +132,28 @@ list_install_components:
 list_install_components/fast: list_install_components
 
 .PHONY : list_install_components/fast
+
+# Special rule for the target rebuild_cache
+rebuild_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
+	/usr/local/Cellar/cmake/3.17.3/bin/cmake --regenerate-during-build -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : rebuild_cache
+
+# Special rule for the target rebuild_cache
+rebuild_cache/fast: rebuild_cache
+
+.PHONY : rebuild_cache/fast
+
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
+	/usr/local/Cellar/cmake/3.17.3/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+
+.PHONY : test/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -188,304 +188,1204 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-tests/CMakeFiles/mysh64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/mysh64_tgt.dir/rule
+tests/CMakeFiles/mysh-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
 
 # Convenience name for target.
-mysh64_tgt: tests/CMakeFiles/mysh64_tgt.dir/rule
+mysh-O2-32_tgt: tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
 
-.PHONY : mysh64_tgt
+.PHONY : mysh-O2-32_tgt
 
 # fast build rule for target.
-mysh64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh64_tgt.dir/build.make tests/CMakeFiles/mysh64_tgt.dir/build
-.PHONY : mysh64_tgt/fast
+mysh-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O2-32_tgt.dir/build.make tests/CMakeFiles/mysh-O2-32_tgt.dir/build
+.PHONY : mysh-O2-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/in_addr32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/in_addr32_tgt.dir/rule
+tests/CMakeFiles/mysh-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O3-32_tgt.dir/rule
 
 # Convenience name for target.
-in_addr32_tgt: tests/CMakeFiles/in_addr32_tgt.dir/rule
+mysh-O3-32_tgt: tests/CMakeFiles/mysh-O3-32_tgt.dir/rule
 
-.PHONY : in_addr32_tgt
+.PHONY : mysh-O3-32_tgt
 
 # fast build rule for target.
-in_addr32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr32_tgt.dir/build.make tests/CMakeFiles/in_addr32_tgt.dir/build
-.PHONY : in_addr32_tgt/fast
+mysh-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O3-32_tgt.dir/build.make tests/CMakeFiles/mysh-O3-32_tgt.dir/build
+.PHONY : mysh-O3-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/myls64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/myls64_tgt.dir/rule
+tests/CMakeFiles/mysh-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O1-64_tgt.dir/rule
 
 # Convenience name for target.
-myls64_tgt: tests/CMakeFiles/myls64_tgt.dir/rule
+mysh-O1-64_tgt: tests/CMakeFiles/mysh-O1-64_tgt.dir/rule
 
-.PHONY : myls64_tgt
+.PHONY : mysh-O1-64_tgt
 
 # fast build rule for target.
-myls64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls64_tgt.dir/build.make tests/CMakeFiles/myls64_tgt.dir/build
-.PHONY : myls64_tgt/fast
+mysh-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O1-64_tgt.dir/build.make tests/CMakeFiles/mysh-O1-64_tgt.dir/build
+.PHONY : mysh-O1-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/fprintf32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/fprintf32_tgt.dir/rule
+tests/CMakeFiles/mysh-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O0-32_tgt.dir/rule
 
 # Convenience name for target.
-fprintf32_tgt: tests/CMakeFiles/fprintf32_tgt.dir/rule
+mysh-O0-32_tgt: tests/CMakeFiles/mysh-O0-32_tgt.dir/rule
 
-.PHONY : fprintf32_tgt
+.PHONY : mysh-O0-32_tgt
 
 # fast build rule for target.
-fprintf32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf32_tgt.dir/build.make tests/CMakeFiles/fprintf32_tgt.dir/build
-.PHONY : fprintf32_tgt/fast
+mysh-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O0-32_tgt.dir/build.make tests/CMakeFiles/mysh-O0-32_tgt.dir/build
+.PHONY : mysh-O0-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/in_addr64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/in_addr64_tgt.dir/rule
+tests/CMakeFiles/in_addr-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O3-64_tgt.dir/rule
 
 # Convenience name for target.
-in_addr64_tgt: tests/CMakeFiles/in_addr64_tgt.dir/rule
+in_addr-O3-64_tgt: tests/CMakeFiles/in_addr-O3-64_tgt.dir/rule
 
-.PHONY : in_addr64_tgt
+.PHONY : in_addr-O3-64_tgt
 
 # fast build rule for target.
-in_addr64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr64_tgt.dir/build.make tests/CMakeFiles/in_addr64_tgt.dir/build
-.PHONY : in_addr64_tgt/fast
+in_addr-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O3-64_tgt.dir/build.make tests/CMakeFiles/in_addr-O3-64_tgt.dir/build
+.PHONY : in_addr-O3-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/myls32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/myls32_tgt.dir/rule
+tests/CMakeFiles/mysh-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O1-32_tgt.dir/rule
 
 # Convenience name for target.
-myls32_tgt: tests/CMakeFiles/myls32_tgt.dir/rule
+mysh-O1-32_tgt: tests/CMakeFiles/mysh-O1-32_tgt.dir/rule
 
-.PHONY : myls32_tgt
+.PHONY : mysh-O1-32_tgt
 
 # fast build rule for target.
-myls32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls32_tgt.dir/build.make tests/CMakeFiles/myls32_tgt.dir/build
-.PHONY : myls32_tgt/fast
+mysh-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O1-32_tgt.dir/build.make tests/CMakeFiles/mysh-O1-32_tgt.dir/build
+.PHONY : mysh-O1-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/fprintf64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/fprintf64_tgt.dir/rule
+tests/CMakeFiles/in_addr-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O0-32_tgt.dir/rule
 
 # Convenience name for target.
-fprintf64_tgt: tests/CMakeFiles/fprintf64_tgt.dir/rule
+in_addr-O0-32_tgt: tests/CMakeFiles/in_addr-O0-32_tgt.dir/rule
 
-.PHONY : fprintf64_tgt
+.PHONY : in_addr-O0-32_tgt
 
 # fast build rule for target.
-fprintf64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf64_tgt.dir/build.make tests/CMakeFiles/fprintf64_tgt.dir/build
-.PHONY : fprintf64_tgt/fast
+in_addr-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O0-32_tgt.dir/build.make tests/CMakeFiles/in_addr-O0-32_tgt.dir/build
+.PHONY : in_addr-O0-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/sprintf64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/sprintf64_tgt.dir/rule
+tests/CMakeFiles/myls-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O3-32_tgt.dir/rule
 
 # Convenience name for target.
-sprintf64_tgt: tests/CMakeFiles/sprintf64_tgt.dir/rule
+myls-O3-32_tgt: tests/CMakeFiles/myls-O3-32_tgt.dir/rule
 
-.PHONY : sprintf64_tgt
+.PHONY : myls-O3-32_tgt
 
 # fast build rule for target.
-sprintf64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf64_tgt.dir/build.make tests/CMakeFiles/sprintf64_tgt.dir/build
-.PHONY : sprintf64_tgt/fast
+myls-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O3-32_tgt.dir/build.make tests/CMakeFiles/myls-O3-32_tgt.dir/build
+.PHONY : myls-O3-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/sum32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/sum32_tgt.dir/rule
+tests/CMakeFiles/myls-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O2-64_tgt.dir/rule
 
 # Convenience name for target.
-sum32_tgt: tests/CMakeFiles/sum32_tgt.dir/rule
+myls-O2-64_tgt: tests/CMakeFiles/myls-O2-64_tgt.dir/rule
 
-.PHONY : sum32_tgt
+.PHONY : myls-O2-64_tgt
 
 # fast build rule for target.
-sum32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum32_tgt.dir/build.make tests/CMakeFiles/sum32_tgt.dir/build
-.PHONY : sum32_tgt/fast
+myls-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O2-64_tgt.dir/build.make tests/CMakeFiles/myls-O2-64_tgt.dir/build
+.PHONY : myls-O2-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/sprintf32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/sprintf32_tgt.dir/rule
+tests/CMakeFiles/myls-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O2-32_tgt.dir/rule
 
 # Convenience name for target.
-sprintf32_tgt: tests/CMakeFiles/sprintf32_tgt.dir/rule
+myls-O2-32_tgt: tests/CMakeFiles/myls-O2-32_tgt.dir/rule
 
-.PHONY : sprintf32_tgt
+.PHONY : myls-O2-32_tgt
 
 # fast build rule for target.
-sprintf32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf32_tgt.dir/build.make tests/CMakeFiles/sprintf32_tgt.dir/build
-.PHONY : sprintf32_tgt/fast
+myls-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O2-32_tgt.dir/build.make tests/CMakeFiles/myls-O2-32_tgt.dir/build
+.PHONY : myls-O2-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/sum64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/sum64_tgt.dir/rule
+tests/CMakeFiles/myls-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O1-32_tgt.dir/rule
 
 # Convenience name for target.
-sum64_tgt: tests/CMakeFiles/sum64_tgt.dir/rule
+myls-O1-32_tgt: tests/CMakeFiles/myls-O1-32_tgt.dir/rule
 
-.PHONY : sum64_tgt
+.PHONY : myls-O1-32_tgt
 
 # fast build rule for target.
-sum64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum64_tgt.dir/build.make tests/CMakeFiles/sum64_tgt.dir/build
-.PHONY : sum64_tgt/fast
+myls-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O1-32_tgt.dir/build.make tests/CMakeFiles/myls-O1-32_tgt.dir/build
+.PHONY : myls-O1-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/exit32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/exit32_tgt.dir/rule
+tests/CMakeFiles/fprintf-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O3-32_tgt.dir/rule
 
 # Convenience name for target.
-exit32_tgt: tests/CMakeFiles/exit32_tgt.dir/rule
+fprintf-O3-32_tgt: tests/CMakeFiles/fprintf-O3-32_tgt.dir/rule
 
-.PHONY : exit32_tgt
+.PHONY : fprintf-O3-32_tgt
 
 # fast build rule for target.
-exit32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit32_tgt.dir/build.make tests/CMakeFiles/exit32_tgt.dir/build
-.PHONY : exit32_tgt/fast
+fprintf-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O3-32_tgt.dir/build.make tests/CMakeFiles/fprintf-O3-32_tgt.dir/build
+.PHONY : fprintf-O3-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/printf64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/printf64_tgt.dir/rule
+tests/CMakeFiles/fprintf-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O2-64_tgt.dir/rule
 
 # Convenience name for target.
-printf64_tgt: tests/CMakeFiles/printf64_tgt.dir/rule
+fprintf-O2-64_tgt: tests/CMakeFiles/fprintf-O2-64_tgt.dir/rule
 
-.PHONY : printf64_tgt
+.PHONY : fprintf-O2-64_tgt
 
 # fast build rule for target.
-printf64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf64_tgt.dir/build.make tests/CMakeFiles/printf64_tgt.dir/build
-.PHONY : printf64_tgt/fast
+fprintf-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O2-64_tgt.dir/build.make tests/CMakeFiles/fprintf-O2-64_tgt.dir/build
+.PHONY : fprintf-O2-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/printf32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/printf32_tgt.dir/rule
+tests/CMakeFiles/fprintf-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O1-32_tgt.dir/rule
 
 # Convenience name for target.
-printf32_tgt: tests/CMakeFiles/printf32_tgt.dir/rule
+fprintf-O1-32_tgt: tests/CMakeFiles/fprintf-O1-32_tgt.dir/rule
 
-.PHONY : printf32_tgt
+.PHONY : fprintf-O1-32_tgt
 
 # fast build rule for target.
-printf32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf32_tgt.dir/build.make tests/CMakeFiles/printf32_tgt.dir/build
-.PHONY : printf32_tgt/fast
+fprintf-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O1-32_tgt.dir/build.make tests/CMakeFiles/fprintf-O1-32_tgt.dir/build
+.PHONY : fprintf-O1-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/file64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/file64_tgt.dir/rule
+tests/CMakeFiles/fprintf-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O0-64_tgt.dir/rule
 
 # Convenience name for target.
-file64_tgt: tests/CMakeFiles/file64_tgt.dir/rule
+fprintf-O0-64_tgt: tests/CMakeFiles/fprintf-O0-64_tgt.dir/rule
 
-.PHONY : file64_tgt
+.PHONY : fprintf-O0-64_tgt
 
 # fast build rule for target.
-file64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file64_tgt.dir/build.make tests/CMakeFiles/file64_tgt.dir/build
-.PHONY : file64_tgt/fast
+fprintf-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O0-64_tgt.dir/build.make tests/CMakeFiles/fprintf-O0-64_tgt.dir/build
+.PHONY : fprintf-O0-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/mysh32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/mysh32_tgt.dir/rule
+tests/CMakeFiles/in_addr-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O2-64_tgt.dir/rule
 
 # Convenience name for target.
-mysh32_tgt: tests/CMakeFiles/mysh32_tgt.dir/rule
+in_addr-O2-64_tgt: tests/CMakeFiles/in_addr-O2-64_tgt.dir/rule
 
-.PHONY : mysh32_tgt
+.PHONY : in_addr-O2-64_tgt
 
 # fast build rule for target.
-mysh32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh32_tgt.dir/build.make tests/CMakeFiles/mysh32_tgt.dir/build
-.PHONY : mysh32_tgt/fast
+in_addr-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O2-64_tgt.dir/build.make tests/CMakeFiles/in_addr-O2-64_tgt.dir/build
+.PHONY : in_addr-O2-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/exit64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/exit64_tgt.dir/rule
+tests/CMakeFiles/sprintf-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O3-64_tgt.dir/rule
 
 # Convenience name for target.
-exit64_tgt: tests/CMakeFiles/exit64_tgt.dir/rule
+sprintf-O3-64_tgt: tests/CMakeFiles/sprintf-O3-64_tgt.dir/rule
 
-.PHONY : exit64_tgt
+.PHONY : sprintf-O3-64_tgt
 
 # fast build rule for target.
-exit64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit64_tgt.dir/build.make tests/CMakeFiles/exit64_tgt.dir/build
-.PHONY : exit64_tgt/fast
+sprintf-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O3-64_tgt.dir/build.make tests/CMakeFiles/sprintf-O3-64_tgt.dir/build
+.PHONY : sprintf-O3-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/printf-many64_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many64_tgt.dir/rule
-.PHONY : tests/CMakeFiles/printf-many64_tgt.dir/rule
+tests/CMakeFiles/in_addr-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O2-32_tgt.dir/rule
 
 # Convenience name for target.
-printf-many64_tgt: tests/CMakeFiles/printf-many64_tgt.dir/rule
+in_addr-O2-32_tgt: tests/CMakeFiles/in_addr-O2-32_tgt.dir/rule
 
-.PHONY : printf-many64_tgt
+.PHONY : in_addr-O2-32_tgt
 
 # fast build rule for target.
-printf-many64_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many64_tgt.dir/build.make tests/CMakeFiles/printf-many64_tgt.dir/build
-.PHONY : printf-many64_tgt/fast
+in_addr-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O2-32_tgt.dir/build.make tests/CMakeFiles/in_addr-O2-32_tgt.dir/build
+.PHONY : in_addr-O2-32_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/printf-many32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/printf-many32_tgt.dir/rule
+tests/CMakeFiles/sprintf-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O2-64_tgt.dir/rule
 
 # Convenience name for target.
-printf-many32_tgt: tests/CMakeFiles/printf-many32_tgt.dir/rule
+sprintf-O2-64_tgt: tests/CMakeFiles/sprintf-O2-64_tgt.dir/rule
 
-.PHONY : printf-many32_tgt
+.PHONY : sprintf-O2-64_tgt
 
 # fast build rule for target.
-printf-many32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many32_tgt.dir/build.make tests/CMakeFiles/printf-many32_tgt.dir/build
-.PHONY : printf-many32_tgt/fast
+sprintf-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O2-64_tgt.dir/build.make tests/CMakeFiles/sprintf-O2-64_tgt.dir/build
+.PHONY : sprintf-O2-64_tgt/fast
 
 # Convenience name for target.
-tests/CMakeFiles/file32_tgt.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file32_tgt.dir/rule
-.PHONY : tests/CMakeFiles/file32_tgt.dir/rule
+tests/CMakeFiles/sprintf-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O1-64_tgt.dir/rule
 
 # Convenience name for target.
-file32_tgt: tests/CMakeFiles/file32_tgt.dir/rule
+sprintf-O1-64_tgt: tests/CMakeFiles/sprintf-O1-64_tgt.dir/rule
 
-.PHONY : file32_tgt
+.PHONY : sprintf-O1-64_tgt
 
 # fast build rule for target.
-file32_tgt/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file32_tgt.dir/build.make tests/CMakeFiles/file32_tgt.dir/build
-.PHONY : file32_tgt/fast
+sprintf-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O1-64_tgt.dir/build.make tests/CMakeFiles/sprintf-O1-64_tgt.dir/build
+.PHONY : sprintf-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+sprintf-O0-64_tgt: tests/CMakeFiles/sprintf-O0-64_tgt.dir/rule
+
+.PHONY : sprintf-O0-64_tgt
+
+# fast build rule for target.
+sprintf-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O0-64_tgt.dir/build.make tests/CMakeFiles/sprintf-O0-64_tgt.dir/build
+.PHONY : sprintf-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+sprintf-O1-32_tgt: tests/CMakeFiles/sprintf-O1-32_tgt.dir/rule
+
+.PHONY : sprintf-O1-32_tgt
+
+# fast build rule for target.
+sprintf-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O1-32_tgt.dir/build.make tests/CMakeFiles/sprintf-O1-32_tgt.dir/build
+.PHONY : sprintf-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+sum-O0-64_tgt: tests/CMakeFiles/sum-O0-64_tgt.dir/rule
+
+.PHONY : sum-O0-64_tgt
+
+# fast build rule for target.
+sum-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O0-64_tgt.dir/build.make tests/CMakeFiles/sum-O0-64_tgt.dir/build
+.PHONY : sum-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+sum-O0-32_tgt: tests/CMakeFiles/sum-O0-32_tgt.dir/rule
+
+.PHONY : sum-O0-32_tgt
+
+# fast build rule for target.
+sum-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O0-32_tgt.dir/build.make tests/CMakeFiles/sum-O0-32_tgt.dir/build
+.PHONY : sum-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+in_addr-O1-64_tgt: tests/CMakeFiles/in_addr-O1-64_tgt.dir/rule
+
+.PHONY : in_addr-O1-64_tgt
+
+# fast build rule for target.
+in_addr-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O1-64_tgt.dir/build.make tests/CMakeFiles/in_addr-O1-64_tgt.dir/build
+.PHONY : in_addr-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+sum-O3-32_tgt: tests/CMakeFiles/sum-O3-32_tgt.dir/rule
+
+.PHONY : sum-O3-32_tgt
+
+# fast build rule for target.
+sum-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O3-32_tgt.dir/build.make tests/CMakeFiles/sum-O3-32_tgt.dir/build
+.PHONY : sum-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-O2-32_tgt: tests/CMakeFiles/printf-O2-32_tgt.dir/rule
+
+.PHONY : printf-O2-32_tgt
+
+# fast build rule for target.
+printf-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O2-32_tgt.dir/build.make tests/CMakeFiles/printf-O2-32_tgt.dir/build
+.PHONY : printf-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+file-O0-32_tgt: tests/CMakeFiles/file-O0-32_tgt.dir/rule
+
+.PHONY : file-O0-32_tgt
+
+# fast build rule for target.
+file-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O0-32_tgt.dir/build.make tests/CMakeFiles/file-O0-32_tgt.dir/build
+.PHONY : file-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+file-O3-64_tgt: tests/CMakeFiles/file-O3-64_tgt.dir/rule
+
+.PHONY : file-O3-64_tgt
+
+# fast build rule for target.
+file-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O3-64_tgt.dir/build.make tests/CMakeFiles/file-O3-64_tgt.dir/build
+.PHONY : file-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O3-32_tgt: tests/CMakeFiles/printf-many-O3-32_tgt.dir/rule
+
+.PHONY : printf-many-O3-32_tgt
+
+# fast build rule for target.
+printf-many-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O3-32_tgt.dir/build.make tests/CMakeFiles/printf-many-O3-32_tgt.dir/build
+.PHONY : printf-many-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+sum-O2-64_tgt: tests/CMakeFiles/sum-O2-64_tgt.dir/rule
+
+.PHONY : sum-O2-64_tgt
+
+# fast build rule for target.
+sum-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O2-64_tgt.dir/build.make tests/CMakeFiles/sum-O2-64_tgt.dir/build
+.PHONY : sum-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-O0-32_tgt: tests/CMakeFiles/printf-O0-32_tgt.dir/rule
+
+.PHONY : printf-O0-32_tgt
+
+# fast build rule for target.
+printf-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O0-32_tgt.dir/build.make tests/CMakeFiles/printf-O0-32_tgt.dir/build
+.PHONY : printf-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/mysh-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+mysh-O2-64_tgt: tests/CMakeFiles/mysh-O2-64_tgt.dir/rule
+
+.PHONY : mysh-O2-64_tgt
+
+# fast build rule for target.
+mysh-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O2-64_tgt.dir/build.make tests/CMakeFiles/mysh-O2-64_tgt.dir/build
+.PHONY : mysh-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O2-64_tgt: tests/CMakeFiles/printf-many-O2-64_tgt.dir/rule
+
+.PHONY : printf-many-O2-64_tgt
+
+# fast build rule for target.
+printf-many-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O2-64_tgt.dir/build.make tests/CMakeFiles/printf-many-O2-64_tgt.dir/build
+.PHONY : printf-many-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O0-64_tgt: tests/CMakeFiles/printf-many-O0-64_tgt.dir/rule
+
+.PHONY : printf-many-O0-64_tgt
+
+# fast build rule for target.
+printf-many-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O0-64_tgt.dir/build.make tests/CMakeFiles/printf-many-O0-64_tgt.dir/build
+.PHONY : printf-many-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-O2-64_tgt: tests/CMakeFiles/printf-O2-64_tgt.dir/rule
+
+.PHONY : printf-O2-64_tgt
+
+# fast build rule for target.
+printf-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O2-64_tgt.dir/build.make tests/CMakeFiles/printf-O2-64_tgt.dir/build
+.PHONY : printf-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+exit-O2-32_tgt: tests/CMakeFiles/exit-O2-32_tgt.dir/rule
+
+.PHONY : exit-O2-32_tgt
+
+# fast build rule for target.
+exit-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O2-32_tgt.dir/build.make tests/CMakeFiles/exit-O2-32_tgt.dir/build
+.PHONY : exit-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O1-64_tgt: tests/CMakeFiles/printf-many-O1-64_tgt.dir/rule
+
+.PHONY : printf-many-O1-64_tgt
+
+# fast build rule for target.
+printf-many-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O1-64_tgt.dir/build.make tests/CMakeFiles/printf-many-O1-64_tgt.dir/build
+.PHONY : printf-many-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+fprintf-O3-64_tgt: tests/CMakeFiles/fprintf-O3-64_tgt.dir/rule
+
+.PHONY : fprintf-O3-64_tgt
+
+# fast build rule for target.
+fprintf-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O3-64_tgt.dir/build.make tests/CMakeFiles/fprintf-O3-64_tgt.dir/build
+.PHONY : fprintf-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O0-32_tgt: tests/CMakeFiles/printf-many-O0-32_tgt.dir/rule
+
+.PHONY : printf-many-O0-32_tgt
+
+# fast build rule for target.
+printf-many-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O0-32_tgt.dir/build.make tests/CMakeFiles/printf-many-O0-32_tgt.dir/build
+.PHONY : printf-many-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/mysh-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+mysh-O0-64_tgt: tests/CMakeFiles/mysh-O0-64_tgt.dir/rule
+
+.PHONY : mysh-O0-64_tgt
+
+# fast build rule for target.
+mysh-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O0-64_tgt.dir/build.make tests/CMakeFiles/mysh-O0-64_tgt.dir/build
+.PHONY : mysh-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O2-32_tgt: tests/CMakeFiles/printf-many-O2-32_tgt.dir/rule
+
+.PHONY : printf-many-O2-32_tgt
+
+# fast build rule for target.
+printf-many-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O2-32_tgt.dir/build.make tests/CMakeFiles/printf-many-O2-32_tgt.dir/build
+.PHONY : printf-many-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+sum-O1-32_tgt: tests/CMakeFiles/sum-O1-32_tgt.dir/rule
+
+.PHONY : sum-O1-32_tgt
+
+# fast build rule for target.
+sum-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O1-32_tgt.dir/build.make tests/CMakeFiles/sum-O1-32_tgt.dir/build
+.PHONY : sum-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+exit-O3-64_tgt: tests/CMakeFiles/exit-O3-64_tgt.dir/rule
+
+.PHONY : exit-O3-64_tgt
+
+# fast build rule for target.
+exit-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O3-64_tgt.dir/build.make tests/CMakeFiles/exit-O3-64_tgt.dir/build
+.PHONY : exit-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+file-O0-64_tgt: tests/CMakeFiles/file-O0-64_tgt.dir/rule
+
+.PHONY : file-O0-64_tgt
+
+# fast build rule for target.
+file-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O0-64_tgt.dir/build.make tests/CMakeFiles/file-O0-64_tgt.dir/build
+.PHONY : file-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O3-64_tgt: tests/CMakeFiles/printf-many-O3-64_tgt.dir/rule
+
+.PHONY : printf-many-O3-64_tgt
+
+# fast build rule for target.
+printf-many-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O3-64_tgt.dir/build.make tests/CMakeFiles/printf-many-O3-64_tgt.dir/build
+.PHONY : printf-many-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+exit-O3-32_tgt: tests/CMakeFiles/exit-O3-32_tgt.dir/rule
+
+.PHONY : exit-O3-32_tgt
+
+# fast build rule for target.
+exit-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O3-32_tgt.dir/build.make tests/CMakeFiles/exit-O3-32_tgt.dir/build
+.PHONY : exit-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+exit-O2-64_tgt: tests/CMakeFiles/exit-O2-64_tgt.dir/rule
+
+.PHONY : exit-O2-64_tgt
+
+# fast build rule for target.
+exit-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O2-64_tgt.dir/build.make tests/CMakeFiles/exit-O2-64_tgt.dir/build
+.PHONY : exit-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-many-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-many-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-many-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-many-O1-32_tgt: tests/CMakeFiles/printf-many-O1-32_tgt.dir/rule
+
+.PHONY : printf-many-O1-32_tgt
+
+# fast build rule for target.
+printf-many-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-many-O1-32_tgt.dir/build.make tests/CMakeFiles/printf-many-O1-32_tgt.dir/build
+.PHONY : printf-many-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+sum-O1-64_tgt: tests/CMakeFiles/sum-O1-64_tgt.dir/rule
+
+.PHONY : sum-O1-64_tgt
+
+# fast build rule for target.
+sum-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O1-64_tgt.dir/build.make tests/CMakeFiles/sum-O1-64_tgt.dir/build
+.PHONY : sum-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+exit-O0-32_tgt: tests/CMakeFiles/exit-O0-32_tgt.dir/rule
+
+.PHONY : exit-O0-32_tgt
+
+# fast build rule for target.
+exit-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O0-32_tgt.dir/build.make tests/CMakeFiles/exit-O0-32_tgt.dir/build
+.PHONY : exit-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+in_addr-O1-32_tgt: tests/CMakeFiles/in_addr-O1-32_tgt.dir/rule
+
+.PHONY : in_addr-O1-32_tgt
+
+# fast build rule for target.
+in_addr-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O1-32_tgt.dir/build.make tests/CMakeFiles/in_addr-O1-32_tgt.dir/build
+.PHONY : in_addr-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-O3-64_tgt: tests/CMakeFiles/printf-O3-64_tgt.dir/rule
+
+.PHONY : printf-O3-64_tgt
+
+# fast build rule for target.
+printf-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O3-64_tgt.dir/build.make tests/CMakeFiles/printf-O3-64_tgt.dir/build
+.PHONY : printf-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-O3-32_tgt: tests/CMakeFiles/printf-O3-32_tgt.dir/rule
+
+.PHONY : printf-O3-32_tgt
+
+# fast build rule for target.
+printf-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O3-32_tgt.dir/build.make tests/CMakeFiles/printf-O3-32_tgt.dir/build
+.PHONY : printf-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+fprintf-O0-32_tgt: tests/CMakeFiles/fprintf-O0-32_tgt.dir/rule
+
+.PHONY : fprintf-O0-32_tgt
+
+# fast build rule for target.
+fprintf-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O0-32_tgt.dir/build.make tests/CMakeFiles/fprintf-O0-32_tgt.dir/build
+.PHONY : fprintf-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+exit-O1-64_tgt: tests/CMakeFiles/exit-O1-64_tgt.dir/rule
+
+.PHONY : exit-O1-64_tgt
+
+# fast build rule for target.
+exit-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O1-64_tgt.dir/build.make tests/CMakeFiles/exit-O1-64_tgt.dir/build
+.PHONY : exit-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-O0-64_tgt: tests/CMakeFiles/printf-O0-64_tgt.dir/rule
+
+.PHONY : printf-O0-64_tgt
+
+# fast build rule for target.
+printf-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O0-64_tgt.dir/build.make tests/CMakeFiles/printf-O0-64_tgt.dir/build
+.PHONY : printf-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/myls-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+myls-O3-64_tgt: tests/CMakeFiles/myls-O3-64_tgt.dir/rule
+
+.PHONY : myls-O3-64_tgt
+
+# fast build rule for target.
+myls-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O3-64_tgt.dir/build.make tests/CMakeFiles/myls-O3-64_tgt.dir/build
+.PHONY : myls-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/myls-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+myls-O0-64_tgt: tests/CMakeFiles/myls-O0-64_tgt.dir/rule
+
+.PHONY : myls-O0-64_tgt
+
+# fast build rule for target.
+myls-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O0-64_tgt.dir/build.make tests/CMakeFiles/myls-O0-64_tgt.dir/build
+.PHONY : myls-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+sprintf-O2-32_tgt: tests/CMakeFiles/sprintf-O2-32_tgt.dir/rule
+
+.PHONY : sprintf-O2-32_tgt
+
+# fast build rule for target.
+sprintf-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O2-32_tgt.dir/build.make tests/CMakeFiles/sprintf-O2-32_tgt.dir/build
+.PHONY : sprintf-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O2-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O2-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O2-64_tgt.dir/rule
+
+# Convenience name for target.
+file-O2-64_tgt: tests/CMakeFiles/file-O2-64_tgt.dir/rule
+
+.PHONY : file-O2-64_tgt
+
+# fast build rule for target.
+file-O2-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O2-64_tgt.dir/build.make tests/CMakeFiles/file-O2-64_tgt.dir/build
+.PHONY : file-O2-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+exit-O1-32_tgt: tests/CMakeFiles/exit-O1-32_tgt.dir/rule
+
+.PHONY : exit-O1-32_tgt
+
+# fast build rule for target.
+exit-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O1-32_tgt.dir/build.make tests/CMakeFiles/exit-O1-32_tgt.dir/build
+.PHONY : exit-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/myls-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+myls-O1-64_tgt: tests/CMakeFiles/myls-O1-64_tgt.dir/rule
+
+.PHONY : myls-O1-64_tgt
+
+# fast build rule for target.
+myls-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O1-64_tgt.dir/build.make tests/CMakeFiles/myls-O1-64_tgt.dir/build
+.PHONY : myls-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+file-O3-32_tgt: tests/CMakeFiles/file-O3-32_tgt.dir/rule
+
+.PHONY : file-O3-32_tgt
+
+# fast build rule for target.
+file-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O3-32_tgt.dir/build.make tests/CMakeFiles/file-O3-32_tgt.dir/build
+.PHONY : file-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+sprintf-O3-32_tgt: tests/CMakeFiles/sprintf-O3-32_tgt.dir/rule
+
+.PHONY : sprintf-O3-32_tgt
+
+# fast build rule for target.
+sprintf-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O3-32_tgt.dir/build.make tests/CMakeFiles/sprintf-O3-32_tgt.dir/build
+.PHONY : sprintf-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/myls-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/myls-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/myls-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+myls-O0-32_tgt: tests/CMakeFiles/myls-O0-32_tgt.dir/rule
+
+.PHONY : myls-O0-32_tgt
+
+# fast build rule for target.
+myls-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/myls-O0-32_tgt.dir/build.make tests/CMakeFiles/myls-O0-32_tgt.dir/build
+.PHONY : myls-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/exit-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/exit-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/exit-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+exit-O0-64_tgt: tests/CMakeFiles/exit-O0-64_tgt.dir/rule
+
+.PHONY : exit-O0-64_tgt
+
+# fast build rule for target.
+exit-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/exit-O0-64_tgt.dir/build.make tests/CMakeFiles/exit-O0-64_tgt.dir/build
+.PHONY : exit-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr-O3-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O3-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O3-32_tgt.dir/rule
+
+# Convenience name for target.
+in_addr-O3-32_tgt: tests/CMakeFiles/in_addr-O3-32_tgt.dir/rule
+
+.PHONY : in_addr-O3-32_tgt
+
+# fast build rule for target.
+in_addr-O3-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O3-32_tgt.dir/build.make tests/CMakeFiles/in_addr-O3-32_tgt.dir/build
+.PHONY : in_addr-O3-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sprintf-O0-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sprintf-O0-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sprintf-O0-32_tgt.dir/rule
+
+# Convenience name for target.
+sprintf-O0-32_tgt: tests/CMakeFiles/sprintf-O0-32_tgt.dir/rule
+
+.PHONY : sprintf-O0-32_tgt
+
+# fast build rule for target.
+sprintf-O0-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sprintf-O0-32_tgt.dir/build.make tests/CMakeFiles/sprintf-O0-32_tgt.dir/build
+.PHONY : sprintf-O0-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+fprintf-O2-32_tgt: tests/CMakeFiles/fprintf-O2-32_tgt.dir/rule
+
+.PHONY : fprintf-O2-32_tgt
+
+# fast build rule for target.
+fprintf-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O2-32_tgt.dir/build.make tests/CMakeFiles/fprintf-O2-32_tgt.dir/build
+.PHONY : fprintf-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/fprintf-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/fprintf-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/fprintf-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+fprintf-O1-64_tgt: tests/CMakeFiles/fprintf-O1-64_tgt.dir/rule
+
+.PHONY : fprintf-O1-64_tgt
+
+# fast build rule for target.
+fprintf-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/fprintf-O1-64_tgt.dir/build.make tests/CMakeFiles/fprintf-O1-64_tgt.dir/build
+.PHONY : fprintf-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+sum-O3-64_tgt: tests/CMakeFiles/sum-O3-64_tgt.dir/rule
+
+.PHONY : sum-O3-64_tgt
+
+# fast build rule for target.
+sum-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O3-64_tgt.dir/build.make tests/CMakeFiles/sum-O3-64_tgt.dir/build
+.PHONY : sum-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+file-O1-32_tgt: tests/CMakeFiles/file-O1-32_tgt.dir/rule
+
+.PHONY : file-O1-32_tgt
+
+# fast build rule for target.
+file-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O1-32_tgt.dir/build.make tests/CMakeFiles/file-O1-32_tgt.dir/build
+.PHONY : file-O1-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/sum-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/sum-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/sum-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+sum-O2-32_tgt: tests/CMakeFiles/sum-O2-32_tgt.dir/rule
+
+.PHONY : sum-O2-32_tgt
+
+# fast build rule for target.
+sum-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/sum-O2-32_tgt.dir/build.make tests/CMakeFiles/sum-O2-32_tgt.dir/build
+.PHONY : sum-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+file-O1-64_tgt: tests/CMakeFiles/file-O1-64_tgt.dir/rule
+
+.PHONY : file-O1-64_tgt
+
+# fast build rule for target.
+file-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O1-64_tgt.dir/build.make tests/CMakeFiles/file-O1-64_tgt.dir/build
+.PHONY : file-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O1-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O1-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O1-64_tgt.dir/rule
+
+# Convenience name for target.
+printf-O1-64_tgt: tests/CMakeFiles/printf-O1-64_tgt.dir/rule
+
+.PHONY : printf-O1-64_tgt
+
+# fast build rule for target.
+printf-O1-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O1-64_tgt.dir/build.make tests/CMakeFiles/printf-O1-64_tgt.dir/build
+.PHONY : printf-O1-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/mysh-O3-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O3-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/mysh-O3-64_tgt.dir/rule
+
+# Convenience name for target.
+mysh-O3-64_tgt: tests/CMakeFiles/mysh-O3-64_tgt.dir/rule
+
+.PHONY : mysh-O3-64_tgt
+
+# fast build rule for target.
+mysh-O3-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/mysh-O3-64_tgt.dir/build.make tests/CMakeFiles/mysh-O3-64_tgt.dir/build
+.PHONY : mysh-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/in_addr-O0-64_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/in_addr-O0-64_tgt.dir/rule
+.PHONY : tests/CMakeFiles/in_addr-O0-64_tgt.dir/rule
+
+# Convenience name for target.
+in_addr-O0-64_tgt: tests/CMakeFiles/in_addr-O0-64_tgt.dir/rule
+
+.PHONY : in_addr-O0-64_tgt
+
+# fast build rule for target.
+in_addr-O0-64_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O0-64_tgt.dir/build.make tests/CMakeFiles/in_addr-O0-64_tgt.dir/build
+.PHONY : in_addr-O0-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/file-O2-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/file-O2-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/file-O2-32_tgt.dir/rule
+
+# Convenience name for target.
+file-O2-32_tgt: tests/CMakeFiles/file-O2-32_tgt.dir/rule
+
+.PHONY : file-O2-32_tgt
+
+# fast build rule for target.
+file-O2-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/file-O2-32_tgt.dir/build.make tests/CMakeFiles/file-O2-32_tgt.dir/build
+.PHONY : file-O2-32_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/printf-O1-32_tgt.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/printf-O1-32_tgt.dir/rule
+.PHONY : tests/CMakeFiles/printf-O1-32_tgt.dir/rule
+
+# Convenience name for target.
+printf-O1-32_tgt: tests/CMakeFiles/printf-O1-32_tgt.dir/rule
+
+.PHONY : printf-O1-32_tgt
+
+# fast build rule for target.
+printf-O1-32_tgt/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/printf-O1-32_tgt.dir/build.make tests/CMakeFiles/printf-O1-32_tgt.dir/build
+.PHONY : printf-O1-32_tgt/fast
 
 # Help Target
 help:
@@ -500,26 +1400,86 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... exit32_tgt"
-	@echo "... exit64_tgt"
-	@echo "... file32_tgt"
-	@echo "... file64_tgt"
-	@echo "... fprintf32_tgt"
-	@echo "... fprintf64_tgt"
-	@echo "... in_addr32_tgt"
-	@echo "... in_addr64_tgt"
-	@echo "... myls32_tgt"
-	@echo "... myls64_tgt"
-	@echo "... mysh32_tgt"
-	@echo "... mysh64_tgt"
-	@echo "... printf-many32_tgt"
-	@echo "... printf-many64_tgt"
-	@echo "... printf32_tgt"
-	@echo "... printf64_tgt"
-	@echo "... sprintf32_tgt"
-	@echo "... sprintf64_tgt"
-	@echo "... sum32_tgt"
-	@echo "... sum64_tgt"
+	@echo "... exit-O0-32_tgt"
+	@echo "... exit-O0-64_tgt"
+	@echo "... exit-O1-32_tgt"
+	@echo "... exit-O1-64_tgt"
+	@echo "... exit-O2-32_tgt"
+	@echo "... exit-O2-64_tgt"
+	@echo "... exit-O3-32_tgt"
+	@echo "... exit-O3-64_tgt"
+	@echo "... file-O0-32_tgt"
+	@echo "... file-O0-64_tgt"
+	@echo "... file-O1-32_tgt"
+	@echo "... file-O1-64_tgt"
+	@echo "... file-O2-32_tgt"
+	@echo "... file-O2-64_tgt"
+	@echo "... file-O3-32_tgt"
+	@echo "... file-O3-64_tgt"
+	@echo "... fprintf-O0-32_tgt"
+	@echo "... fprintf-O0-64_tgt"
+	@echo "... fprintf-O1-32_tgt"
+	@echo "... fprintf-O1-64_tgt"
+	@echo "... fprintf-O2-32_tgt"
+	@echo "... fprintf-O2-64_tgt"
+	@echo "... fprintf-O3-32_tgt"
+	@echo "... fprintf-O3-64_tgt"
+	@echo "... in_addr-O0-32_tgt"
+	@echo "... in_addr-O0-64_tgt"
+	@echo "... in_addr-O1-32_tgt"
+	@echo "... in_addr-O1-64_tgt"
+	@echo "... in_addr-O2-32_tgt"
+	@echo "... in_addr-O2-64_tgt"
+	@echo "... in_addr-O3-32_tgt"
+	@echo "... in_addr-O3-64_tgt"
+	@echo "... myls-O0-32_tgt"
+	@echo "... myls-O0-64_tgt"
+	@echo "... myls-O1-32_tgt"
+	@echo "... myls-O1-64_tgt"
+	@echo "... myls-O2-32_tgt"
+	@echo "... myls-O2-64_tgt"
+	@echo "... myls-O3-32_tgt"
+	@echo "... myls-O3-64_tgt"
+	@echo "... mysh-O0-32_tgt"
+	@echo "... mysh-O0-64_tgt"
+	@echo "... mysh-O1-32_tgt"
+	@echo "... mysh-O1-64_tgt"
+	@echo "... mysh-O2-32_tgt"
+	@echo "... mysh-O2-64_tgt"
+	@echo "... mysh-O3-32_tgt"
+	@echo "... mysh-O3-64_tgt"
+	@echo "... printf-O0-32_tgt"
+	@echo "... printf-O0-64_tgt"
+	@echo "... printf-O1-32_tgt"
+	@echo "... printf-O1-64_tgt"
+	@echo "... printf-O2-32_tgt"
+	@echo "... printf-O2-64_tgt"
+	@echo "... printf-O3-32_tgt"
+	@echo "... printf-O3-64_tgt"
+	@echo "... printf-many-O0-32_tgt"
+	@echo "... printf-many-O0-64_tgt"
+	@echo "... printf-many-O1-32_tgt"
+	@echo "... printf-many-O1-64_tgt"
+	@echo "... printf-many-O2-32_tgt"
+	@echo "... printf-many-O2-64_tgt"
+	@echo "... printf-many-O3-32_tgt"
+	@echo "... printf-many-O3-64_tgt"
+	@echo "... sprintf-O0-32_tgt"
+	@echo "... sprintf-O0-64_tgt"
+	@echo "... sprintf-O1-32_tgt"
+	@echo "... sprintf-O1-64_tgt"
+	@echo "... sprintf-O2-32_tgt"
+	@echo "... sprintf-O2-64_tgt"
+	@echo "... sprintf-O3-32_tgt"
+	@echo "... sprintf-O3-64_tgt"
+	@echo "... sum-O0-32_tgt"
+	@echo "... sum-O0-64_tgt"
+	@echo "... sum-O1-32_tgt"
+	@echo "... sum-O1-64_tgt"
+	@echo "... sum-O2-32_tgt"
+	@echo "... sum-O2-64_tgt"
+	@echo "... sum-O3-32_tgt"
+	@echo "... sum-O3-64_tgt"
 .PHONY : help
 
 

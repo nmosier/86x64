@@ -1,30 +1,39 @@
-macro(create_test)
-  foreach(TESTNAME ${ARGN})
-    add_custom_command(OUTPUT ${TESTNAME}32
-      COMMAND cc -O3 -fno-stack-protector -fno-stack-check -c -m32 -o ${TESTNAME}32.c.o ${CMAKE_CURRENT_SOURCE_DIR}/${TESTNAME}.c
-      COMMAND ld -lsystem -o ${TESTNAME}32 ${TESTNAME}32.c.o
-      BYPRODUCTS ${TESTNAME}32.c.o
-      DEPENDS ${TESTNAME}.c
+function(create_test)
+  foreach(TEST ${ARGN})
+    foreach(OPTIM O0 O1 O2 O3)
+      set(TESTNAME ${TEST}-${OPTIM})
+      set(TESTNAME32 ${TESTNAME}-32)
+      set(TESTNAME64 ${TESTNAME}-64)
+      set(TESTSRC ${TEST}.c)
+      
+      add_custom_command(OUTPUT ${TESTNAME32}
+        COMMAND cc -${OPTIM} -fno-stack-protector -fno-stack-check -c -m32 -o ${TESTNAME32}.c.o ${CMAKE_CURRENT_SOURCE_DIR}/${TESTSRC}
+        COMMAND ld -lsystem -o ${TESTNAME32} ${TESTNAME32}.c.o
+        BYPRODUCTS ${TESTNAME32}.c.o
+        DEPENDS ${TESTSRC}
+        )
+      
+      add_custom_target(${TESTNAME32}_tgt ALL
+        DEPENDS ${TESTNAME32}
+        )
+      
+      add_custom_command(OUTPUT ${TESTNAME64} ${TESTNAME64}.dylib
+        COMMAND ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh -o ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME64} -l $<TARGET_FILE:abiconv> -i $<TARGET_FILE:interpose> -a ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME64}.dylib -m $<TARGET_FILE:macho-tool> -w $<TARGET_FILE:wrapper> ${TESTNAME32}
+        DEPENDS ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh ${TESTNAME32} abiconv interpose macho-tool
+        )
+      
+      add_custom_target(${TESTNAME64}_tgt ALL
+        DEPENDS ${TESTNAME64} ${TESTNAME64}.dylib
+        )
+      
+    endforeach()
+
+    add_test(NAME ${TEST}
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/do-test.sh "${CMAKE_CURRENT_BINARY_DIR}/${TEST}"
       )
     
-    add_custom_target(${TESTNAME}32_tgt ALL
-      DEPENDS ${TESTNAME}32
-      )
-    
-    add_custom_command(OUTPUT ${TESTNAME}64 ${TESTNAME}64.dylib
-      COMMAND ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh -o ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64 -l $<TARGET_FILE:abiconv> -i $<TARGET_FILE:interpose> -a ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}64.dylib -m $<TARGET_FILE:macho-tool> -w $<TARGET_FILE:wrapper> ${TESTNAME}32
-      DEPENDS ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh ${TESTNAME}32 abiconv interpose macho-tool
-      )
-    
-    add_custom_target(${TESTNAME}64_tgt ALL
-      DEPENDS ${TESTNAME}64 ${TESTNAME}64.dylib
-      )
-    
-    add_test(NAME ${TESTNAME}
-      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/do-test.sh ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME}
-      )
   endforeach()
   
-endmacro()
+endfunction()
 
 create_test(file exit printf-many printf sum sprintf fprintf myls in_addr mysh)
