@@ -72,6 +72,8 @@ int Rebasify::work() {
    return 0;
 }
 
+#define MULTIPASS 1
+
 Rebasify::decode_info::decode_info(const xed_decoded_inst_t& xedd,
                                    typename MachO::Section<MachO::Bits::M32>::Content::iterator it):
    text_it(it),
@@ -85,7 +87,11 @@ Rebasify::decode_info::decode_info(const xed_decoded_inst_t& xedd,
 
 void Rebasify::handle_insts(MachO::Archive<MachO::Bits::M32> *archive) const {
    std::list<state_info> states;
+#if MULTIPASS == 0
    std::unordered_set<size_t> visited_vmaddrs;
+#else
+   std::unordered_map<size_t, std::list<state_info>> visited_vmaddrs; /* also captures state */
+#endif
 
    /* initial state */
    states.emplace_front(archive);
@@ -95,10 +101,24 @@ void Rebasify::handle_insts(MachO::Archive<MachO::Bits::M32> *archive) const {
       states.pop_front();
 
       /* check if state has already been visited or has reached end of section */
+#if MULTIPASS == 0
       if (state.text_it == state.section->content.end() ||
           visited_vmaddrs.find((**state.text_it).loc.vmaddr) != visited_vmaddrs.end()) {
          continue;
       }
+#else
+      if (state.text_it == state.section->content.end()) {
+         continue;
+      }
+      const auto visited_it = visited_vmaddrs.find((**state.text_it).loc.vmaddr);
+      if (visited_it != visited_vmaddrs.end()) {
+         auto& visited_states = visited_it->second;
+         if (std::find(visited_states.begin(), visited_states.end(), state) != visited_states.end())
+            {
+               continue;
+            }
+      }
+#endif
 
       if (verbose) {
          fprintf(stderr, "[REBASIFY] 0x%zx\n", (**state.text_it).loc.vmaddr);
@@ -109,10 +129,9 @@ void Rebasify::handle_insts(MachO::Archive<MachO::Bits::M32> *archive) const {
       
       if (inst) {
          /* add to visited list */
-         visited_vmaddrs.insert(inst->loc.vmaddr);
+         visited_vmaddrs[inst->loc.vmaddr].push_back(state);
          
          decode_info decode(inst->xedd, state.text_it);
-         
          
          switch (decode.iclass) {
          case XED_ICLASS_JB: 
@@ -229,6 +248,15 @@ int Rebasify::handle_inst(MachO::Instruction<MachO::Bits::M32> *inst, state_info
                   }
                   return 0;
                }
+            }
+
+            if (state.frame_index && info.memdisp == *state.frame_index) {
+               if (verbose) {
+                  fprintf(stderr, "[REBASIFY] 0x%zx overwrote frame store at index %d\n",
+                          inst->loc.vmaddr, *state.frame_index);
+               }
+               state.frame_index = std::nullopt;
+               return 0;
             }
          }
 
@@ -391,4 +419,12 @@ Rebasify::state_info::state_info(const state_info& other,
       throw std::invalid_argument("bad target blob");
    }
 #endif
+}
+
+bool Rebasify::state_info::operator==(const Rebasify::state_info& other) const {
+   return
+      state == other.state &&
+      vmaddr == other.vmaddr &&
+      live_regs == other.live_regs &&
+      frame_index == other.frame_index;
 }

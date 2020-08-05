@@ -29,6 +29,8 @@ struct Rebasify: InOutCommand {
       void reset();
       state_info(MachO::Archive<MachO::Bits::M32> *archive);
       state_info(const state_info& other, const MachO::SectionBlob<MachO::Bits::M32> *target);
+
+      bool operator==(const state_info& other) const;
    };
 
    struct decode_info {
