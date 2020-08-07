@@ -16,8 +16,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+include(cmake/86x64.cmake)
+
 add_subdirectory(extern)
 add_subdirectory(src)
 add_subdirectory(include)
 add_subdirectory(scripts)
 add_subdirectory(tests)
+
+set(86x64 name)

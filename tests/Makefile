@@ -188,6 +188,21 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+tests/CMakeFiles/tmp64.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/tmp64.dir/rule
+.PHONY : tests/CMakeFiles/tmp64.dir/rule
+
+# Convenience name for target.
+tmp64: tests/CMakeFiles/tmp64.dir/rule
+
+.PHONY : tmp64
+
+# fast build rule for target.
+tmp64/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tmp64.dir/build.make tests/CMakeFiles/tmp64.dir/build
+.PHONY : tmp64/fast
+
+# Convenience name for target.
 tests/CMakeFiles/mysh-O2-32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
@@ -1480,6 +1495,7 @@ help:
 	@echo "... sum-O2-64_tgt"
 	@echo "... sum-O3-32_tgt"
 	@echo "... sum-O3-64_tgt"
+	@echo "... tmp64"
 .PHONY : help
 
 

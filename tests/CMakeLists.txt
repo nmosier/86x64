@@ -38,3 +38,8 @@ function(create_test)
 endfunction()
 
 create_test(file exit printf-many printf sum sprintf fprintf myls in_addr mysh)
+
+
+add_86x64(tmp
+  STATIC_INTERPOSE ${CMAKE_SOURCE_DIR}/src/86x64/static-interpose.sh
+  )
