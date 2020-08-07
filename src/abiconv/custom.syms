@@ -16,3 +16,5 @@ _sigaction
 _waitid
 
 _execvp
+
+__sprintf_chk
