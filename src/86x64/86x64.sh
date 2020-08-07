@@ -103,12 +103,14 @@ v "$MACHO_TOOL" modify --update strip-bind,suffix='$UNIX2003' "$ABI64" "$DOLLAR6
 SYMS=$("$MACHO_TOOL" print --lazy-bind "$DOLLAR64" | tail +2 | cut -d" " -f5)
 
 # statically interpose lazily bound symbols to libabiconv
-INTERPOSE64=$(mktemp)
-trap "rm -f $INTERPOSE64" EXIT
+INTERPOSE64="${ARCHIVE64}_interpose"
+# INTERPOSE64=$(mktemp)
+# trap "rm -f $INTERPOSE64" EXIT
 v "$ROOTDIR"/static-interpose.sh -l "$LIBABICONV" -p "__" -o "$INTERPOSE64" "$DOLLAR64" $SYMS || error
 
 # interpose dyld_stub_binder
-DYLD64=$(mktemp)
+DYLD64="${ARCHIVE64}_dyld"
+# DYLD64=$(mktemp)
 trap "rm -f $DYLD64" EXIT
 DYLD_ORD=$("$MACHO_TOOL" translate --load-dylib "$LIBABICONV" "$INTERPOSE64")
 v "$MACHO_TOOL" modify --update bind,old_sym="dyld_stub_binder",new_sym="__dyld_stub_binder",new_dylib="$DYLD_ORD" "$INTERPOSE64" "$DYLD64"
