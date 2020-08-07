@@ -149,6 +149,6 @@ function(add_86x64 86x64_NAME)
     DEPENDS ${86x64_WRAPPER} ${86x64_LIBINTERPOSE} ${86x64_DYLIB}
     )
   
-  add_custom_target(${86x64_NAME64} DEPENDS ${86x64_DYLIB})
+  add_custom_target(${86x64_NAME64} DEPENDS ${86x64_ARCHIVE64})
   
 endfunction()
