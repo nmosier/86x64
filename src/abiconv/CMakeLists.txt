@@ -19,8 +19,8 @@ add_custom_target(abiconv_syms
   )
 
 add_custom_command(OUTPUT abiconv.asm
-  COMMAND abigen -o abiconv.asm -s abiconv.syms -i custom.syms --structfile ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
-  DEPENDS abigen abiconv.syms custom.syms ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
+  COMMAND abigen -o abiconv.asm -s abiconv.syms -i ${CMAKE_CURRENT_SOURCE_DIR}/custom.syms --structfile ${CMAKE_CURRENT_SOURCE_DIR}/ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
+  DEPENDS abigen ${CMAKE_CURRENT_SOURCE_DIR}/abiconv.syms ${CMAKE_CURRENT_SOURCE_DIR}/custom.syms ${CMAKE_CURRENT_SOURCE_DIR}/ignore.structs ${CMAKE_CURRENT_SOURCE_DIR}/includes.h
   )
 
 add_custom_target(abiconv_asm DEPENDS abiconv.asm)
