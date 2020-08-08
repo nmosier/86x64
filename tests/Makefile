@@ -188,21 +188,6 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-tests/CMakeFiles/tmp64.dir/rule:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/tmp64.dir/rule
-.PHONY : tests/CMakeFiles/tmp64.dir/rule
-
-# Convenience name for target.
-tmp64: tests/CMakeFiles/tmp64.dir/rule
-
-.PHONY : tmp64
-
-# fast build rule for target.
-tmp64/fast:
-	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tmp64.dir/build.make tests/CMakeFiles/tmp64.dir/build
-.PHONY : tmp64/fast
-
-# Convenience name for target.
 tests/CMakeFiles/mysh-O2-32_tgt.dir/rule:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
 .PHONY : tests/CMakeFiles/mysh-O2-32_tgt.dir/rule
@@ -276,6 +261,21 @@ in_addr-O3-64_tgt: tests/CMakeFiles/in_addr-O3-64_tgt.dir/rule
 in_addr-O3-64_tgt/fast:
 	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/in_addr-O3-64_tgt.dir/build.make tests/CMakeFiles/in_addr-O3-64_tgt.dir/build
 .PHONY : in_addr-O3-64_tgt/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tmp.dir/rule:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/tmp.dir/rule
+.PHONY : tests/CMakeFiles/tmp.dir/rule
+
+# Convenience name for target.
+tmp: tests/CMakeFiles/tmp.dir/rule
+
+.PHONY : tmp
+
+# fast build rule for target.
+tmp/fast:
+	cd /Users/nicholas/Projects/86x64 && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tmp.dir/build.make tests/CMakeFiles/tmp.dir/build
+.PHONY : tmp/fast
 
 # Convenience name for target.
 tests/CMakeFiles/mysh-O1-32_tgt.dir/rule:
@@ -1495,7 +1495,7 @@ help:
 	@echo "... sum-O2-64_tgt"
 	@echo "... sum-O3-32_tgt"
 	@echo "... sum-O3-64_tgt"
-	@echo "... tmp64"
+	@echo "... tmp"
 .PHONY : help
 
 

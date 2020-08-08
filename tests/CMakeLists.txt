@@ -16,7 +16,7 @@ function(create_test)
       add_custom_target(${TESTNAME32}_tgt ALL
         DEPENDS ${TESTNAME32}
         )
-      
+
       add_custom_command(OUTPUT ${TESTNAME64} ${TESTNAME64}.dylib
         COMMAND ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh -o ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME64} -l $<TARGET_FILE:abiconv> -i $<TARGET_FILE:interpose> -a ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME64}.dylib -m $<TARGET_FILE:macho-tool> -w $<TARGET_FILE:wrapper> ${TESTNAME32}
         DEPENDS ${PROJECT_SOURCE_DIR}/src/86x64/86x64.sh ${TESTNAME32} abiconv interpose macho-tool
@@ -40,6 +40,6 @@ endfunction()
 create_test(file exit printf-many printf sum sprintf fprintf myls in_addr mysh)
 
 
-add_86x64(tmp
+add_86x64(tmp tmp
   STATIC_INTERPOSE ${CMAKE_SOURCE_DIR}/src/86x64/static-interpose.sh
   )

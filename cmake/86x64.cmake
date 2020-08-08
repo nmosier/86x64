@@ -1,4 +1,4 @@
-function(add_86x64 86x64_NAME)
+function(add_86x64 tgt_name 86x64_NAME)
   cmake_parse_arguments(
     86x64
     ""
@@ -144,11 +144,16 @@ function(add_86x64 86x64_NAME)
   # link wrapper
   get_filename_component(86x64_INTERPOSE_RPATH ${86x64_LIBINTERPOSE} DIRECTORY)
   get_filename_component(86x64_ABICONV_RPATH ${86x64_LIBABICONV} DIRECTORY)
+  message("${86x64_LIBINTERPOSE} ${86x64_LIBABICONV}")
   add_custom_command(OUTPUT ${86x64_ARCHIVE64}
     COMMAND ld -arch x86_64 -rpath ${86x64_INTERPOSE_RPATH} -rpath ${86x64_ABICONV_RPATH} -pagezero_size 0x1000 -lsystem -e _main_wrapper -o ${86x64_ARCHIVE64} ${86x64_WRAPPER} ${86x64_LIBINTERPOSE} ${86x64_DYLIB}
     DEPENDS ${86x64_WRAPPER} ${86x64_LIBINTERPOSE} ${86x64_DYLIB}
     )
+
+  if(DEFINED ${tgt_name})
+    message(FATAL_ERROR "target name '${tgt_name}' already in use")
+  endif()
   
-  add_custom_target(${86x64_NAME64} DEPENDS ${86x64_ARCHIVE64})
+  add_custom_target(${tgt_name} DEPENDS ${86x64_ARCHIVE64} ${86x64_DYLIB})
   
 endfunction()
