@@ -36,7 +36,7 @@ done
 shift $((OPTIND-1))
 
 # check required options
-if ! [ "$DYLIB" ]; then
+if [ -z "$DYLIB" ]; then
     echo "$0: specify static interpose target dylib with '-l <dylib>'"; exit 1
 fi
 
@@ -50,14 +50,13 @@ fi
 
 ARGS=""
 
-while [[ $# > 0 ]]; do
-    SYM="$1"
-    ORD=$(macho-tool translate --load-dylib "$DYLIB" "$INPATH")
-    if [[ $? != 0 ]]; then
-        exit 2
-    fi
+ORD=$(macho-tool translate --load-dylib "$DYLIB" "$INPATH")
+if [[ $? != 0 ]]; then
+    exit 2
+fi
+
+while read SYM; do
     ARGS=$(echo "$ARGS" --update bind,lazy,old_sym="$SYM",new_sym="$PREFIX$SYM",new_dylib="$ORD")
-    shift 1
 done
 
 CMD=$(echo macho-tool modify "$ARGS" "$INPATH" "$OUTPATH")
