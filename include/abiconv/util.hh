@@ -68,3 +68,7 @@ std::string to_string(CXCursorKind kind);
 std::string to_string(CXCursor cursor);
 std::string to_string(CXTypeKind kind);
 
+template <typename... Args>
+inline std::string make_string(Args&&... args) {
+   return (std::string() + ... + args);
+}
