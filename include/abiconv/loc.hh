@@ -20,6 +20,7 @@ extern const reg_group rdx;
 extern const reg_group rcx;
 extern const reg_group  r8;
 extern const reg_group  r9;
+extern const reg_group r10;
 extern const reg_group r11;
 extern const reg_group r12;
 extern const reg_group rsp;

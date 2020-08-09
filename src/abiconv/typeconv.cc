@@ -1,5 +1,7 @@
 #include <clang-c/Index.h>
+#include <sstream>
 
+#include "emit.hh"
 #include "util.hh"
 #include "typeinfo.hh"
 #include "typeconv.hh"

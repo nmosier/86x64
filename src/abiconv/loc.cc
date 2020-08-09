@@ -40,17 +40,18 @@ void MemoryLocation::align(CXType type, arch a) {
    index = align_up<int>(index, align);
 }
 
-const reg_group rax = {"al", "ax", "eax", "rax"};
-const reg_group rdi = {"dil", "di",  "edi", "rdi"};
-const reg_group rsi = {"sil", "si",  "esi", "rsi"};
-const reg_group rdx = {"dl",  "dx",  "edx", "rdx"};
-const reg_group rcx = {"cl",  "cx",  "ecx", "rcx"};
-const reg_group r8  = {"r8b", "r8w", "r8d", "r8"};
-const reg_group r9  = {"r9b", "r9w", "r9d", "r9"};
+const reg_group rax = {"al",   "ax",   "eax",  "rax"};
+const reg_group rdi = {"dil",  "di",   "edi",  "rdi"};
+const reg_group rsi = {"sil",  "si",   "esi",  "rsi"};
+const reg_group rdx = {"dl",   "dx",   "edx",  "rdx"};
+const reg_group rcx = {"cl",   "cx",   "ecx",  "rcx"};
+const reg_group r8  = {"r8b",  "r8w",  "r8d",  "r8"};
+const reg_group r9  = {"r9b",  "r9w",  "r9d",  "r9"};
+const reg_group r10 = {"r10b", "r10w", "r10d", "r10"};
 const reg_group r11 = {"r11b", "r11w", "r11d", "r11"};
 const reg_group r12 = {"r12b", "r12w", "r12d", "r12"};
-const reg_group rsp = {"spl", "sp", "esp", "rsp"};
-const reg_group rbp = {"bpl", "bp", "ebp", "rbp"};
+const reg_group rsp = {"spl",  "sp",   "esp",  "rsp"};
+const reg_group rbp = {"bpl",  "bp",   "ebp",  "rbp"};
 
 const std::string& reg_group::reg(reg_width width) const {
    switch (width) {

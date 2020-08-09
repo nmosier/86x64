@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <clang-c/Index.h>
 
+#include "emit.hh"
 #include "util.hh"
 #include "abigen.hh"
 #include "typeinfo.hh"
@@ -12,17 +13,15 @@
 
 bool force_all = false;
 
-using reg_groups = std::list<const reg_group *>;
-
+template <typename RegIt>
 struct param_info {
-   using reg_iterator = typename reg_groups::const_iterator;
-   reg_iterator reg_it;
-   const reg_iterator reg_end;
+   RegIt reg_it;
+   const RegIt reg_end;
    unsigned fp_idx = 0;
    const unsigned fp_end;
 
-   param_info(const reg_groups& groups, unsigned fp_count):
-      reg_it(groups.begin()), reg_end(groups.end()), fp_idx(0), fp_end(fp_count) {}
+   param_info(RegIt reg_begin, RegIt reg_end, unsigned fp_count):
+      reg_it(reg_begin), reg_end(reg_end), fp_idx(0), fp_end(fp_count) {}
 };
 
 struct ABIConversion {
@@ -115,17 +114,34 @@ struct ABIConversion {
          if (size_type) {
             align_up(size, alignof_type(*size_type, arch::x86_64));
             size += sizeof_type(*size_type, arch::x86_64);
-
-            // std::cerr << to_string(*size_type) << " " << size << std::endl;
          }
       }
-
-      // std::cerr << "=====" << std::endl;
 
       return align_up<size_t>(size, 16);
    }
 
-   void emit(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) const {
+   void emit_function_call(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) {
+      const std::list<const reg_group *> regs {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
+      emit(os, symbols, ignore_structs, regs.begin(), regs.end(),
+           [] (std::ostream& os, const std::string& sym) {
+              emit_inst(os, "call", sym);
+           });      
+   }
+
+   void emit_system_call(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) {
+      /* NOTE: %rax isn't really a parameter, though treating it as such preserves it during
+       * transformation process.
+       */
+      const std::list<const reg_group *> regs {&rax, &rdi, &rsi, &rdx, &r10, &r8, &r9};
+      emit(os, symbols, ignore_structs, regs.begin(), regs.end(),
+           [] (std::ostream& os, const std::string& sym) {
+              emit_inst(os, "syscall");
+           });
+   }
+
+   template <typename RegIt, typename EmitCall>
+   void emit(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs,
+             RegIt reg_begin, RegIt reg_end, EmitCall emit_call) {
       const bool variadic = clang_isFunctionTypeVariadic(function_type);
       const std::string& override_prefix = "__";
 
@@ -177,8 +193,7 @@ struct ABIConversion {
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
       /* transfer arguments */
-      const reg_groups regs = {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
-      param_info info(regs, 8);
+      param_info info(reg_begin, reg_end, 8);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
       MemoryLocation load_loc(rbp, 12);
@@ -187,8 +202,8 @@ struct ABIConversion {
       std::stringstream from_ss;
 
       for (param_it = 0;
-           param_it != param_end /* && reg_it != regs.end() */;
-           ++param_it /*, ++reg_it */) {
+           param_it != param_end;
+           ++param_it) {
 
          CXType type = handle_type(clang_getArgType(function_type, param_it));
 
@@ -237,7 +252,7 @@ struct ABIConversion {
       os << to_ss.str();
       
       /* call */
-      emit_inst(os, "call", sym);
+      emit_call(os, sym);
 
       /* convert from x86_64 to i386 */
       os << from_ss.str();
@@ -264,6 +279,7 @@ struct ABIGenerator {
    std::ostream& os;
    Symbols symbols;
    Symbols ignore_structs;
+   Symbols syscalls;
    bool force_all;
 
    ABIGenerator(std::ostream& os): os(os) {}
@@ -314,7 +330,7 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(c);
-      conv.emit(os, symbols, ignore_structs);
+      conv.emit_function_call(os, symbols, ignore_structs);
    }
 
    void handle_asm_label_attr(CXCursor c, CXCursor p) {
@@ -324,9 +340,9 @@ struct ABIGenerator {
       }
       
       ABIConversion conv(clang_getCursorType(p), to_string(c));
-      conv.emit(os, symbols, ignore_structs);
+      conv.emit_function_call(os, symbols, ignore_structs);
    }
-   
+
 };
 
 template <typename Op>
@@ -363,23 +379,27 @@ int main(int argc, char *argv[]) {
                       "  -o <path>       output asm file path (if omitted, defaults to stdin\n" \
                       "  -s <symfile>    file containing symbols to consider\n" \
                       "  -i <ignorefile> file containing symbols to ignore\n" \
+                      "  -c <syscalls>   file containing syscall names/symbols\n" \
                       "  -r <structfile> file containing struct names to not convert\n" \
                       "";
                    fprintf(f, usage, argv[0]);
                 };
-
+   
    const char *outpath = nullptr;
    const char *sympath = nullptr;
    const char *symignorepath = nullptr;
    const char *structpath = nullptr;
-   const char *optstring = "ho:s:i:r:";
+   const char *syscallpath = nullptr;
+   const char *optstring = "ho:s:i:r:c:";
    const struct option longopts[] = {{"help", no_argument, nullptr, 'h'},
                                      {"output", required_argument, nullptr, 'o'},
                                      {"symfile", required_argument, nullptr, 's'},
                                      {"ignorefile", required_argument, nullptr, 'i'},
                                      {"structfile", required_argument, nullptr, 'r'},
+                                     {"syscalls", required_argument, nullptr, 'c'},
                                      {0}
    };
+   
    int optchar;
    while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
       switch (optchar) {
@@ -397,6 +417,9 @@ int main(int argc, char *argv[]) {
          break;
       case 'r':
          structpath = optarg;
+         break;
+      case 'c':
+         syscallpath = optarg;
          break;
       case '?':
          usage(stderr);
@@ -427,6 +450,10 @@ int main(int argc, char *argv[]) {
 
    if (structpath) {
       parse_lines(structpath, [&] (const std::string& s) { abigen.ignore_structs.insert(s); });
+   }
+
+   if (syscallpath) {
+      parse_syms(syscallpath, [&] (const std::string& s) { abigen.syscalls.insert(s); });
    }
    
    abigen.emit_header();

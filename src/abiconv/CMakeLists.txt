@@ -1,8 +1,8 @@
 find_package(Clang REQUIRED PATHS /usr/local/opt/llvm)
+include_directories(${CMAKE_SOURCE_DIR}/include/abiconv ${CLANG_INCLUDE_DIRS})
 
 add_executable(abigen abigen.cc typeinfo.cc typeconv.cc loc.cc util.cc)
 target_link_libraries(abigen libclang)
-target_include_directories(abigen PRIVATE ${CMAKE_SOURCE_DIR}/include/abiconv ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 target_compile_options(abigen PRIVATE -Wno-format-security)
 
@@ -80,7 +80,6 @@ install(TARGETS abiconv DESTINATION opt/86x64)
 
 add_executable(info info.cc typeinfo.cc typeconv.cc loc.cc util.cc)
 target_link_libraries(info libclang)
-target_include_directories(info PRIVATE ${CLANG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include/abiconv)
 add_definitions(${LLVM_DEFINITIONS})
 
 
@@ -89,6 +88,9 @@ add_executable(convgen
   util.cc
   )
 target_link_libraries(convgen libclang)
-target_include_directories(convgen PRIVATE ${CLANG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include/abiconv)
 add_definitions(${LLVM_DEFINITIONS})
+
+add_executable(syscall_tabgen
+  syscall_tabgen.cc
+  )
 

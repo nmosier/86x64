@@ -1,2 +1,2 @@
-[ ] Parse function signatures
-[ ] Write custom ABIs for variadic functions
+[ ] Make syscalls work
+
