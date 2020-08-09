@@ -4,6 +4,7 @@
 #include <map>
 
 #include <getopt.h>
+#include <sys/errno.h>
 
 #include "emit.hh"
 
@@ -14,6 +15,7 @@
 using SyscallMap = std::map<unsigned, std::string>;
 
 void emit_syscall_handler(std::ostream& os, unsigned tablen) {
+   emit_inst(os, "global", SYSCALL_HANDLER_NAME);
    os << SYSCALL_HANDLER_NAME << ":" << std::endl;
    emit_inst(os, "xchg", "eax", "dword [rsp]");
    emit_inst(os, "cmp", "eax", tablen);
@@ -23,6 +25,10 @@ void emit_syscall_handler(std::ostream& os, unsigned tablen) {
 }
 
 void emit_jump_table(std::ostream& os, unsigned tablen, const SyscallMap& map, const char *prefix) {
+   for (const auto pair : map) {
+      emit_inst(os, "extern", make_string(prefix, pair.second));
+   }
+   
    os << SYSCALL_JUMP_TABLE_NAME << ":" << std::endl;
    for (unsigned i = 0; i < tablen; ++i) {
       const auto it = map.find(i);
@@ -32,6 +38,13 @@ void emit_jump_table(std::ostream& os, unsigned tablen, const SyscallMap& map, c
          emit_inst(os, "dq", SYSCALL_BAD_NAME);
       }
    }
+}
+
+void emit_syscall_enosys(std::ostream& os) {
+   emit_inst(os, "extern", "_errno");
+   os << SYSCALL_BAD_NAME << ":" << std::endl;
+   emit_inst(os, "mov", "dword [rel _errno]", ENOSYS);
+   emit_inst(os, "mov", "eax", -1);
 }
 
 
@@ -107,6 +120,7 @@ int main(int argc, char *argv[]) {
    const unsigned tablen = syscallmap.empty() ? 0 : syscallmap.rbegin()->first + 1;
    emit_syscall_handler(*os, tablen);
    emit_jump_table(*os, tablen, syscallmap, prefix);
+   emit_syscall_enosys(*os);
    
    return 0;
 }
