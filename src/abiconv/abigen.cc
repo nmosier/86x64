@@ -33,18 +33,24 @@ struct ABIConversion {
    static constexpr unsigned max_reg_args = 6;
    static constexpr unsigned max_xmm_args = 8;
 
-   ABIConversion(CXCursor function_decl): function_type(clang_getCursorType(function_decl))
-   {
-      const std::string symprefix = "_";
+   using Regs = std::list<const reg_group *>;
+   Regs regs;
+
+   virtual void emit_call(std::ostream& os) const = 0;
+
+   ABIConversion(CXCursor function_decl, const Regs& regs):
+      function_type(clang_getCursorType(function_decl)), regs(regs) {
       auto cxsym = clang_getCursorSpelling(function_decl);
-      sym = symprefix + clang_getCString(cxsym);
+      sym = std::string("_") + clang_getCString(cxsym);
       clang_disposeString(cxsym);
       assert(function_type.kind == CXType_FunctionProto);
    }
 
-   ABIConversion(CXType function_type, const std::string& sym):
-      sym(sym), function_type(function_type) {}
+   ABIConversion(CXType function_type, const std::string& sym, const Regs& regs):
+      sym(sym), function_type(function_type), regs(regs) {}
 
+   virtual ~ABIConversion() {}
+   
    static CXType handle_type(CXType type) {
       return clang_getCanonicalType(type);
    }
@@ -120,6 +126,8 @@ struct ABIConversion {
       return align_up<size_t>(size, 16);
    }
 
+
+#if 0
    void emit_function_call(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) {
       const std::list<const reg_group *> regs {&rdi, &rsi, &rdx, &rcx, &r8, &r9};
       emit(os, symbols, ignore_structs, regs.begin(), regs.end(),
@@ -138,10 +146,9 @@ struct ABIConversion {
               emit_inst(os, "syscall");
            });
    }
+#endif
 
-   template <typename RegIt, typename EmitCall>
-   void emit(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs,
-             RegIt reg_begin, RegIt reg_end, EmitCall emit_call) {
+   void emit(std::ostream& os, Symbols& symbols, const Symbols& ignore_structs) {
       const bool variadic = clang_isFunctionTypeVariadic(function_type);
       const std::string& override_prefix = "__";
 
@@ -193,7 +200,7 @@ struct ABIConversion {
       emit_inst(os, "sub", "rsp", stack_data_size() + stack_args_size());
       
       /* transfer arguments */
-      param_info info(reg_begin, reg_end, 8);
+      param_info info(regs.begin(), regs.end(), 8);
       int param_it;
       int param_end = clang_getNumArgTypes(function_type);
       MemoryLocation load_loc(rbp, 12);
@@ -252,7 +259,7 @@ struct ABIConversion {
       os << to_ss.str();
       
       /* call */
-      emit_call(os, sym);
+      emit_call(os);
 
       /* convert from x86_64 to i386 */
       os << from_ss.str();
@@ -274,15 +281,35 @@ struct ABIConversion {
    
 };
 
+struct FunctionConversion: ABIConversion {
+   template <typename... Args>
+   FunctionConversion(Args&&... args):
+      ABIConversion(args..., {&rdi, &rsi, &rdx, &rcx, &r8, &r9}) {}
+
+   virtual void emit_call(std::ostream& os) const override {
+      emit_inst(os, "call", sym);
+   }
+};
+
+struct SyscallConversion: ABIConversion {
+   template <typename... Args>
+   SyscallConversion(Args&&... args):
+      ABIConversion(args..., {&rax, &rdi, &rsi, &rdx, &r10, &r8, &r9}) {}
+
+   virtual void emit_call(std::ostream& os) const override {
+      emit_inst(os, "syscall");
+   }
+};
+
 struct ABIGenerator {
    CXIndex index = clang_createIndex(0, 0);
    std::ostream& os;
    Symbols symbols;
    Symbols ignore_structs;
-   Symbols syscalls;
+   enum class ABI {FUNCTION, SYSCALL} abi;
    bool force_all;
 
-   ABIGenerator(std::ostream& os): os(os) {}
+   ABIGenerator(std::ostream& os, ABI abi): os(os), abi(abi) {}
 
    ~ABIGenerator() {
       clang_disposeIndex(index);
@@ -324,13 +351,12 @@ struct ABIGenerator {
       switch (clang_getCursorType(c).kind) {
       case CXType_BlockPointer:
          return;
-         
       default:
          break;
       }
-      
-      ABIConversion conv(c);
-      conv.emit_function_call(os, symbols, ignore_structs);
+
+      std::unique_ptr<ABIConversion> conv(make_conv(c));
+      conv->emit(os, symbols, ignore_structs);
    }
 
    void handle_asm_label_attr(CXCursor c, CXCursor p) {
@@ -338,11 +364,20 @@ struct ABIGenerator {
       if (sym.find('$') == std::string::npos) {
          return; /* this is something else */
       }
-      
-      ABIConversion conv(clang_getCursorType(p), to_string(c));
-      conv.emit_function_call(os, symbols, ignore_structs);
+      std::unique_ptr<ABIConversion> conv(make_conv(clang_getCursorType(p), sym));
+      conv->emit(os, symbols, ignore_structs);
    }
 
+   template <typename... Args>
+   ABIConversion *make_conv(Args&&... args) const {
+      switch (abi) {
+      case ABI::FUNCTION:
+         return new FunctionConversion(args...);
+      case ABI::SYSCALL:
+         return new SyscallConversion(args...);
+      default: abort();
+      }
+   }
 };
 
 template <typename Op>
@@ -379,8 +414,8 @@ int main(int argc, char *argv[]) {
                       "  -o <path>       output asm file path (if omitted, defaults to stdin\n" \
                       "  -s <symfile>    file containing symbols to consider\n" \
                       "  -i <ignorefile> file containing symbols to ignore\n" \
-                      "  -c <syscalls>   file containing syscall names/symbols\n" \
                       "  -r <structfile> file containing struct names to not convert\n" \
+                      "  -c              use system call ABI"           \
                       "";
                    fprintf(f, usage, argv[0]);
                 };
@@ -389,14 +424,14 @@ int main(int argc, char *argv[]) {
    const char *sympath = nullptr;
    const char *symignorepath = nullptr;
    const char *structpath = nullptr;
-   const char *syscallpath = nullptr;
-   const char *optstring = "ho:s:i:r:c:";
+   ABIGenerator::ABI abi = ABIGenerator::ABI::FUNCTION;
+   const char *optstring = "ho:s:i:r:";
    const struct option longopts[] = {{"help", no_argument, nullptr, 'h'},
                                      {"output", required_argument, nullptr, 'o'},
                                      {"symfile", required_argument, nullptr, 's'},
                                      {"ignorefile", required_argument, nullptr, 'i'},
                                      {"structfile", required_argument, nullptr, 'r'},
-                                     {"syscalls", required_argument, nullptr, 'c'},
+                                     {"syscall", required_argument, nullptr, 'c'},
                                      {0}
    };
    
@@ -419,7 +454,7 @@ int main(int argc, char *argv[]) {
          structpath = optarg;
          break;
       case 'c':
-         syscallpath = optarg;
+         abi = ABIGenerator::ABI::SYSCALL;
          break;
       case '?':
          usage(stderr);
@@ -433,29 +468,22 @@ int main(int argc, char *argv[]) {
    }
    std::ostream& os = outpath ? of : std::cout;
 
-   ABIGenerator abigen(os);
+   ABIGenerator abigen(os, abi);
 
-   auto sym_insert_op = [&] (const std::string& s) { abigen.symbols.insert(s); };
-   auto sym_erase_op = [&] (const std::string& s) { abigen.symbols.erase(s); };
-   
    if (sympath) {
-      parse_syms(sympath, sym_insert_op);
+      parse_syms(sympath, [&] (const std::string& s) { abigen.symbols.insert(s); });
    } else {
-      parse_syms(std::cin, sym_insert_op);
+      parse_syms(std::cin, [&] (const std::string& s) { abigen.symbols.insert(s); });
    }
    
    if (symignorepath) {
-      parse_syms(symignorepath, sym_erase_op);
+      parse_syms(symignorepath, [&] (const std::string& s) { abigen.symbols.erase(s); });
    }
 
    if (structpath) {
       parse_lines(structpath, [&] (const std::string& s) { abigen.ignore_structs.insert(s); });
    }
 
-   if (syscallpath) {
-      parse_syms(syscallpath, [&] (const std::string& s) { abigen.syscalls.insert(s); });
-   }
-   
    abigen.emit_header();
    
    /* handle each header */
