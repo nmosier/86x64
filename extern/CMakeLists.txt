@@ -4,6 +4,7 @@ include(FetchContent)
 ExternalProject_Add(mbuild
   PREFIX xed
   GIT_REPOSITORY https://github.com/intelxed/mbuild.git
+  GIT_TAG main
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -14,6 +15,7 @@ find_package(Python3 REQUIRED)
 ExternalProject_Add(xed
   PREFIX xed
   GIT_REPOSITORY https://github.com/intelxed/xed.git
+  GIT_TAG main
   CONFIGURE_COMMAND ""
   BUILD_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/build-xed.sh" "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed" "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed-build"
 # BUILD_COMMAND cd "${CMAKE_CURRENT_BINARY_DIR}/xed/src/xed-build"
