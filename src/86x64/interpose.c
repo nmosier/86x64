@@ -7,10 +7,12 @@
 static uintptr_t map_base = 0x080000000UL; // 0x7ff000000000UL;
 static const uintptr_t entropy_mask = 0x7ffffUL; // 0xffffffUL;
 
+#ifndef round_page
 __attribute__((__always_inline__)) static uintptr_t round_page(uintptr_t x)
 {
 	return ((x + PAGE_SIZE - 1UL) & ~(PAGE_SIZE - 1UL));
 }
+#endif
 
 static void*
 __mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
